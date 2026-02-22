@@ -4,6 +4,11 @@ Este repo contiene:
 
 ## Backend: ejemplo completo (Express)
 
+<p align="center">
+  <a href="./apps/playground-api/README.es.md"><img alt="Playground API ES" src="https://img.shields.io/badge/Playground%20API-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./apps/playground-api/README.en.md"><img alt="Playground API EN" src="https://img.shields.io/badge/Playground%20API-EN-1D9A6C?style=for-the-badge"></a>
+</p>
+
 Objetivo: exponer `POST /navai/realtime/client-secret` y habilitar funciones backend dinamicas.
 
 1. Instala dependencias:
@@ -78,6 +83,11 @@ app.listen(port, () => {
 
 ## Frontend: ejemplo completo (React + Realtime)
 
+<p align="center">
+  <a href="./apps/playground-web/README.es.md"><img alt="Playground Web ES" src="https://img.shields.io/badge/Playground%20Web-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./apps/playground-web/README.en.md"><img alt="Playground Web EN" src="https://img.shields.io/badge/Playground%20Web-EN-1D9A6C?style=for-the-badge"></a>
+</p>
+
 1. Instala dependencias:
 
 ```bash
@@ -148,6 +158,11 @@ Notas:
 - Si omites `NAVAI_API_URL`, `createNavaiBackendClient` usa `http://localhost:3000`.
 
 ## Mobile: ejemplo completo (React Native + WebRTC)
+
+<p align="center">
+  <a href="./apps/playground-mobile/README.es.md"><img alt="Playground Mobile ES" src="https://img.shields.io/badge/Playground%20Mobile-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./apps/playground-mobile/README.en.md"><img alt="Playground Mobile EN" src="https://img.shields.io/badge/Playground%20Mobile-EN-1D9A6C?style=for-the-badge"></a>
+</p>
 
 1. Instala dependencias:
 

@@ -1,9 +1,16 @@
-# @navai/voice-backend (ES)
+# @navai/voice-backend
 
-`@navai/voice-backend` cubre dos necesidades:
+<p>
+  <a href="./README.es.md"><img alt="Idioma Espanol" src="https://img.shields.io/badge/Idioma-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./README.en.md"><img alt="Language English" src="https://img.shields.io/badge/Language-EN-1D9A6C?style=for-the-badge"></a>
+</p>
 
-1. Crear `client_secret` efimero para OpenAI Realtime.
-2. Cargar funciones backend dinamicas para exponerlas como tools permitidas.
+Paquete backend para aplicaciones de voz con Navai.
+
+Este paquete resuelve dos responsabilidades backend:
+
+1. Generar `client_secret` efimero y seguro para OpenAI Realtime.
+2. Descubrir, validar, exponer y ejecutar tools backend desde tu codigo.
 
 ## Instalacion
 
@@ -11,67 +18,100 @@
 npm install @navai/voice-backend
 ```
 
-## API principal
+`express` es dependencia peer.
 
-### Client secret
+## Arquitectura General
 
+La arquitectura runtime tiene tres capas:
+
+1. `src/index.ts`
+Capa de entrada. Expone API publica, helpers de client secret y registro de rutas Express.
+
+2. `src/runtime.ts`
+Capa de descubrimiento. Resuelve `NAVAI_FUNCTIONS_FOLDERS`, escanea archivos, aplica reglas de match de rutas y construye module loaders.
+
+3. `src/functions.ts`
+Capa de ejecucion. Importa modulos seleccionados, transforma exports a tools normalizadas y las ejecuta de forma controlada.
+
+Flujo de extremo a extremo:
+
+1. Frontend/mobile llama `POST /navai/realtime/client-secret`.
+2. Backend valida opciones y politica de API key.
+3. Backend llama OpenAI `POST https://api.openai.com/v1/realtime/client_secrets`.
+4. Frontend/mobile llama `GET /navai/functions` para descubrir tools.
+5. El agente llama `POST /navai/functions/execute` con `function_name` y `payload`.
+6. Backend ejecuta solo nombres permitidos del registry cargado.
+
+## API Publica
+
+Helpers de client secret:
+
+- `getNavaiVoiceBackendOptionsFromEnv(env?)`
 - `createRealtimeClientSecret(options, request?)`
 - `createExpressClientSecretHandler(options)`
-- `getNavaiVoiceBackendOptionsFromEnv(env?)`
+
+Integracion Express:
+
 - `registerNavaiExpressRoutes(app, options?)`
 
-Tipos relevantes:
-
-- `NavaiVoiceBackendOptions`
-- `CreateClientSecretRequest`
-
-### Loader de funciones backend
+Helpers runtime dinamico:
 
 - `resolveNavaiBackendRuntimeConfig(options?)`
 - `loadNavaiFunctions(functionModuleLoaders)`
 
-Tipos relevantes:
+Tipos exportados importantes:
 
+- `NavaiVoiceBackendOptions`
+- `CreateClientSecretRequest`
 - `ResolveNavaiBackendRuntimeConfigOptions`
+- `NavaiFunctionDefinition`
 - `NavaiFunctionModuleLoaders`
 - `NavaiFunctionsRegistry`
 
-## Integracion rapida: client-secret
+## Comportamiento Detallado de Rutas
 
-### Variables de entorno recomendadas
-
-```env
-OPENAI_API_KEY=sk-...
-OPENAI_REALTIME_MODEL=gpt-realtime
-OPENAI_REALTIME_VOICE=marin
-OPENAI_REALTIME_INSTRUCTIONS=You are a helpful assistant.
-OPENAI_REALTIME_LANGUAGE=Spanish
-OPENAI_REALTIME_VOICE_ACCENT=neutral Latin American Spanish
-OPENAI_REALTIME_VOICE_TONE=friendly and professional
-OPENAI_REALTIME_CLIENT_SECRET_TTL=600
-```
-
-### Endpoint Express (minimo, sin archivos extra)
-
-```ts
-import express from "express";
-import { registerNavaiExpressRoutes } from "@navai/voice-backend";
-
-const app = express();
-app.use(express.json());
-
-registerNavaiExpressRoutes(app);
-```
-
-`registerNavaiExpressRoutes` registra:
+`registerNavaiExpressRoutes` registra por defecto:
 
 - `POST /navai/realtime/client-secret`
 - `GET /navai/functions`
 - `POST /navai/functions/execute`
 
-### Contrato de `POST /navai/realtime/client-secret`
+Puedes cambiar paths con:
 
-Body (todo opcional):
+- `clientSecretPath`
+- `functionsListPath`
+- `functionsExecutePath`
+
+`includeFunctionsRoutes` controla si se montan rutas `/navai/functions*`.
+
+Detalle importante:
+
+- runtime de tools se carga de forma lazy una sola vez y queda cacheado en memoria.
+- la primera llamada a listar/ejecutar construye el registry.
+- luego no hay recarga automatica de archivos hasta reiniciar proceso.
+
+## Pipeline de Client Secret
+
+Comportamiento de `createRealtimeClientSecret`:
+
+1. Valida opciones.
+- `clientSecretTtlSeconds` debe estar entre `10` y `7200`.
+- si falta key backend y no se permite key desde request, lanza error.
+
+2. Resuelve API key con prioridad estricta.
+- `openaiApiKey` backend siempre gana.
+- `apiKey` del request solo es fallback cuando backend no tiene key.
+
+3. Construye payload de sesion.
+- `model` default: `gpt-realtime`
+- `voice` default: `marin`
+- `instructions` incluye base mas lineas opcionales de idioma/acento/tono.
+
+4. Llama endpoint de client secret de OpenAI y retorna:
+- `value`
+- `expires_at`
+
+Body aceptado por la ruta:
 
 ```json
 {
@@ -85,7 +125,7 @@ Body (todo opcional):
 }
 ```
 
-Response:
+Respuesta:
 
 ```json
 {
@@ -94,50 +134,177 @@ Response:
 }
 ```
 
-Regla de API key:
+## Carga Dinamica de Funciones Interna
 
-- si existe `openaiApiKey` en backend, siempre se usa esa.
-- `apiKey` del request solo se usa como fallback cuando backend no tiene key.
+`resolveNavaiBackendRuntimeConfig` lee:
 
-## Carga dinamica de funciones backend
+- primero opciones explicitas.
+- luego env `NAVAI_FUNCTIONS_FOLDERS`.
+- luego fallback `src/ai/functions-modules`.
 
-Define rutas con `NAVAI_FUNCTIONS_FOLDERS` (CSV, `...`, `*`):
+Formatos soportados en `NAVAI_FUNCTIONS_FOLDERS`:
 
-```env
-NAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules/...,src/features/*/voice-functions
+- carpeta: `src/ai/functions-modules`
+- carpeta recursiva: `src/ai/functions-modules/...`
+- wildcard: `src/features/*/voice-functions`
+- archivo explicito: `src/ai/functions-modules/secret.ts`
+- lista CSV: `src/ai/functions-modules,...`
+
+Comportamiento del scanner:
+
+- escanea recursivamente desde `baseDir`.
+- incluye extensiones de `includeExtensions` (default `ts/js/mjs/cjs/mts/cts`).
+- excluye patrones de `exclude` (por defecto ignora `node_modules`, `dist`, rutas ocultas).
+- ignora `*.d.ts`.
+
+Comportamiento fallback:
+
+- si rutas configuradas no matchean nada, emite warning.
+- el loader cae a `src/ai/functions-modules`.
+
+## Reglas de Mapeo Export a Tool
+
+`loadNavaiFunctions` transforma estos shapes:
+
+1. Funcion exportada.
+- crea una tool.
+
+2. Clase exportada.
+- crea una tool por metodo de instancia callable.
+- args constructor desde `payload.constructorArgs`.
+- args metodo desde `payload.methodArgs`.
+
+3. Objeto exportado.
+- crea una tool por miembro callable.
+
+Normalizacion de nombres:
+
+- convierte a snake_case en minusculas.
+- elimina caracteres no seguros.
+- en colision agrega sufijo (`_2`, `_3`, ...).
+- emite warning cuando renombra.
+
+Resolucion de argumentos al invocar:
+
+- si existe `payload.args`, se usa como lista de argumentos.
+- si no, y existe `payload.value`, ese es primer argumento.
+- si no, y payload tiene claves, payload completo es primer argumento.
+- si la aridad espera un argumento mas, agrega contexto al final.
+
+En `/navai/functions/execute`, contexto incluye `{ req }`.
+
+## Contratos HTTP de Tools
+
+Respuesta `GET /navai/functions`:
+
+```json
+{
+  "items": [
+    {
+      "name": "secret_password",
+      "description": "Call exported function default.",
+      "source": "src/ai/functions-modules/security.ts#default"
+    }
+  ],
+  "warnings": []
+}
 ```
 
-Ejemplo:
+Body `POST /navai/functions/execute`:
+
+```json
+{
+  "function_name": "secret_password",
+  "payload": {
+    "args": ["abc"]
+  }
+}
+```
+
+Respuesta de exito:
+
+```json
+{
+  "ok": true,
+  "function_name": "secret_password",
+  "source": "src/ai/functions-modules/security.ts#default",
+  "result": "..."
+}
+```
+
+Respuesta por funcion desconocida:
+
+```json
+{
+  "error": "Unknown or disallowed function.",
+  "available_functions": ["..."]
+}
+```
+
+## Configuracion y Reglas de Entorno
+
+Claves env principales:
+
+- `OPENAI_API_KEY`
+- `OPENAI_REALTIME_MODEL`
+- `OPENAI_REALTIME_VOICE`
+- `OPENAI_REALTIME_INSTRUCTIONS`
+- `OPENAI_REALTIME_LANGUAGE`
+- `OPENAI_REALTIME_VOICE_ACCENT`
+- `OPENAI_REALTIME_VOICE_TONE`
+- `OPENAI_REALTIME_CLIENT_SECRET_TTL`
+- `NAVAI_ALLOW_FRONTEND_API_KEY`
+- `NAVAI_FUNCTIONS_FOLDERS`
+- `NAVAI_FUNCTIONS_BASE_DIR`
+
+Politica API key desde env:
+
+- si existe `OPENAI_API_KEY`, keys desde request quedan bloqueadas salvo `NAVAI_ALLOW_FRONTEND_API_KEY=true`.
+- si falta `OPENAI_API_KEY`, se permite key desde request como fallback.
+
+## Ejemplo Minimo de Integracion
 
 ```ts
-import { loadNavaiFunctions, resolveNavaiBackendRuntimeConfig } from "@navai/voice-backend";
+import express from "express";
+import { registerNavaiExpressRoutes } from "@navai/voice-backend";
 
-const runtime = await resolveNavaiBackendRuntimeConfig({
-  env: process.env as Record<string, string | undefined>,
-  baseDir: process.cwd()
+const app = express();
+app.use(express.json());
+
+registerNavaiExpressRoutes(app, {
+  backendOptions: {
+    openaiApiKey: process.env.OPENAI_API_KEY,
+    defaultModel: "gpt-realtime",
+    defaultVoice: "marin",
+    clientSecretTtlSeconds: 600
+  }
 });
 
-const registry = await loadNavaiFunctions(runtime.functionModuleLoaders);
-
-console.log(runtime.warnings);
-console.log(registry.warnings);
-console.log(registry.ordered.map((fn) => fn.name));
+app.listen(3000);
 ```
 
-Notas:
+## Guia Operativa
 
-- Ignora `*.d.ts`, `node_modules`, `dist` y rutas ocultas.
-- Para importar `.ts` en runtime, usa entorno compatible (por ejemplo `tsx` en dev).
+Recomendaciones para produccion:
 
-## Errores comunes
+- mantener `OPENAI_API_KEY` solo en servidor.
+- mantener `NAVAI_ALLOW_FRONTEND_API_KEY=false` en produccion.
+- restringir CORS en tu capa app.
+- monitorear y exponer `warnings` de runtime y registry.
+- reiniciar backend si cambias archivos de funciones y necesitas registry actualizado.
+
+Errores comunes:
 
 - `Missing openaiApiKey in NavaiVoiceBackendOptions.`
 - `Passing apiKey from request is disabled. Set allowApiKeyFromRequest=true to enable it.`
 - `clientSecretTtlSeconds must be between 10 and 7200.`
 
-## Referencias
+## Documentacion Relacionada
 
 - Index del paquete: `README.md`
 - Version EN: `README.en.md`
+- Paquete frontend: `../voice-frontend/README.md`
+- Paquete mobile: `../voice-mobile/README.md`
 - Playground API: `../../apps/playground-api/README.md`
 - Playground Web: `../../apps/playground-web/README.md`
+- Playground Mobile: `../../apps/playground-mobile/README.md`

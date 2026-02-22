@@ -21,77 +21,77 @@
   <a href="../../packages/voice-mobile/README.md"><img alt="Voice Mobile Docs" src="https://img.shields.io/badge/Voice%20Mobile-Docs-0B8F6A?style=for-the-badge"></a>
 </p>
 
-Playground React Native (Expo) para probar `@navai/voice-mobile` + backend NAVAI con:
+React Native (Expo) playground to test `@navai/voice-mobile` + NAVAI backend with:
 
-- navegacion por pantallas
-- tools locales cargados dinamicamente desde carpeta
-- tools backend descubiertos por API
-- configuracion por `.env` (sin VITE)
-- `VoiceNavigator` usando `useMobileVoiceAgent` desde `@navai/voice-mobile`
+- screen navigation
+- local tools loaded dynamically from folders
+- backend tools discovered by API
+- `.env` configuration (no VITE)
+- `VoiceNavigator` using `useMobileVoiceAgent` from `@navai/voice-mobile`
 
-## Requisitos
+## Requirements
 
 - Node.js 20+
 - Android Studio + Android SDK
-- JDK 23 (Java) obligatorio
-- Dispositivo Android con depuracion USB (o emulador)
+- JDK 23 (Java)
+- Android device with USB debugging (or emulator)
 
-## Variables de entorno
+## Environment variables
 
-Archivo: `apps/playground-mobile/.env`
+File: `apps/playground-mobile/.env`
 
 ```env
-NAVAI_API_URL=http://<TU_IP_LAN>:3000
+NAVAI_API_URL=http://<YOUR_LAN_IP>:3000
 NAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules
 NAVAI_ROUTES_FILE=src/ai/routes.ts
 ```
 
-Notas:
+Notes:
 
-- `NAVAI_FUNCTIONS_FOLDERS`: carpeta(s) de tools locales mobile.
-- `NAVAI_ROUTES_FILE`: archivo de rutas navegables por el agente.
-- Estas variables se exponen en runtime desde `app.config.js`.
-- El comando `generate:ai-modules` usa el CLI oficial de `@navai/voice-mobile` (no script local duplicado).
+- `NAVAI_FUNCTIONS_FOLDERS`: local mobile tool folder(s).
+- `NAVAI_ROUTES_FILE`: routes file the agent can navigate.
+- Variables are exposed at runtime via `app.config.js`.
+- `generate:ai-modules` uses official CLI from `@navai/voice-mobile` (no duplicate local script).
 
-## Estructura esperada
+## Expected structure
 
-- Rutas: `apps/playground-mobile/src/ai/routes.ts`
-- Functions locales: `apps/playground-mobile/src/ai/functions-modules/**/*.ts`
-- Registry de modulos (auto-generado): `apps/playground-mobile/src/ai/generated-module-loaders.ts`
+- Routes: `apps/playground-mobile/src/ai/routes.ts`
+- Local functions: `apps/playground-mobile/src/ai/functions-modules/**/*.ts`
+- Auto-generated module registry: `apps/playground-mobile/src/ai/generated-module-loaders.ts`
 
-Comando manual para regenerar el registry:
+Manual command to regenerate registry:
 
 ```bash
 npm run generate:ai-modules --workspace @navai/playground-mobile
 ```
 
-Para rutas de pantalla dinamicas, define la ruta de modulo en `src/ai/routes.ts` (ejemplo):
+For dynamic screen routes, define module paths in `src/ai/routes.ts` (example):
 
 ```ts
 {
-  name: "inicio",
+  name: "home",
   path: "/",
-  description: "Pantalla principal",
+  description: "Main screen",
   modulePath: "src/pages/HomeScreen.tsx",
   moduleExport: "HomeScreen"
 }
 ```
 
-## Inicio rapido
+## Quick start
 
-1. Instala dependencias desde la raiz:
+1. Install dependencies from root:
 
 ```bash
 npm install
 ```
 
-2. Ejecuta la API en otra terminal:
+2. Run API in another terminal:
 
 ```bash
 npm run dev --workspace @navai/playground-api
 ```
 
-3. Ejecuta metro del playground mobile, selecciona tu celular ( debe estar conectado a tu maquina y con depuracion activa ) :
+3. Run mobile playground and select your phone (USB debugging enabled):
 
 ```bash
 npm run android --workspace @navai/playground-mobile -- --device
@@ -99,53 +99,53 @@ npm run android --workspace @navai/playground-mobile -- --device
 
 ## Expo Go vs Development Build
 
-`react-native-webrtc` requiere modulo nativo. Para voz realtime debes usar Development Build.
+`react-native-webrtc` requires native modules. For realtime voice use Development Build.
 
-1. Conecta el celular por USB y activa depuracion USB.
-2. Compila e instala el cliente de desarrollo:
+1. Connect phone via USB and enable USB debugging.
+2. Build and install development client:
 
 ```bash
 npm run android --workspace @navai/playground-mobile -- --device
 ```
 
-3. Inicia Metro para Development Build:
+3. Start Metro for Development Build:
 
 ```bash
 npm run dev --workspace @navai/playground-mobile -- --dev-client
 ```
 
-4. Abre la app instalada (no Expo Go).
+4. Open the installed app (not Expo Go).
 
-## Configuracion Android (Windows + Git Bash)
+## Android configuration (Windows + Git Bash)
 
 ```bash
 export JAVA_HOME="/c/Program Files/Java/jdk-23"
-export ANDROID_HOME="/c/Users/<TU_USUARIO>/AppData/Local/Android/Sdk"
+export ANDROID_HOME="/c/Users/<YOUR_USER>/AppData/Local/Android/Sdk"
 export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 ```
 
-Validacion:
+Validation:
 
 ```bash
 java -version
 adb devices
 ```
 
-Si Gradle no encuentra SDK, crea `apps/playground-mobile/android/local.properties`:
+If Gradle cannot find SDK, create `apps/playground-mobile/android/local.properties`:
 
 ```properties
-sdk.dir=C:/Users/<TU_USUARIO>/AppData/Local/Android/Sdk
+sdk.dir=C:/Users/<YOUR_USER>/AppData/Local/Android/Sdk
 ```
 
-## Notas de red
+## Network notes
 
 - Android emulator: `http://10.0.2.2:3000`
 - iOS simulator: `http://localhost:3000`
-- Dispositivo fisico: IP LAN del PC, por ejemplo `http://<TU_IP_LAN>:3000`
-- `Cannot GET /` en la raiz es normal; prueba:
+- Physical device: your PC LAN IP, e.g. `http://<YOUR_LAN_IP>:3000`
+- `Cannot GET /` on root is expected; test:
 - `http://<IP>:3000/health`
 - `http://<IP>:3000/navai/functions`
 
 ## Troubleshooting
 
-Errores comunes y soluciones: `apps/playground-mobile/TROUBLESHOOTING.md`.
+Common issues and fixes: `apps/playground-mobile/TROUBLESHOOTING.md`.

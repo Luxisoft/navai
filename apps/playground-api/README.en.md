@@ -21,26 +21,26 @@
   <a href="../../packages/voice-mobile/README.md"><img alt="Voice Mobile Docs" src="https://img.shields.io/badge/Voice%20Mobile-Docs-0B8F6A?style=for-the-badge"></a>
 </p>
 
-Backend Express de ejemplo para:
+Sample Express backend for:
 
-- crear `client_secret` de Realtime
-- exponer funciones backend dinamicas para tools
+- creating Realtime `client_secret`
+- exposing dynamic backend functions for tools
 
-## Inicio rapido
+## Quick start
 
-1. Instala dependencias desde la raiz:
+1. Install dependencies from repo root:
 
 ```bash
 npm install
 ```
 
-2. Crea `.env`:
+2. Create `.env`:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-3. Configura valores minimos en `.env`:
+3. Set minimal values in `.env`:
 
 ```env
 OPENAI_API_KEY=sk-...
@@ -50,26 +50,26 @@ NAVAI_CORS_ORIGIN=http://localhost:5173,http://localhost:5174
 PORT=3000
 ```
 
-4. Ejecuta la API:
+4. Run API:
 
 ```bash
 npm run dev --workspace @navai/playground-api
 ```
 
-Atajo: desde la raiz, `npm run dev` levanta API + Web.
+Shortcut: from root, `npm run dev` starts API + Web.
 
 ## Endpoints
 
 - `GET /health`
-  - respuesta: `{ "ok": true }`
+  - response: `{ "ok": true }`
 - `POST /navai/realtime/client-secret`
-  - respuesta: `{ "value": "ek_...", "expires_at": 1730000000 }`
+  - response: `{ "value": "ek_...", "expires_at": 1730000000 }`
 - `GET /navai/functions`
-  - respuesta: `{ "items": [...], "warnings": [...] }`
+  - response: `{ "items": [...], "warnings": [...] }`
 - `POST /navai/functions/execute`
-  - ejecuta una funcion backend por nombre.
+  - executes one backend function by name.
 
-### Body opcional de `POST /navai/realtime/client-secret`
+### Optional body for `POST /navai/realtime/client-secret`
 
 ```json
 {
@@ -83,13 +83,13 @@ Atajo: desde la raiz, `npm run dev` levanta API + Web.
 }
 ```
 
-Notas:
+Notes:
 
-- Si backend tiene `OPENAI_API_KEY`, esa key gana siempre.
-- `apiKey` en request solo se usa como fallback cuando backend no tiene key.
-- `language`, `voiceAccent` y `voiceTone` se agregan a las instrucciones de sesion.
+- If backend has `OPENAI_API_KEY`, that key always wins.
+- Request `apiKey` is only used as fallback when backend key is missing.
+- `language`, `voiceAccent`, and `voiceTone` are appended to session instructions.
 
-### Body de `POST /navai/functions/execute`
+### Body for `POST /navai/functions/execute`
 
 ```json
 {
@@ -98,23 +98,23 @@ Notas:
 }
 ```
 
-## Variables de entorno
+## Environment variables
 
-- `OPENAI_API_KEY`: key de servidor.
+- `OPENAI_API_KEY`: server key.
 - `OPENAI_REALTIME_MODEL`: default `gpt-realtime`.
 - `OPENAI_REALTIME_VOICE`: default `marin`.
-- `OPENAI_REALTIME_INSTRUCTIONS`: instrucciones base.
-- `OPENAI_REALTIME_LANGUAGE`: idioma de salida (se inyecta en instrucciones).
-- `OPENAI_REALTIME_VOICE_ACCENT`: acento de voz (se inyecta en instrucciones).
-- `OPENAI_REALTIME_VOICE_TONE`: tono de voz (se inyecta en instrucciones).
-- `OPENAI_REALTIME_CLIENT_SECRET_TTL`: segundos (`10-7200`).
-- `NAVAI_FUNCTIONS_FOLDERS`: rutas para auto-cargar funciones backend (CSV, `...`, `*`).
-- `NAVAI_FUNCTIONS_BASE_DIR`: base dir opcional para resolver rutas de funciones.
-- `NAVAI_CORS_ORIGIN`: origenes CORS permitidos (CSV).
+- `OPENAI_REALTIME_INSTRUCTIONS`: base instructions.
+- `OPENAI_REALTIME_LANGUAGE`: output language (injected into instructions).
+- `OPENAI_REALTIME_VOICE_ACCENT`: voice accent (injected into instructions).
+- `OPENAI_REALTIME_VOICE_TONE`: voice tone (injected into instructions).
+- `OPENAI_REALTIME_CLIENT_SECRET_TTL`: seconds (`10-7200`).
+- `NAVAI_FUNCTIONS_FOLDERS`: backend function paths (CSV, `...`, `*`).
+- `NAVAI_FUNCTIONS_BASE_DIR`: optional base dir for function path resolution.
+- `NAVAI_CORS_ORIGIN`: allowed CORS origins (CSV).
 - `NAVAI_ALLOW_FRONTEND_API_KEY`: `true|false`.
-- `PORT`: puerto HTTP.
+- `PORT`: HTTP port.
 
-## Estructura relevante
+## Relevant structure
 
-- `src/server.ts`: setup Express, CORS y errores.
-- `src/ai/**`: funciones backend que se cargan como tools (segun `NAVAI_FUNCTIONS_FOLDERS`).
+- `src/server.ts`: Express setup, CORS and errors.
+- `src/ai/**`: backend functions loaded as tools (based on `NAVAI_FUNCTIONS_FOLDERS`).
