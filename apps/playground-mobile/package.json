@@ -1,0 +1,34 @@
+{
+  "name": "@navai/playground-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "generate:ai-modules": "node ../../node_modules/@navai/voice-mobile/bin/generate-mobile-module-loaders.mjs",
+    "predev": "npm run generate:ai-modules",
+    "preandroid": "npm run generate:ai-modules",
+    "preios": "npm run generate:ai-modules",
+    "pretypecheck": "npm run generate:ai-modules",
+    "dev": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@navai/voice-mobile": "^0.1.0",
+    "babel-preset-expo": "~54.0.10",
+    "expo": "~54.0.0",
+    "expo-asset": "~12.0.12",
+    "expo-clipboard": "~8.0.7",
+    "expo-constants": "~18.0.13",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-webrtc": "^124.0.7"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "dotenv": "^16.6.1",
+    "typescript": "^5.7.3"
+  }
+}

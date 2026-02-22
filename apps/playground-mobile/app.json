@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Navai Mobile Playground",
+    "slug": "navai-mobile-playground",
+    "scheme": "navai-mobile-playground",
+    "version": "0.1.0",
+    "icon": "./assets/icon_navai.jpg",
+    "orientation": "portrait",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "jsEngine": "hermes",
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon_navai.jpg",
+        "backgroundColor": "#0B1220"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE",
+        "MODIFY_AUDIO_SETTINGS",
+        "RECORD_AUDIO"
+      ],
+      "package": "com.luxisoft.navaimobileplayground"
+    }
+  }
+}

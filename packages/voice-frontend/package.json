@@ -1,0 +1,45 @@
+{
+  "name": "@navai/voice-frontend",
+  "version": "0.1.1",
+  "description": "Frontend helpers to build OpenAI Realtime voice agents",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "navai-generate-web-loaders": "./bin/generate-web-module-loaders.mjs",
+    "navai-setup-voice-frontend": "./bin/auto-configure-consumer.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "postinstall": "node ./bin/auto-configure-consumer.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@openai/agents": "^0.4.14",
+    "zod": "^4.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

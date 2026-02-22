@@ -1,0 +1,33 @@
+{
+  "name": "navai-voice",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo for Navai voice backend library and web playground",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @navai/voice-backend && npm run build --workspace @navai/voice-frontend && npm run build --workspace @navai/voice-mobile && npm run build --workspace @navai/playground-api && npm run build --workspace @navai/playground-web",
+    "dev": "npm run build --workspace @navai/voice-backend && npm run build --workspace @navai/voice-frontend && npm run build --workspace @navai/voice-mobile && concurrently -n api,web \"npm run dev --workspace @navai/playground-api\" \"npm run dev --workspace @navai/playground-web\"",
+    "dev:mobile": "npm run build --workspace @navai/voice-backend && npm run build --workspace @navai/voice-mobile && concurrently -n api,mobile \"npm run dev --workspace @navai/playground-api\" \"npm run dev --workspace @navai/playground-mobile\"",
+    "typecheck": "npm run build --workspace @navai/voice-backend && npm run build --workspace @navai/voice-frontend && npm run build --workspace @navai/voice-mobile && npm run typecheck --workspace @navai/voice-backend && npm run typecheck --workspace @navai/voice-frontend && npm run typecheck --workspace @navai/voice-mobile && npm run typecheck --workspace @navai/playground-api && npm run typecheck --workspace @navai/playground-web",
+    "lint": "npm run lint --workspace @navai/voice-backend && npm run lint --workspace @navai/voice-frontend && npm run lint --workspace @navai/voice-mobile && npm run lint --workspace @navai/playground-api && npm run lint --workspace @navai/playground-web"
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@esbuild/win32-x64": "^0.27.3",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
