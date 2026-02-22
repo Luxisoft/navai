@@ -4,11 +4,6 @@ This repository contains:
 
 ## Backend: complete example (Express)
 
-<p align="center">
-  <a href="./apps/playground-api/README.es.md"><img alt="Playground API ES" src="https://img.shields.io/badge/Playground%20API-ES-0A66C2?style=for-the-badge"></a>
-  <a href="./apps/playground-api/README.en.md"><img alt="Playground API EN" src="https://img.shields.io/badge/Playground%20API-EN-1D9A6C?style=for-the-badge"></a>
-</p>
-
 Goal: expose `POST /navai/realtime/client-secret` and enable dynamic backend functions.
 
 1. Install dependencies:
@@ -81,12 +76,12 @@ app.listen(port, () => {
 - `GET /navai/functions`
 - `POST /navai/functions/execute`
 
-## Frontend: complete example (React + Realtime)
-
 <p align="center">
-  <a href="./apps/playground-web/README.es.md"><img alt="Playground Web ES" src="https://img.shields.io/badge/Playground%20Web-ES-0A66C2?style=for-the-badge"></a>
-  <a href="./apps/playground-web/README.en.md"><img alt="Playground Web EN" src="https://img.shields.io/badge/Playground%20Web-EN-1D9A6C?style=for-the-badge"></a>
+  <a href="./apps/playground-api/README.es.md"><img alt="Playground API ES" src="https://img.shields.io/badge/Playground%20API-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./apps/playground-api/README.en.md"><img alt="Playground API EN" src="https://img.shields.io/badge/Playground%20API-EN-1D9A6C?style=for-the-badge"></a>
 </p>
+
+## Frontend: complete example (React + Realtime)
 
 1. Install dependencies:
 
@@ -157,12 +152,12 @@ Notes:
 - In web apps, generate `src/ai/generated-module-loaders.ts` from `NAVAI_FUNCTIONS_FOLDERS` and pass it to `useWebVoiceAgent`.
 - If `NAVAI_API_URL` is missing, `createNavaiBackendClient` falls back to `http://localhost:3000`.
 
-## Mobile: complete example (React Native + WebRTC)
-
 <p align="center">
-  <a href="./apps/playground-mobile/README.es.md"><img alt="Playground Mobile ES" src="https://img.shields.io/badge/Playground%20Mobile-ES-0A66C2?style=for-the-badge"></a>
-  <a href="./apps/playground-mobile/README.en.md"><img alt="Playground Mobile EN" src="https://img.shields.io/badge/Playground%20Mobile-EN-1D9A6C?style=for-the-badge"></a>
+  <a href="./apps/playground-web/README.es.md"><img alt="Playground Web ES" src="https://img.shields.io/badge/Playground%20Web-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./apps/playground-web/README.en.md"><img alt="Playground Web EN" src="https://img.shields.io/badge/Playground%20Web-EN-1D9A6C?style=for-the-badge"></a>
 </p>
+
+## Mobile: complete example (React Native + WebRTC)
 
 1. Install dependencies:
 
@@ -237,3 +232,8 @@ Notes:
 - `useMobileVoiceAgent` expects `runtime`, `runtimeLoading`, and `runtimeError` from your app runtime bootstrap.
 - Generate `src/ai/generated-module-loaders.ts` before running mobile dev/build commands.
 - For Android emulator, use `http://10.0.2.2:3000`; for physical devices, use your LAN IP.
+
+<p align="center">
+  <a href="./apps/playground-mobile/README.es.md"><img alt="Playground Mobile ES" src="https://img.shields.io/badge/Playground%20Mobile-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./apps/playground-mobile/README.en.md"><img alt="Playground Mobile EN" src="https://img.shields.io/badge/Playground%20Mobile-EN-1D9A6C?style=for-the-badge"></a>
+</p>

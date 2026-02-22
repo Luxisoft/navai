@@ -10,13 +10,10 @@
   <a href="../playground-api/README.en.md"><img alt="Playground API EN" src="https://img.shields.io/badge/Playground%20API-EN-1D9A6C?style=for-the-badge"></a>
   <a href="../playground-web/README.es.md"><img alt="Playground Web ES" src="https://img.shields.io/badge/Playground%20Web-ES-0A66C2?style=for-the-badge"></a>
   <a href="../playground-web/README.en.md"><img alt="Playground Web EN" src="https://img.shields.io/badge/Playground%20Web-EN-1D9A6C?style=for-the-badge"></a>
-  <a href="../playground-mobile/README.es.md"><img alt="Playground Mobile ES" src="https://img.shields.io/badge/Playground%20Mobile-ES-0A66C2?style=for-the-badge"></a>
-  <a href="../playground-mobile/README.en.md"><img alt="Playground Mobile EN" src="https://img.shields.io/badge/Playground%20Mobile-EN-1D9A6C?style=for-the-badge"></a>
 </p>
 
 <p align="center">
-  <a href="../../packages/voice-backend/README.es.md"><img alt="Voice Backend ES" src="https://img.shields.io/badge/Voice%20Backend-ES-0A66C2?style=for-the-badge"></a>
-  <a href="../../packages/voice-backend/README.en.md"><img alt="Voice Backend EN" src="https://img.shields.io/badge/Voice%20Backend-EN-1D9A6C?style=for-the-badge"></a>
+  <a href="../../packages/voice-backend/README.md"><img alt="Voice Backend Docs" src="https://img.shields.io/badge/Voice%20Backend-Docs-ff9023?style=for-the-badge"></a>
   <a href="../../packages/voice-frontend/README.md"><img alt="Voice Frontend Docs" src="https://img.shields.io/badge/Voice%20Frontend-Docs-146EF5?style=for-the-badge"></a>
   <a href="../../packages/voice-mobile/README.md"><img alt="Voice Mobile Docs" src="https://img.shields.io/badge/Voice%20Mobile-Docs-0B8F6A?style=for-the-badge"></a>
 </p>
