@@ -21,7 +21,9 @@
   "files": [
     "dist",
     "bin",
-    "README.md"
+    "README.md",
+    "README.es.md",
+    "README.en.md"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
