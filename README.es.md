@@ -147,29 +147,78 @@ Notas:
 - En web, genera `src/ai/generated-module-loaders.ts` desde `NAVAI_FUNCTIONS_FOLDERS` y pasalo a `useWebVoiceAgent`.
 - Si omites `NAVAI_API_URL`, `createNavaiBackendClient` usa `http://localhost:3000`.
 
-## Mobile: adaptador inicial (React Native + WebRTC)
+## Mobile: ejemplo completo (React Native + WebRTC)
 
-Instala:
+1. Instala dependencias:
 
 ```bash
 npm install @navai/voice-mobile react react-native react-native-webrtc
 ```
 
-Uso con hook:
+2. Variables mobile:
 
-```ts
-import { useMobileVoiceAgent } from "@navai/voice-mobile";
-
-const agent = useMobileVoiceAgent({
-  runtime,
-  runtimeLoading,
-  runtimeError,
-  navigate: (path) => navigate(path)
-});
+```env
+NAVAI_API_URL=http://<TU_IP_LAN>:3000
+NAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules
+NAVAI_ROUTES_FILE=src/ai/routes.ts
 ```
 
-Para generar loaders mobile automaticamente:
+Descripcion rapida:
+
+- `NAVAI_API_URL`: URL base del backend accesible desde mobile.
+- `NAVAI_FUNCTIONS_FOLDERS`: rutas de modulos de funciones locales mobile.
+- `NAVAI_ROUTES_FILE`: modulo de rutas permitidas para tools de navegacion mobile.
+
+3. Genera los module loaders mobile:
 
 ```bash
 navai-generate-mobile-loaders
 ```
+
+4. Ejemplo completo usando el hook de la libreria en `src/voice/VoiceNavigator.tsx`:
+
+```tsx
+import {
+  useMobileVoiceAgent,
+  type ResolveNavaiMobileApplicationRuntimeConfigResult
+} from "@navai/voice-mobile";
+import { Pressable, Text, View } from "react-native";
+
+type Props = {
+  runtime: ResolveNavaiMobileApplicationRuntimeConfigResult | null;
+  runtimeLoading: boolean;
+  runtimeError: string | null;
+  navigate: (path: string) => void;
+};
+
+export function VoiceNavigator({ runtime, runtimeLoading, runtimeError, navigate }: Props) {
+  const agent = useMobileVoiceAgent({
+    runtime,
+    runtimeLoading,
+    runtimeError,
+    navigate
+  });
+
+  return (
+    <View>
+      {!agent.isConnected ? (
+        <Pressable onPress={() => void agent.start()} disabled={agent.isConnecting}>
+          <Text>{agent.isConnecting ? "Connecting..." : "Start Voice"}</Text>
+        </Pressable>
+      ) : (
+        <Pressable onPress={() => void agent.stop()}>
+          <Text>Stop Voice</Text>
+        </Pressable>
+      )}
+      <Text>Status: {agent.status}</Text>
+      {agent.error ? <Text>{agent.error}</Text> : null}
+    </View>
+  );
+}
+```
+
+Notas:
+
+- `useMobileVoiceAgent` espera `runtime`, `runtimeLoading` y `runtimeError` desde el bootstrap runtime de tu app.
+- Genera `src/ai/generated-module-loaders.ts` antes de correr comandos de dev/build mobile.
+- En emulador Android usa `http://10.0.2.2:3000`; en dispositivo fisico usa tu IP LAN.
