@@ -858,7 +858,6 @@ class Navai_Voice_API
         }
 
         $routesById = [];
-        $dedupe = [];
         foreach ($menus as $menu) {
             if (!isset($menu->term_id)) {
                 continue;
@@ -884,12 +883,6 @@ class Navai_Voice_API
                     continue;
                 }
 
-                $dedupeKey = $this->build_route_dedupe_key((string) $route['name'], (string) $route['path']);
-                if (isset($dedupe[$dedupeKey])) {
-                    continue;
-                }
-
-                $dedupe[$dedupeKey] = true;
                 $routesById[$itemId] = $route;
             }
         }
