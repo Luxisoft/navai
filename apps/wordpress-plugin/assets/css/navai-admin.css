@@ -1,0 +1,181 @@
+.navai-admin-wrap {
+  max-width: 1200px;
+}
+
+.navai-admin-hero {
+  border: 1px solid #d6deea;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #ffffff, #f3f8ff);
+  margin: 14px 0 22px;
+}
+
+.navai-admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px 14px;
+}
+
+.navai-admin-brand h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.navai-admin-brand p {
+  margin: 8px 0 0;
+  color: #384253;
+}
+
+.navai-admin-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid #d0dae9;
+  box-shadow: 0 4px 10px rgba(15, 34, 63, 0.12);
+}
+
+.navai-admin-banner-wrap {
+  border-top: 1px solid #d8e2f0;
+  background: #f9fbff;
+  padding: 12px 20px 16px;
+}
+
+.navai-admin-banner {
+  display: block;
+  max-width: min(560px, 100%);
+  width: 100%;
+  height: auto;
+}
+
+.navai-admin-tab-buttons {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.navai-admin-tab-button.button {
+  border-radius: 9px;
+  border: 1px solid #c8d5e8;
+  padding: 6px 15px;
+}
+
+.navai-admin-tab-button.button.is-active {
+  color: #ffffff;
+  border-color: #0f62d6;
+  background: linear-gradient(135deg, #0b62d8, #237fff);
+}
+
+.navai-admin-panel {
+  display: none;
+}
+
+.navai-admin-panel.is-active {
+  display: block;
+}
+
+.navai-admin-panel > h2 {
+  margin: 0 0 6px;
+}
+
+.navai-admin-panel > p {
+  margin: 0 0 14px;
+  color: #3e4858;
+}
+
+.navai-admin-card {
+  border: 1px solid #d6deea;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px 16px;
+  margin: 0 0 14px;
+}
+
+.navai-admin-card h3 {
+  margin: 0 0 10px;
+}
+
+.navai-admin-menu-grid,
+.navai-admin-plugin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.navai-admin-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.navai-admin-check input[type="checkbox"] {
+  margin-top: 3px;
+}
+
+.navai-admin-check-block {
+  border: 1px solid #e2e8f2;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfdff;
+}
+
+.navai-admin-check-block span {
+  display: block;
+}
+
+.navai-admin-check-block small {
+  display: block;
+  color: #526077;
+  margin-top: 4px;
+  word-break: break-all;
+}
+
+.navai-admin-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.navai-admin-settings-grid > label {
+  display: block;
+}
+
+.navai-admin-settings-grid > label > span {
+  display: block;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.navai-admin-settings-grid .navai-admin-full-width {
+  grid-column: 1 / -1;
+}
+
+.navai-admin-settings-grid input[type="text"],
+.navai-admin-settings-grid input[type="password"],
+.navai-admin-settings-grid input[type="number"],
+.navai-admin-settings-grid textarea {
+  width: 100%;
+}
+
+.navai-admin-footer {
+  margin-top: 18px;
+  color: #2f3847;
+}
+
+.navai-admin-footer a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (max-width: 782px) {
+  .navai-admin-brand {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .navai-admin-tab-buttons {
+    flex-wrap: wrap;
+  }
+}

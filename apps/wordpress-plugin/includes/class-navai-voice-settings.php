@@ -44,30 +44,6 @@ class Navai_Voice_Settings
                 'default' => $this->get_defaults(),
             ]
         );
-
-        add_settings_section(
-            'navai_voice_main',
-            __('Configuracion principal', 'navai-voice'),
-            '__return_null',
-            self::PAGE_SLUG
-        );
-
-        $this->add_text_field('openai_api_key', __('OpenAI API Key', 'navai-voice'), 'password');
-        $this->add_text_field('default_model', __('Modelo Realtime', 'navai-voice'));
-        $this->add_text_field('default_voice', __('Voz', 'navai-voice'));
-        $this->add_textarea_field('default_instructions', __('Instrucciones base', 'navai-voice'));
-        $this->add_text_field('default_language', __('Idioma', 'navai-voice'));
-        $this->add_text_field('default_voice_accent', __('Acento de voz', 'navai-voice'));
-        $this->add_text_field('default_voice_tone', __('Tono de voz', 'navai-voice'));
-        $this->add_number_field('client_secret_ttl', __('TTL client_secret (segundos)', 'navai-voice'));
-        $this->add_checkbox_field(
-            'allow_public_client_secret',
-            __('Permitir client_secret publico (anonimos)', 'navai-voice')
-        );
-        $this->add_checkbox_field(
-            'allow_public_functions',
-            __('Permitir funciones backend publicas (anonimos)', 'navai-voice')
-        );
     }
 
     /**
@@ -82,32 +58,34 @@ class Navai_Voice_Settings
 
         $apiKey = isset($source['openai_api_key']) ? trim((string) $source['openai_api_key']) : '';
         if ($apiKey === '') {
-            // Evita borrar la API key accidentalmente al guardar el formulario vacio.
+            // Avoid accidental key deletion when saving without API key.
             $apiKey = (string) ($previous['openai_api_key'] ?? '');
         }
 
-        $ttl = isset($source['client_secret_ttl']) ? (int) $source['client_secret_ttl'] : (int) $defaults['client_secret_ttl'];
-        if ($ttl < 10 || $ttl > 7200) {
-            $ttl = (int) $defaults['client_secret_ttl'];
+        $ttlFallback = (int) ($previous['client_secret_ttl'] ?? $defaults['client_secret_ttl']);
+        $ttlInput = isset($source['client_secret_ttl']) ? (int) $source['client_secret_ttl'] : $ttlFallback;
+        $ttl = ($ttlInput >= 10 && $ttlInput <= 7200) ? $ttlInput : (int) $defaults['client_secret_ttl'];
+
+        $activeTab = isset($source['active_tab']) ? sanitize_key((string) $source['active_tab']) : 'navigation';
+        if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
+            $activeTab = 'navigation';
         }
 
         return [
             'openai_api_key' => $apiKey,
-            'default_model' => sanitize_text_field((string) ($source['default_model'] ?? $defaults['default_model'])),
-            'default_voice' => sanitize_text_field((string) ($source['default_voice'] ?? $defaults['default_voice'])),
-            'default_instructions' => sanitize_textarea_field(
-                (string) ($source['default_instructions'] ?? $defaults['default_instructions'])
-            ),
-            'default_language' => sanitize_text_field((string) ($source['default_language'] ?? $defaults['default_language'])),
-            'default_voice_accent' => sanitize_text_field(
-                (string) ($source['default_voice_accent'] ?? $defaults['default_voice_accent'])
-            ),
-            'default_voice_tone' => sanitize_text_field(
-                (string) ($source['default_voice_tone'] ?? $defaults['default_voice_tone'])
-            ),
+            'default_model' => $this->read_text_value($source, $previous, $defaults, 'default_model', true),
+            'default_voice' => $this->read_text_value($source, $previous, $defaults, 'default_voice', true),
+            'default_instructions' => $this->read_textarea_value($source, $previous, $defaults, 'default_instructions', true),
+            'default_language' => $this->read_text_value($source, $previous, $defaults, 'default_language', false),
+            'default_voice_accent' => $this->read_text_value($source, $previous, $defaults, 'default_voice_accent', false),
+            'default_voice_tone' => $this->read_text_value($source, $previous, $defaults, 'default_voice_tone', false),
             'client_secret_ttl' => $ttl,
             'allow_public_client_secret' => !empty($source['allow_public_client_secret']),
             'allow_public_functions' => !empty($source['allow_public_functions']),
+            'allowed_menu_item_ids' => $this->sanitize_menu_item_ids($source['allowed_menu_item_ids'] ?? []),
+            'allowed_plugin_files' => $this->sanitize_plugin_files($source['allowed_plugin_files'] ?? []),
+            'manual_plugins' => $this->sanitize_manual_plugins((string) ($source['manual_plugins'] ?? '')),
+            'active_tab' => $activeTab,
         ];
     }
 
@@ -116,101 +94,454 @@ class Navai_Voice_Settings
         if (!current_user_can('manage_options')) {
             return;
         }
+
+        $settings = $this->get_settings();
+        $allowedMenuItemIds = array_map('strval', is_array($settings['allowed_menu_item_ids']) ? $settings['allowed_menu_item_ids'] : []);
+        $allowedPluginFiles = array_map('strval', is_array($settings['allowed_plugin_files']) ? $settings['allowed_plugin_files'] : []);
+        $activeTab = is_string($settings['active_tab'] ?? null) ? (string) $settings['active_tab'] : 'navigation';
+        if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
+            $activeTab = 'navigation';
+        }
+
+        $menuGroups = $this->get_menu_groups();
+        $installedPlugins = $this->get_installed_plugins();
         ?>
-        <div class="wrap">
-            <h1><?php echo esc_html__('NAVAI Voice', 'navai-voice'); ?></h1>
-            <p><?php echo esc_html__('Configura credenciales y defaults del runtime de voz.', 'navai-voice'); ?></p>
-            <form action="options.php" method="post">
-                <?php
-                settings_fields('navai_voice_settings_group');
-                do_settings_sections(self::PAGE_SLUG);
-                submit_button();
-                ?>
+        <div class="wrap navai-admin-wrap">
+            <div class="navai-admin-hero">
+                <div class="navai-admin-brand">
+                    <img
+                        class="navai-admin-icon"
+                        src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg'); ?>"
+                        alt="<?php echo esc_attr__('NAVAI icon', 'navai-voice'); ?>"
+                    />
+                    <div>
+                        <h1><?php echo esc_html__('NAVAI Voice Dashboard', 'navai-voice'); ?></h1>
+                        <p><?php echo esc_html__('Gestiona navegacion, plugins permitidos y runtime principal de NAVAI.', 'navai-voice'); ?></p>
+                    </div>
+                </div>
+                <div class="navai-admin-banner-wrap">
+                    <img
+                        class="navai-admin-banner"
+                        src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/navai.png'); ?>"
+                        alt="<?php echo esc_attr__('NAVAI', 'navai-voice'); ?>"
+                    />
+                </div>
+            </div>
+
+            <form action="options.php" method="post" class="navai-admin-form">
+                <?php settings_fields('navai_voice_settings_group'); ?>
+                <input
+                    type="hidden"
+                    id="navai-active-tab-input"
+                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[active_tab]"
+                    value="<?php echo esc_attr($activeTab); ?>"
+                />
+
+                <div class="navai-admin-tab-buttons" role="tablist" aria-label="<?php echo esc_attr__('NAVAI sections', 'navai-voice'); ?>">
+                    <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="navigation">
+                        <?php echo esc_html__('Navegacion', 'navai-voice'); ?>
+                    </button>
+                    <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="plugins">
+                        <?php echo esc_html__('Plugins', 'navai-voice'); ?>
+                    </button>
+                    <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="settings">
+                        <?php echo esc_html__('Ajustes', 'navai-voice'); ?>
+                    </button>
+                </div>
+
+                <section class="navai-admin-panel" data-navai-panel="navigation">
+                    <h2><?php echo esc_html__('Navegacion', 'navai-voice'); ?></h2>
+                    <p><?php echo esc_html__('Selecciona los items de menu permitidos para la tool navigate_to.', 'navai-voice'); ?></p>
+
+                    <?php if (count($menuGroups) === 0) : ?>
+                        <div class="notice notice-warning inline">
+                            <p><?php echo esc_html__('No se encontraron menus de WordPress. Crea menus en Apariencia > Menus.', 'navai-voice'); ?></p>
+                        </div>
+                    <?php else : ?>
+                        <?php foreach ($menuGroups as $group) : ?>
+                            <div class="navai-admin-card">
+                                <h3><?php echo esc_html($group['menu_name']); ?></h3>
+                                <div class="navai-admin-menu-grid">
+                                    <?php foreach ($group['items'] as $item) : ?>
+                                        <?php
+                                        $itemIdString = (string) $item['id'];
+                                        $isChecked = in_array($itemIdString, $allowedMenuItemIds, true);
+                                        ?>
+                                        <label class="navai-admin-check navai-admin-check-block">
+                                            <input
+                                                type="checkbox"
+                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_menu_item_ids][]"
+                                                value="<?php echo esc_attr($itemIdString); ?>"
+                                                <?php checked($isChecked, true); ?>
+                                            />
+                                            <span>
+                                                <strong><?php echo esc_html($item['title']); ?></strong><br />
+                                                <small><?php echo esc_html($item['url']); ?></small>
+                                            </span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </section>
+
+                <section class="navai-admin-panel" data-navai-panel="plugins">
+                    <h2><?php echo esc_html__('Plugins', 'navai-voice'); ?></h2>
+                    <p><?php echo esc_html__('Selecciona plugins permitidos para consulta por funciones backend de NAVAI.', 'navai-voice'); ?></p>
+
+                    <div class="navai-admin-card">
+                        <h3><?php echo esc_html__('Plugins instalados', 'navai-voice'); ?></h3>
+                        <?php if (count($installedPlugins) === 0) : ?>
+                            <p><?php echo esc_html__('No se encontraron plugins instalados.', 'navai-voice'); ?></p>
+                        <?php else : ?>
+                            <div class="navai-admin-plugin-grid">
+                                <?php foreach ($installedPlugins as $plugin) : ?>
+                                    <?php
+                                    $pluginFile = (string) $plugin['file'];
+                                    $isAllowed = in_array($pluginFile, $allowedPluginFiles, true);
+                                    ?>
+                                    <label class="navai-admin-check navai-admin-check-block">
+                                        <input
+                                            type="checkbox"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_plugin_files][]"
+                                            value="<?php echo esc_attr($pluginFile); ?>"
+                                            <?php checked($isAllowed, true); ?>
+                                        />
+                                        <span>
+                                            <strong><?php echo esc_html($plugin['name']); ?></strong>
+                                            <small><?php echo esc_html($pluginFile); ?></small>
+                                        </span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="navai-admin-card">
+                        <h3><?php echo esc_html__('Plugins manuales', 'navai-voice'); ?></h3>
+                        <p><?php echo esc_html__('Agrega plugin files o slugs (uno por linea o separados por coma).', 'navai-voice'); ?></p>
+                        <textarea
+                            class="large-text code"
+                            rows="5"
+                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[manual_plugins]"
+                        ><?php echo esc_textarea((string) ($settings['manual_plugins'] ?? '')); ?></textarea>
+                    </div>
+                </section>
+
+                <section class="navai-admin-panel" data-navai-panel="settings">
+                    <h2><?php echo esc_html__('Ajustes', 'navai-voice'); ?></h2>
+                    <p><?php echo esc_html__('Configuracion principal del runtime de voz.', 'navai-voice'); ?></p>
+
+                    <div class="navai-admin-card navai-admin-settings-grid">
+                        <label>
+                            <span><?php echo esc_html__('OpenAI API Key', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="password"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[openai_api_key]"
+                                value="<?php echo esc_attr((string) ($settings['openai_api_key'] ?? '')); ?>"
+                                autocomplete="off"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Modelo Realtime', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_model]"
+                                value="<?php echo esc_attr((string) ($settings['default_model'] ?? 'gpt-realtime')); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Voz', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_voice]"
+                                value="<?php echo esc_attr((string) ($settings['default_voice'] ?? 'marin')); ?>"
+                            />
+                        </label>
+
+                        <label class="navai-admin-full-width">
+                            <span><?php echo esc_html__('Instrucciones base', 'navai-voice'); ?></span>
+                            <textarea
+                                class="large-text"
+                                rows="4"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_instructions]"
+                            ><?php echo esc_textarea((string) ($settings['default_instructions'] ?? '')); ?></textarea>
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Idioma', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_language]"
+                                value="<?php echo esc_attr((string) ($settings['default_language'] ?? '')); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Acento de voz', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_voice_accent]"
+                                value="<?php echo esc_attr((string) ($settings['default_voice_accent'] ?? '')); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Tono de voz', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_voice_tone]"
+                                value="<?php echo esc_attr((string) ($settings['default_voice_tone'] ?? '')); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('TTL client_secret (10-7200)', 'navai-voice'); ?></span>
+                            <input
+                                type="number"
+                                min="10"
+                                max="7200"
+                                step="1"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[client_secret_ttl]"
+                                value="<?php echo esc_attr((string) ((int) ($settings['client_secret_ttl'] ?? 600))); ?>"
+                            />
+                        </label>
+
+                        <label class="navai-admin-check">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[allow_public_client_secret]"
+                                value="1"
+                                <?php checked(!empty($settings['allow_public_client_secret']), true); ?>
+                            />
+                            <span><?php echo esc_html__('Permitir client_secret publico (anonimos)', 'navai-voice'); ?></span>
+                        </label>
+
+                        <label class="navai-admin-check">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[allow_public_functions]"
+                                value="1"
+                                <?php checked(!empty($settings['allow_public_functions']), true); ?>
+                            />
+                            <span><?php echo esc_html__('Permitir funciones backend publicas (anonimos)', 'navai-voice'); ?></span>
+                        </label>
+                    </div>
+                </section>
+
+                <?php submit_button(__('Guardar cambios', 'navai-voice')); ?>
             </form>
+
+            <footer class="navai-admin-footer">
+                <?php echo esc_html__('by', 'navai-voice'); ?>
+                <a href="https://luxisoft.com/en/" target="_blank" rel="noopener noreferrer">LUXISOFT</a>
+            </footer>
         </div>
         <?php
     }
 
-    private function add_text_field(string $key, string $label, string $type = 'text'): void
-    {
-        add_settings_field(
-            $key,
-            $label,
-            function () use ($key, $type): void {
-                $settings = $this->get_settings();
-                $value = (string) ($settings[$key] ?? '');
-                printf(
-                    '<input class="regular-text" type="%s" name="%s[%s]" value="%s" autocomplete="off" />',
-                    esc_attr($type),
-                    esc_attr(self::OPTION_KEY),
-                    esc_attr($key),
-                    esc_attr($value)
-                );
-            },
-            self::PAGE_SLUG,
-            'navai_voice_main'
-        );
+    /**
+     * @param array<string, mixed> $source
+     * @param array<string, mixed> $previous
+     * @param array<string, mixed> $defaults
+     */
+    private function read_text_value(
+        array $source,
+        array $previous,
+        array $defaults,
+        string $key,
+        bool $fallbackToDefaultWhenEmpty
+    ): string {
+        $raw = array_key_exists($key, $source) ? (string) $source[$key] : (string) ($previous[$key] ?? $defaults[$key] ?? '');
+        $value = sanitize_text_field($raw);
+
+        if ($fallbackToDefaultWhenEmpty && trim($value) === '') {
+            $value = sanitize_text_field((string) ($defaults[$key] ?? ''));
+        }
+
+        return $value;
     }
 
-    private function add_textarea_field(string $key, string $label): void
-    {
-        add_settings_field(
-            $key,
-            $label,
-            function () use ($key): void {
-                $settings = $this->get_settings();
-                $value = (string) ($settings[$key] ?? '');
-                printf(
-                    '<textarea class="large-text" rows="5" name="%s[%s]">%s</textarea>',
-                    esc_attr(self::OPTION_KEY),
-                    esc_attr($key),
-                    esc_textarea($value)
-                );
-            },
-            self::PAGE_SLUG,
-            'navai_voice_main'
-        );
+    /**
+     * @param array<string, mixed> $source
+     * @param array<string, mixed> $previous
+     * @param array<string, mixed> $defaults
+     */
+    private function read_textarea_value(
+        array $source,
+        array $previous,
+        array $defaults,
+        string $key,
+        bool $fallbackToDefaultWhenEmpty
+    ): string {
+        $raw = array_key_exists($key, $source) ? (string) $source[$key] : (string) ($previous[$key] ?? $defaults[$key] ?? '');
+        $value = sanitize_textarea_field($raw);
+
+        if ($fallbackToDefaultWhenEmpty && trim($value) === '') {
+            $value = sanitize_textarea_field((string) ($defaults[$key] ?? ''));
+        }
+
+        return $value;
     }
 
-    private function add_number_field(string $key, string $label): void
+    /**
+     * @param mixed $value
+     * @return array<int, int>
+     */
+    private function sanitize_menu_item_ids($value): array
     {
-        add_settings_field(
-            $key,
-            $label,
-            function () use ($key): void {
-                $settings = $this->get_settings();
-                $value = (int) ($settings[$key] ?? 600);
-                printf(
-                    '<input type="number" min="10" max="7200" step="1" name="%s[%s]" value="%d" />',
-                    esc_attr(self::OPTION_KEY),
-                    esc_attr($key),
-                    $value
-                );
-            },
-            self::PAGE_SLUG,
-            'navai_voice_main'
-        );
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $clean = [];
+        foreach ($value as $item) {
+            $id = absint($item);
+            if ($id > 0) {
+                $clean[] = $id;
+            }
+        }
+
+        return array_values(array_unique($clean));
     }
 
-    private function add_checkbox_field(string $key, string $label): void
+    /**
+     * @param mixed $value
+     * @return array<int, string>
+     */
+    private function sanitize_plugin_files($value): array
     {
-        add_settings_field(
-            $key,
-            $label,
-            function () use ($key): void {
-                $settings = $this->get_settings();
-                $checked = !empty($settings[$key]);
-                printf(
-                    '<label><input type="checkbox" name="%s[%s]" value="1" %s /> %s</label>',
-                    esc_attr(self::OPTION_KEY),
-                    esc_attr($key),
-                    checked($checked, true, false),
-                    esc_html__('Habilitado', 'navai-voice')
-                );
-            },
-            self::PAGE_SLUG,
-            'navai_voice_main'
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $clean = [];
+        foreach ($value as $item) {
+            $pluginFile = plugin_basename((string) $item);
+            $pluginFile = trim($pluginFile);
+            if ($pluginFile !== '') {
+                $clean[] = $pluginFile;
+            }
+        }
+
+        return array_values(array_unique($clean));
+    }
+
+    private function sanitize_manual_plugins(string $value): string
+    {
+        $parts = preg_split('/[\r\n,]+/', $value) ?: [];
+        $clean = [];
+        foreach ($parts as $part) {
+            $token = trim((string) $part);
+            if ($token !== '') {
+                $clean[] = sanitize_text_field($token);
+            }
+        }
+
+        return implode("\n", array_values(array_unique($clean)));
+    }
+
+    /**
+     * @return array<int, array{menu_name: string, items: array<int, array{id: int, title: string, url: string}>}>
+     */
+    private function get_menu_groups(): array
+    {
+        if (!function_exists('wp_get_nav_menus') || !function_exists('wp_get_nav_menu_items')) {
+            return [];
+        }
+
+        $menus = wp_get_nav_menus();
+        if (!is_array($menus) || count($menus) === 0) {
+            return [];
+        }
+
+        $groups = [];
+        foreach ($menus as $menu) {
+            if (!isset($menu->term_id)) {
+                continue;
+            }
+
+            $items = wp_get_nav_menu_items((int) $menu->term_id, ['update_post_term_cache' => false]);
+            if (!is_array($items) || count($items) === 0) {
+                continue;
+            }
+
+            $groupItems = [];
+            foreach ($items as $item) {
+                if (!isset($item->ID, $item->title, $item->url)) {
+                    continue;
+                }
+
+                $url = esc_url_raw((string) $item->url);
+                if ($url === '') {
+                    continue;
+                }
+
+                $title = trim(wp_strip_all_tags((string) $item->title));
+                if ($title === '') {
+                    $title = sprintf(__('Menu item %d', 'navai-voice'), (int) $item->ID);
+                }
+
+                $groupItems[] = [
+                    'id' => (int) $item->ID,
+                    'title' => $title,
+                    'url' => $url,
+                ];
+            }
+
+            if (count($groupItems) === 0) {
+                continue;
+            }
+
+            $groups[] = [
+                'menu_name' => (string) $menu->name,
+                'items' => $groupItems,
+            ];
+        }
+
+        return $groups;
+    }
+
+    /**
+     * @return array<int, array{file: string, name: string}>
+     */
+    private function get_installed_plugins(): array
+    {
+        if (!function_exists('get_plugins')) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        $plugins = get_plugins();
+        if (!is_array($plugins) || count($plugins) === 0) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($plugins as $pluginFile => $data) {
+            $name = isset($data['Name']) ? (string) $data['Name'] : $pluginFile;
+            $name = trim($name) !== '' ? $name : $pluginFile;
+
+            $items[] = [
+                'file' => (string) $pluginFile,
+                'name' => $name,
+            ];
+        }
+
+        usort(
+            $items,
+            static fn(array $a, array $b): int => strcasecmp($a['name'], $b['name'])
         );
+
+        return $items;
     }
 
     /**
@@ -229,6 +560,10 @@ class Navai_Voice_Settings
             'client_secret_ttl' => 600,
             'allow_public_client_secret' => true,
             'allow_public_functions' => true,
+            'allowed_menu_item_ids' => [],
+            'allowed_plugin_files' => [],
+            'manual_plugins' => '',
+            'active_tab' => 'navigation',
         ];
     }
 }

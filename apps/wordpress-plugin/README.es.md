@@ -9,7 +9,10 @@ Ruta propuesta en este repo:
 ## Que incluye este esqueleto
 
 - Plugin bootstrap: `navai-voice.php`
-- Ajustes en admin: `Ajustes > NAVAI Voice`
+- Dashboard en admin: `Ajustes > NAVAI Voice` con secciones:
+  - `Navegacion` (items de menu permitidos para `navigate_to`)
+  - `Plugins` (plugins permitidos para consulta/acciones)
+  - `Ajustes` (configuracion principal)
 - Endpoints REST en PHP:
   - `POST /wp-json/navai/v1/realtime/client-secret`
   - `GET /wp-json/navai/v1/functions`
@@ -74,6 +77,26 @@ add_filter('navai_voice_functions_registry', function (array $items): array {
     ];
 
     return $items;
+});
+```
+
+Ademas, el plugin expone funciones backend automáticas para la seccion `Plugins`:
+
+- `list_allowed_plugins`
+- `get_plugin_information`
+- `list_plugin_actions`
+- `run_plugin_action`
+
+`run_plugin_action` ejecuta acciones registradas por filtro:
+
+```php
+add_filter('navai_voice_plugin_actions', function (array $actions): array {
+    $actions['woocommerce'] = [
+        'list_recent_orders' => function (array $args, array $context) {
+            return ['ok' => true, 'orders' => []];
+        },
+    ];
+    return $actions;
 });
 ```
 

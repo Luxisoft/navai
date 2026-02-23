@@ -22,7 +22,92 @@ class Navai_Voice_Plugin
         add_action('admin_init', [$this->settings, 'register_settings']);
         add_action('rest_api_init', [$this->api, 'register_routes']);
         add_action('wp_enqueue_scripts', [$this, 'register_assets']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        add_action('admin_head-plugins.php', [$this, 'inject_plugins_page_logo_css']);
+
+        add_filter('plugin_action_links_' . NAVAI_VOICE_BASENAME, [$this, 'add_plugin_action_links']);
         add_shortcode('navai_voice', [$this, 'render_voice_shortcode']);
+    }
+
+    /**
+     * @param array<int, string> $links
+     * @return array<int, string>
+     */
+    public function add_plugin_action_links(array $links): array
+    {
+        $settingsUrl = admin_url('options-general.php?page=' . Navai_Voice_Settings::PAGE_SLUG);
+        $settingsLink = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url($settingsUrl),
+            esc_html__('Ajustes', 'navai-voice')
+        );
+
+        array_unshift($links, $settingsLink);
+        return $links;
+    }
+
+    public function inject_plugins_page_logo_css(): void
+    {
+        $pluginRowSelector = sprintf(
+            'tr[data-plugin="%s"] .plugin-title strong',
+            esc_attr(NAVAI_VOICE_BASENAME)
+        );
+        $logoUrl = esc_url(NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg');
+        ?>
+        <style>
+            <?php echo $pluginRowSelector; ?> {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+            <?php echo $pluginRowSelector; ?>::before {
+                content: "";
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                background: url('<?php echo $logoUrl; ?>') center/cover no-repeat;
+                display: inline-block;
+            }
+        </style>
+        <?php
+    }
+
+    /**
+     * @param string $hookSuffix
+     */
+    public function enqueue_admin_assets(string $hookSuffix): void
+    {
+        if ($hookSuffix !== 'settings_page_' . Navai_Voice_Settings::PAGE_SLUG) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'navai-voice-admin',
+            NAVAI_VOICE_URL . 'assets/css/navai-admin.css',
+            [],
+            NAVAI_VOICE_VERSION
+        );
+
+        wp_enqueue_script(
+            'navai-voice-admin',
+            NAVAI_VOICE_URL . 'assets/js/navai-admin.js',
+            [],
+            NAVAI_VOICE_VERSION,
+            true
+        );
+
+        $settings = $this->settings->get_settings();
+        $activeTab = isset($settings['active_tab']) && is_string($settings['active_tab'])
+            ? $settings['active_tab']
+            : 'navigation';
+
+        wp_localize_script(
+            'navai-voice-admin',
+            'NAVAI_VOICE_ADMIN_CONFIG',
+            [
+                'activeTab' => $activeTab,
+            ]
+        );
     }
 
     public function register_assets(): void
@@ -146,7 +231,8 @@ class Navai_Voice_Plugin
      */
     private function resolve_public_routes(): array
     {
-        $defaultRoutes = [
+        $settings = $this->settings->get_settings();
+        $baseRoutes = [
             [
                 'name' => 'inicio',
                 'path' => home_url('/'),
@@ -155,13 +241,16 @@ class Navai_Voice_Plugin
             ],
         ];
 
+        $baseRoutes = array_merge($baseRoutes, $this->get_menu_routes_from_settings($settings));
+
         /** @var mixed $raw */
-        $raw = apply_filters('navai_voice_routes', $defaultRoutes);
+        $raw = apply_filters('navai_voice_routes', $baseRoutes, $settings);
         if (!is_array($raw)) {
-            $raw = $defaultRoutes;
+            $raw = $baseRoutes;
         }
 
         $routes = [];
+        $seenKeys = [];
         foreach ($raw as $item) {
             if (!is_array($item)) {
                 continue;
@@ -186,6 +275,12 @@ class Navai_Voice_Plugin
                 continue;
             }
 
+            $dedupeKey = strtolower($name) . '|' . strtolower(untrailingslashit($path));
+            if (isset($seenKeys[$dedupeKey])) {
+                continue;
+            }
+            $seenKeys[$dedupeKey] = true;
+
             $synonyms = [];
             if (isset($item['synonyms']) && is_array($item['synonyms'])) {
                 foreach ($item['synonyms'] as $synonym) {
@@ -205,6 +300,56 @@ class Navai_Voice_Plugin
                 'path' => $path,
                 'description' => $description,
                 'synonyms' => array_values(array_unique($synonyms)),
+            ];
+        }
+
+        return $routes;
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
+     */
+    private function get_menu_routes_from_settings(array $settings): array
+    {
+        if (!function_exists('wp_get_nav_menu_item')) {
+            return [];
+        }
+
+        $idsRaw = is_array($settings['allowed_menu_item_ids'] ?? null)
+            ? $settings['allowed_menu_item_ids']
+            : [];
+        if (count($idsRaw) === 0) {
+            return [];
+        }
+
+        $ids = array_values(array_unique(array_map('absint', $idsRaw)));
+        $routes = [];
+        foreach ($ids as $id) {
+            if ($id <= 0) {
+                continue;
+            }
+
+            $item = wp_get_nav_menu_item($id);
+            if (!$item || !isset($item->url, $item->title)) {
+                continue;
+            }
+
+            $url = esc_url_raw((string) $item->url);
+            if ($url === '') {
+                continue;
+            }
+
+            $title = trim(wp_strip_all_tags((string) $item->title));
+            if ($title === '') {
+                continue;
+            }
+
+            $routes[] = [
+                'name' => $title,
+                'path' => $url,
+                'description' => __('Ruta de menu seleccionada en WordPress.', 'navai-voice'),
+                'synonyms' => [strtolower($title)],
             ];
         }
 
