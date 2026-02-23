@@ -32,7 +32,7 @@ class Navai_Voice_API
             [
                 'methods' => WP_REST_Server::READABLE,
                 'callback' => [$this, 'list_functions'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'can_access_functions'],
             ]
         );
 
@@ -42,7 +42,7 @@ class Navai_Voice_API
             [
                 'methods' => WP_REST_Server::CREATABLE,
                 'callback' => [$this, 'execute_function'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'can_access_functions'],
             ]
         );
     }
@@ -51,6 +51,16 @@ class Navai_Voice_API
     {
         $settings = $this->settings->get_settings();
         if (!empty($settings['allow_public_client_secret'])) {
+            return true;
+        }
+
+        return current_user_can('manage_options');
+    }
+
+    public function can_access_functions(WP_REST_Request $request): bool
+    {
+        $settings = $this->settings->get_settings();
+        if (!empty($settings['allow_public_functions'])) {
             return true;
         }
 
@@ -162,7 +172,7 @@ class Navai_Voice_API
         );
     }
 
-    public function list_functions()
+    public function list_functions(WP_REST_Request $request)
     {
         $registry = $this->get_functions_registry();
 

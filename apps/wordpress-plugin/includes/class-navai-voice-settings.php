@@ -64,6 +64,10 @@ class Navai_Voice_Settings
             'allow_public_client_secret',
             __('Permitir client_secret publico (anonimos)', 'navai-voice')
         );
+        $this->add_checkbox_field(
+            'allow_public_functions',
+            __('Permitir funciones backend publicas (anonimos)', 'navai-voice')
+        );
     }
 
     /**
@@ -103,6 +107,7 @@ class Navai_Voice_Settings
             ),
             'client_secret_ttl' => $ttl,
             'allow_public_client_secret' => !empty($source['allow_public_client_secret']),
+            'allow_public_functions' => !empty($source['allow_public_functions']),
         ];
     }
 
@@ -223,6 +228,7 @@ class Navai_Voice_Settings
             'default_voice_tone' => 'friendly and professional',
             'client_secret_ttl' => 600,
             'allow_public_client_secret' => true,
+            'allow_public_functions' => true,
         ];
     }
 }
