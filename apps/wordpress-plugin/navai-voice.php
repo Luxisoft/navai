@@ -3,7 +3,7 @@
  * Plugin Name: NAVAI Voice
  * Plugin URI: https://navai.luxisoft.com/documentation/installation-wordpress
  * Description: Integracion de voz NAVAI para WordPress usando endpoints REST en PHP.
- * Version: 0.3.19
+ * Version: 0.3.20
  * Author: NAVAI
  * Text Domain: navai-voice
  * Requires at least: 6.2
@@ -176,8 +176,9 @@ if (!function_exists('navai_voice_repair_registry')) {
     function navai_voice_repair_registry(bool $ensureCurrent = false): void
     {
         $current = navai_voice_current_basename();
-        $preferred = navai_voice_pick_preferred_plugin_basename();
-        $preferredExists = $preferred !== '' && file_exists(WP_PLUGIN_DIR . '/' . $preferred);
+        if ($current === '') {
+            return;
+        }
 
         $active = get_option('active_plugins', []);
         if (is_array($active)) {
@@ -200,28 +201,11 @@ if (!function_exists('navai_voice_repair_registry')) {
                 $isCandidate = navai_voice_is_candidate_plugin_id($plugin);
                 $exists = file_exists(WP_PLUGIN_DIR . '/' . $plugin);
                 if (!$exists) {
-                    if ($isCandidate && $preferredExists) {
-                        $filtered[] = $preferred;
-                        if ($preferred === $current) {
-                            $hasCurrent = true;
-                        }
-                    }
                     $changed = true;
                     continue;
                 }
 
-                if ($isCandidate && $preferredExists && $plugin !== $preferred) {
-                    $filtered[] = $preferred;
-                    if ($preferred === $current) {
-                        $hasCurrent = true;
-                    }
-                    $changed = true;
-                    continue;
-                }
-
-                if ($isCandidate && !$preferredExists && $plugin !== $current) {
-                    $filtered[] = $current;
-                    $hasCurrent = true;
+                if ($isCandidate && $plugin !== $current) {
                     $changed = true;
                     continue;
                 }
@@ -257,13 +241,7 @@ if (!function_exists('navai_voice_repair_registry')) {
                     continue;
                 }
 
-                if (navai_voice_is_candidate_plugin_id($plugin) && $preferredExists && $plugin !== $preferred) {
-                    unset($recentlyActivated[$plugin]);
-                    $recentChanged = true;
-                    continue;
-                }
-
-                if (navai_voice_is_candidate_plugin_id($plugin) && !$preferredExists && $plugin !== $current) {
+                if (navai_voice_is_candidate_plugin_id($plugin) && $plugin !== $current) {
                     unset($recentlyActivated[$plugin]);
                     $recentChanged = true;
                 }
@@ -290,34 +268,19 @@ if (!function_exists('navai_voice_repair_registry')) {
             }
 
             if (!file_exists(WP_PLUGIN_DIR . '/' . $plugin)) {
-                if (navai_voice_is_candidate_plugin_id($plugin) && $preferredExists) {
-                    $sitewide[$preferred] = isset($sitewide[$preferred]) ? (int) $sitewide[$preferred] : time();
-                }
                 unset($sitewide[$plugin]);
                 $sitewideChanged = true;
                 continue;
             }
 
-            if (navai_voice_is_candidate_plugin_id($plugin) && $preferredExists && $plugin !== $preferred) {
-                $sitewide[$preferred] = isset($sitewide[$preferred]) ? (int) $sitewide[$preferred] : time();
-                unset($sitewide[$plugin]);
-                $sitewideChanged = true;
-                continue;
-            }
-
-            if (navai_voice_is_candidate_plugin_id($plugin) && !$preferredExists && $plugin !== $current) {
+            if (navai_voice_is_candidate_plugin_id($plugin) && $plugin !== $current) {
                 unset($sitewide[$plugin]);
                 $sitewideChanged = true;
             }
         }
 
         if ($ensureCurrent) {
-            if ($preferredExists) {
-                if (!isset($sitewide[$preferred])) {
-                    $sitewide[$preferred] = time();
-                    $sitewideChanged = true;
-                }
-            } elseif (!isset($sitewide[$current]) && file_exists(WP_PLUGIN_DIR . '/' . $current)) {
+            if (!isset($sitewide[$current]) && file_exists(WP_PLUGIN_DIR . '/' . $current)) {
                 $sitewide[$current] = time();
                 $sitewideChanged = true;
             }
@@ -488,7 +451,7 @@ if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $currentPath) {
 }
 
 if (!defined('NAVAI_VOICE_VERSION')) {
-    define('NAVAI_VOICE_VERSION', '0.3.19');
+    define('NAVAI_VOICE_VERSION', '0.3.20');
 }
 if (!defined('NAVAI_VOICE_PATH')) {
     define('NAVAI_VOICE_PATH', $currentPath);
