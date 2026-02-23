@@ -3,7 +3,7 @@
  * Plugin Name: NAVAI Voice
  * Plugin URI: https://navai.luxisoft.com/documentation/installation-wordpress
  * Description: Integracion de voz NAVAI para WordPress usando endpoints REST en PHP.
- * Version: 0.3.3
+ * Version: 0.3.4
  * Author: NAVAI
  * Text Domain: navai-voice
  * Requires at least: 6.2
@@ -202,6 +202,63 @@ if (!function_exists('navai_voice_safe_require')) {
     }
 }
 
+if (!function_exists('navai_voice_repair_flattened_layout')) {
+    function navai_voice_repair_flattened_layout(string $basePath): void
+    {
+        $items = @scandir($basePath);
+        if (!is_array($items) || count($items) === 0) {
+            return;
+        }
+
+        $repairFailed = [];
+
+        foreach ($items as $item) {
+            if (!is_string($item) || $item === '.' || $item === '..') {
+                continue;
+            }
+
+            if (strpos($item, '\\') === false) {
+                continue;
+            }
+
+            $sourcePath = $basePath . $item;
+            if (!is_file($sourcePath)) {
+                continue;
+            }
+
+            $normalizedRelative = str_replace('\\', '/', $item);
+            $normalizedRelative = ltrim($normalizedRelative, '/');
+            if ($normalizedRelative === '' || str_contains($normalizedRelative, '..')) {
+                continue;
+            }
+
+            $targetPath = $basePath . str_replace('/', DIRECTORY_SEPARATOR, $normalizedRelative);
+            $targetDir = dirname($targetPath);
+
+            if (!is_dir($targetDir) && !wp_mkdir_p($targetDir)) {
+                $repairFailed[] = $normalizedRelative;
+                continue;
+            }
+
+            if (file_exists($targetPath)) {
+                @unlink($sourcePath);
+                continue;
+            }
+
+            if (!@rename($sourcePath, $targetPath)) {
+                $repairFailed[] = $normalizedRelative;
+            }
+        }
+
+        if (count($repairFailed) > 0) {
+            navai_voice_mark_bootstrap_error(
+                'No se pudo reparar automaticamente la estructura interna del plugin. Verifica permisos de archivos.',
+                true
+            );
+        }
+    }
+}
+
 if (!function_exists('navai_voice_load_dependencies')) {
     function navai_voice_load_dependencies(string $basePath): bool
     {
@@ -232,6 +289,7 @@ if (!function_exists('navai_voice_load_dependencies')) {
 if (!function_exists('navai_voice_on_activation')) {
     function navai_voice_on_activation(): void
     {
+        navai_voice_repair_flattened_layout(plugin_dir_path(__FILE__));
         navai_voice_repair_registry(true);
     }
 }
@@ -249,7 +307,7 @@ if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $currentPath) {
 }
 
 if (!defined('NAVAI_VOICE_VERSION')) {
-    define('NAVAI_VOICE_VERSION', '0.3.3');
+    define('NAVAI_VOICE_VERSION', '0.3.4');
 }
 if (!defined('NAVAI_VOICE_PATH')) {
     define('NAVAI_VOICE_PATH', $currentPath);
@@ -276,6 +334,8 @@ if (version_compare(PHP_VERSION, '8.0.0', '<')) {
     );
     return;
 }
+
+navai_voice_repair_flattened_layout(NAVAI_VOICE_PATH);
 
 if (!navai_voice_load_dependencies(NAVAI_VOICE_PATH)) {
     return;
