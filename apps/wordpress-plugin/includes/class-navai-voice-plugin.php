@@ -230,6 +230,8 @@ class Navai_Voice_Plugin
                 'floating' => false,
                 'persist_active' => false,
                 'button_side' => 'left',
+                'button_color_idle' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_idle', '#1263dc'),
+                'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#10883f'),
                 'widget_mode' => 'shortcode',
                 'show_status' => true,
             ]
@@ -273,6 +275,8 @@ class Navai_Voice_Plugin
                 'floating' => true,
                 'persist_active' => true,
                 'button_side' => $this->resolve_frontend_button_side($settings),
+                'button_color_idle' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_idle', '#1263dc'),
+                'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#10883f'),
                 'widget_mode' => 'global',
                 'show_status' => false,
             ]
@@ -566,6 +570,25 @@ class Navai_Voice_Plugin
     /**
      * @param array<string, mixed> $settings
      */
+    private function resolve_frontend_button_color(array $settings, string $key, string $fallback): string
+    {
+        $sanitizedFallback = sanitize_hex_color($fallback);
+        if (!is_string($sanitizedFallback) || trim($sanitizedFallback) === '') {
+            $sanitizedFallback = '#1263dc';
+        }
+
+        $raw = isset($settings[$key]) ? (string) $settings[$key] : '';
+        $color = sanitize_hex_color($raw);
+        if (!is_string($color) || trim($color) === '') {
+            return $sanitizedFallback;
+        }
+
+        return $color;
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
     private function can_render_widget_for_current_user(array $settings): bool
     {
         $allowedRoles = $this->normalize_allowed_frontend_roles($settings['frontend_allowed_roles'] ?? []);
@@ -638,6 +661,15 @@ class Navai_Voice_Plugin
         if (!in_array($buttonSide, ['left', 'right'], true)) {
             $buttonSide = 'left';
         }
+        $buttonColorIdle = isset($options['button_color_idle']) ? sanitize_hex_color((string) $options['button_color_idle']) : null;
+        if (!is_string($buttonColorIdle) || trim($buttonColorIdle) === '') {
+            $buttonColorIdle = '#1263dc';
+        }
+        $buttonColorActive = isset($options['button_color_active']) ? sanitize_hex_color((string) $options['button_color_active']) : null;
+        if (!is_string($buttonColorActive) || trim($buttonColorActive) === '') {
+            $buttonColorActive = '#10883f';
+        }
+        $widgetInlineStyle = '--navai-btn-idle-color:' . $buttonColorIdle . ';--navai-btn-connected-color:' . $buttonColorActive . ';';
 
         $widgetClass = 'navai-voice-widget';
         if ($floating) {
@@ -677,7 +709,7 @@ class Navai_Voice_Plugin
 
         ob_start();
         ?>
-        <div class="<?php echo esc_attr($widgetClass); ?>"
+        <div class="<?php echo esc_attr($widgetClass); ?>" style="<?php echo esc_attr($widgetInlineStyle); ?>"
             <?php foreach ($data as $key => $value) : ?>
                 <?php printf(' data-%s="%s"', esc_attr($key), esc_attr($value)); ?>
             <?php endforeach; ?>

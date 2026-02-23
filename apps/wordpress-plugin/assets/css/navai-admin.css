@@ -356,6 +356,7 @@
 .navai-admin-settings-grid input[type="text"],
 .navai-admin-settings-grid input[type="password"],
 .navai-admin-settings-grid input[type="number"],
+.navai-admin-settings-grid input[type="color"],
 .navai-admin-settings-grid select,
 .navai-admin-settings-grid textarea {
   width: 100%;

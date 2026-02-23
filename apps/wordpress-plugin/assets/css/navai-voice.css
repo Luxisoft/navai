@@ -1,4 +1,8 @@
 .navai-voice-widget {
+  --navai-btn-idle-color: #1263dc;
+  --navai-btn-connected-color: #10883f;
+  --navai-btn-connecting-color: #db7f13;
+  --navai-btn-error-color: #ba2e2e;
   display: inline-flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -22,7 +26,7 @@
   border-radius: 0.375rem;
   padding: 0.7rem 0.95rem;
   font-weight: 600;
-  background: linear-gradient(135deg, #0762d8, #1f7dff);
+  background: var(--navai-btn-idle-color);
   color: #ffffff;
   transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
@@ -44,19 +48,19 @@
 }
 
 .navai-voice-widget.is-idle .navai-voice-toggle {
-  background: linear-gradient(135deg, #1263dc, #1f80ff);
+  background: var(--navai-btn-idle-color);
 }
 
 .navai-voice-widget.is-connecting .navai-voice-toggle {
-  background: linear-gradient(135deg, #db7f13, #f2a026);
+  background: var(--navai-btn-connecting-color);
 }
 
 .navai-voice-widget.is-connected .navai-voice-toggle {
-  background: linear-gradient(135deg, #10883f, #22af53);
+  background: var(--navai-btn-connected-color);
 }
 
 .navai-voice-widget.is-error .navai-voice-toggle {
-  background: linear-gradient(135deg, #ba2e2e, #da4b4b);
+  background: var(--navai-btn-error-color);
 }
 
 .navai-voice-status {

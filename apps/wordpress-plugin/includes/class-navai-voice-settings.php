@@ -91,6 +91,15 @@ class Navai_Voice_Settings
             $frontendButtonSide = (string) $defaults['frontend_button_side'];
         }
 
+        $frontendButtonColorIdle = $this->sanitize_color_value(
+            $source['frontend_button_color_idle'] ?? ($previous['frontend_button_color_idle'] ?? $defaults['frontend_button_color_idle']),
+            (string) $defaults['frontend_button_color_idle']
+        );
+        $frontendButtonColorActive = $this->sanitize_color_value(
+            $source['frontend_button_color_active'] ?? ($previous['frontend_button_color_active'] ?? $defaults['frontend_button_color_active']),
+            (string) $defaults['frontend_button_color_active']
+        );
+
         $allowedRouteKeys = $this->sanitize_route_keys($source['allowed_route_keys'] ?? []);
         if (count($allowedRouteKeys) === 0 && array_key_exists('allowed_menu_item_ids', $source)) {
             $allowedRouteKeys = $this->map_legacy_menu_item_ids_to_route_keys(
@@ -115,6 +124,8 @@ class Navai_Voice_Settings
             'manual_plugins' => $this->sanitize_manual_plugins((string) ($source['manual_plugins'] ?? '')),
             'frontend_display_mode' => $frontendDisplayMode,
             'frontend_button_side' => $frontendButtonSide,
+            'frontend_button_color_idle' => $frontendButtonColorIdle,
+            'frontend_button_color_active' => $frontendButtonColorActive,
             'frontend_allowed_roles' => $this->sanitize_frontend_roles($source['frontend_allowed_roles'] ?? []),
             'active_tab' => $activeTab,
         ];
@@ -219,6 +230,8 @@ class Navai_Voice_Settings
         $activeTab = is_string($settings['active_tab'] ?? null) ? (string) $settings['active_tab'] : 'navigation';
         $frontendDisplayMode = is_string($settings['frontend_display_mode'] ?? null) ? (string) $settings['frontend_display_mode'] : 'global';
         $frontendButtonSide = is_string($settings['frontend_button_side'] ?? null) ? (string) $settings['frontend_button_side'] : 'left';
+        $frontendButtonColorIdle = $this->sanitize_color_value($settings['frontend_button_color_idle'] ?? null, '#1263dc');
+        $frontendButtonColorActive = $this->sanitize_color_value($settings['frontend_button_color_active'] ?? null, '#10883f');
         if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
             $activeTab = 'navigation';
         }
@@ -772,6 +785,24 @@ class Navai_Voice_Settings
                             </select>
                         </label>
 
+                        <label>
+                            <span><?php echo esc_html__('Color boton inactivo', 'navai-voice'); ?></span>
+                            <input
+                                type="color"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_button_color_idle]"
+                                value="<?php echo esc_attr($frontendButtonColorIdle); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Color boton activo', 'navai-voice'); ?></span>
+                            <input
+                                type="color"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_button_color_active]"
+                                value="<?php echo esc_attr($frontendButtonColorActive); ?>"
+                            />
+                        </label>
+
                         <div class="navai-admin-full-width">
                             <span class="navai-admin-field-title"><?php echo esc_html__('Roles permitidos para mostrar el componente', 'navai-voice'); ?></span>
                             <div class="navai-admin-role-grid">
@@ -849,6 +880,24 @@ class Navai_Voice_Settings
         }
 
         return $value;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_color_value($value, string $fallback): string
+    {
+        $sanitizedFallback = sanitize_hex_color($fallback);
+        if (!is_string($sanitizedFallback) || trim($sanitizedFallback) === '') {
+            $sanitizedFallback = '#1263dc';
+        }
+
+        $sanitized = sanitize_hex_color((string) $value);
+        if (!is_string($sanitized) || trim($sanitized) === '') {
+            return $sanitizedFallback;
+        }
+
+        return $sanitized;
     }
 
     /**
@@ -2169,6 +2218,8 @@ class Navai_Voice_Settings
             'manual_plugins' => '',
             'frontend_display_mode' => 'global',
             'frontend_button_side' => 'left',
+            'frontend_button_color_idle' => '#1263dc',
+            'frontend_button_color_active' => '#10883f',
             'frontend_allowed_roles' => $this->get_default_frontend_roles(),
             'active_tab' => 'navigation',
         ];
