@@ -908,13 +908,16 @@
       this.button.disabled = true;
       textTarget.textContent = this.startLabel;
       this.button.setAttribute("aria-pressed", "false");
+      this.button.setAttribute("aria-label", this.startLabel);
       this.applyStateClass();
       return;
     }
 
     this.button.disabled = false;
-    textTarget.textContent = this.state === "connected" ? this.stopLabel : this.startLabel;
+    var buttonText = this.state === "connected" ? this.stopLabel : this.startLabel;
+    textTarget.textContent = buttonText;
     this.button.setAttribute("aria-pressed", this.state === "connected" ? "true" : "false");
+    this.button.setAttribute("aria-label", buttonText);
     this.applyStateClass();
   };
 

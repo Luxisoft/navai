@@ -210,8 +210,16 @@ class Navai_Voice_Plugin
         $defaults = $settings;
         $attributes = shortcode_atts(
             [
-                'label' => __('Start Voice', 'navai-voice'),
-                'stop_label' => __('Stop Voice', 'navai-voice'),
+                'label' => $this->resolve_frontend_button_text(
+                    $settings,
+                    'frontend_button_text_idle',
+                    __('Start Voice', 'navai-voice')
+                ),
+                'stop_label' => $this->resolve_frontend_button_text(
+                    $settings,
+                    'frontend_button_text_active',
+                    __('Stop Voice', 'navai-voice')
+                ),
                 'model' => (string) ($defaults['default_model'] ?? ''),
                 'voice' => (string) ($defaults['default_voice'] ?? ''),
                 'instructions' => (string) ($defaults['default_instructions'] ?? ''),
@@ -232,6 +240,7 @@ class Navai_Voice_Plugin
                 'button_side' => 'left',
                 'button_color_idle' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_idle', '#1263dc'),
                 'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#10883f'),
+                'show_button_text' => $this->resolve_frontend_show_button_text($settings),
                 'widget_mode' => 'shortcode',
                 'show_status' => true,
             ]
@@ -260,8 +269,16 @@ class Navai_Voice_Plugin
 
         echo $this->render_widget_markup(
             [
-                'label' => __('Hablar con NAVAI', 'navai-voice'),
-                'stop_label' => __('Detener NAVAI', 'navai-voice'),
+                'label' => $this->resolve_frontend_button_text(
+                    $settings,
+                    'frontend_button_text_idle',
+                    __('Hablar con NAVAI', 'navai-voice')
+                ),
+                'stop_label' => $this->resolve_frontend_button_text(
+                    $settings,
+                    'frontend_button_text_active',
+                    __('Detener NAVAI', 'navai-voice')
+                ),
                 'model' => (string) ($settings['default_model'] ?? ''),
                 'voice' => (string) ($settings['default_voice'] ?? ''),
                 'instructions' => (string) ($settings['default_instructions'] ?? ''),
@@ -277,6 +294,7 @@ class Navai_Voice_Plugin
                 'button_side' => $this->resolve_frontend_button_side($settings),
                 'button_color_idle' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_idle', '#1263dc'),
                 'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#10883f'),
+                'show_button_text' => $this->resolve_frontend_show_button_text($settings),
                 'widget_mode' => 'global',
                 'show_status' => false,
             ]
@@ -589,6 +607,36 @@ class Navai_Voice_Plugin
     /**
      * @param array<string, mixed> $settings
      */
+    private function resolve_frontend_show_button_text(array $settings): bool
+    {
+        if (!array_key_exists('frontend_show_button_text', $settings)) {
+            return true;
+        }
+
+        return $this->to_bool($settings['frontend_show_button_text']);
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
+    private function resolve_frontend_button_text(array $settings, string $key, string $fallback): string
+    {
+        $sanitizedFallback = sanitize_text_field($fallback);
+        if (trim($sanitizedFallback) === '') {
+            $sanitizedFallback = 'NAVAI';
+        }
+
+        $value = sanitize_text_field((string) ($settings[$key] ?? ''));
+        if (trim($value) === '') {
+            return $sanitizedFallback;
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
     private function can_render_widget_for_current_user(array $settings): bool
     {
         $allowedRoles = $this->normalize_allowed_frontend_roles($settings['frontend_allowed_roles'] ?? []);
@@ -669,6 +717,7 @@ class Navai_Voice_Plugin
         if (!is_string($buttonColorActive) || trim($buttonColorActive) === '') {
             $buttonColorActive = '#10883f';
         }
+        $showButtonText = array_key_exists('show_button_text', $options) ? !empty($options['show_button_text']) : true;
         $widgetInlineStyle = '--navai-btn-idle-color:' . $buttonColorIdle . ';--navai-btn-connected-color:' . $buttonColorActive . ';';
 
         $widgetClass = 'navai-voice-widget';
@@ -705,6 +754,7 @@ class Navai_Voice_Plugin
             'floating' => $floating ? '1' : '0',
             'button-side' => $buttonSide,
             'persist-active' => $persistActive ? '1' : '0',
+            'show-text' => $showButtonText ? '1' : '0',
         ];
 
         ob_start();
@@ -714,7 +764,7 @@ class Navai_Voice_Plugin
                 <?php printf(' data-%s="%s"', esc_attr($key), esc_attr($value)); ?>
             <?php endforeach; ?>
         >
-            <button type="button" class="navai-voice-toggle" aria-pressed="false">
+            <button type="button" class="navai-voice-toggle" aria-pressed="false" aria-label="<?php echo esc_attr($startLabel); ?>">
                 <span class="navai-voice-toggle-icon dashicons dashicons-microphone" aria-hidden="true"></span>
                 <span class="navai-voice-toggle-text"><?php echo esc_html($startLabel); ?></span>
             </button>

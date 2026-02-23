@@ -99,6 +99,21 @@ class Navai_Voice_Settings
             $source['frontend_button_color_active'] ?? ($previous['frontend_button_color_active'] ?? $defaults['frontend_button_color_active']),
             (string) $defaults['frontend_button_color_active']
         );
+        $frontendShowButtonText = !empty($source['frontend_show_button_text']);
+        $frontendButtonTextIdle = $this->read_text_value(
+            $source,
+            $previous,
+            $defaults,
+            'frontend_button_text_idle',
+            true
+        );
+        $frontendButtonTextActive = $this->read_text_value(
+            $source,
+            $previous,
+            $defaults,
+            'frontend_button_text_active',
+            true
+        );
 
         $allowedRouteKeys = $this->sanitize_route_keys($source['allowed_route_keys'] ?? []);
         if (count($allowedRouteKeys) === 0 && array_key_exists('allowed_menu_item_ids', $source)) {
@@ -126,6 +141,9 @@ class Navai_Voice_Settings
             'frontend_button_side' => $frontendButtonSide,
             'frontend_button_color_idle' => $frontendButtonColorIdle,
             'frontend_button_color_active' => $frontendButtonColorActive,
+            'frontend_show_button_text' => $frontendShowButtonText,
+            'frontend_button_text_idle' => $frontendButtonTextIdle,
+            'frontend_button_text_active' => $frontendButtonTextActive,
             'frontend_allowed_roles' => $this->sanitize_frontend_roles($source['frontend_allowed_roles'] ?? []),
             'active_tab' => $activeTab,
         ];
@@ -232,6 +250,15 @@ class Navai_Voice_Settings
         $frontendButtonSide = is_string($settings['frontend_button_side'] ?? null) ? (string) $settings['frontend_button_side'] : 'left';
         $frontendButtonColorIdle = $this->sanitize_color_value($settings['frontend_button_color_idle'] ?? null, '#1263dc');
         $frontendButtonColorActive = $this->sanitize_color_value($settings['frontend_button_color_active'] ?? null, '#10883f');
+        $frontendShowButtonText = !empty($settings['frontend_show_button_text']);
+        $frontendButtonTextIdle = sanitize_text_field((string) ($settings['frontend_button_text_idle'] ?? 'Hablar con NAVAI'));
+        if (trim($frontendButtonTextIdle) === '') {
+            $frontendButtonTextIdle = 'Hablar con NAVAI';
+        }
+        $frontendButtonTextActive = sanitize_text_field((string) ($settings['frontend_button_text_active'] ?? 'Detener NAVAI'));
+        if (trim($frontendButtonTextActive) === '') {
+            $frontendButtonTextActive = 'Detener NAVAI';
+        }
         if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
             $activeTab = 'navigation';
         }
@@ -800,6 +827,36 @@ class Navai_Voice_Settings
                                 type="color"
                                 name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_button_color_active]"
                                 value="<?php echo esc_attr($frontendButtonColorActive); ?>"
+                            />
+                        </label>
+
+                        <label class="navai-admin-check">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_show_button_text]"
+                                value="1"
+                                <?php checked($frontendShowButtonText, true); ?>
+                            />
+                            <span><?php echo esc_html__('Mostrar texto en el boton', 'navai-voice'); ?></span>
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Texto boton inactivo', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_button_text_idle]"
+                                value="<?php echo esc_attr($frontendButtonTextIdle); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Texto boton activo', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_button_text_active]"
+                                value="<?php echo esc_attr($frontendButtonTextActive); ?>"
                             />
                         </label>
 
@@ -2220,6 +2277,9 @@ class Navai_Voice_Settings
             'frontend_button_side' => 'left',
             'frontend_button_color_idle' => '#1263dc',
             'frontend_button_color_active' => '#10883f',
+            'frontend_show_button_text' => true,
+            'frontend_button_text_idle' => 'Hablar con NAVAI',
+            'frontend_button_text_active' => 'Detener NAVAI',
             'frontend_allowed_roles' => $this->get_default_frontend_roles(),
             'active_tab' => 'navigation',
         ];

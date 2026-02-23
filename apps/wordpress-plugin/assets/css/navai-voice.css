@@ -42,6 +42,15 @@
   line-height: 1.1;
 }
 
+.navai-voice-widget[data-show-text="0"] .navai-voice-toggle {
+  min-width: 48px;
+  padding: 0.7rem;
+}
+
+.navai-voice-widget[data-show-text="0"] .navai-voice-toggle-text {
+  display: none;
+}
+
 .navai-voice-toggle:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -115,6 +124,13 @@
   border-radius: 999px;
   padding: 0.75rem 1rem;
   box-shadow: 0 8px 18px rgba(8, 29, 59, 0.22);
+}
+
+.navai-voice-widget--floating[data-show-text="0"] .navai-voice-toggle {
+  width: 52px;
+  min-width: 52px;
+  min-height: 52px;
+  padding: 0;
 }
 
 .navai-voice-widget--floating .navai-voice-status {
