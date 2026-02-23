@@ -253,16 +253,7 @@ class Navai_Voice_Plugin
     {
         $settings = $this->settings->get_settings();
         $menuRoutes = $this->get_menu_routes_from_settings($settings);
-        $baseRoutes = [];
-        if (count($menuRoutes) > 0) {
-            $baseRoutes[] = [
-                'name' => 'inicio',
-                'path' => home_url('/'),
-                'description' => __('Pagina principal del sitio.', 'navai-voice'),
-                'synonyms' => ['home', 'home page', 'pagina principal', 'inicio'],
-            ];
-            $baseRoutes = array_merge($baseRoutes, $menuRoutes);
-        }
+        $baseRoutes = $menuRoutes;
 
         /** @var mixed $raw */
         $raw = apply_filters('navai_voice_routes', $baseRoutes, $settings);

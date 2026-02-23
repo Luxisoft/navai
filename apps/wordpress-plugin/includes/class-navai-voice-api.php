@@ -785,19 +785,8 @@ class Navai_Voice_API
             return [];
         }
 
-        $routes = [
-            [
-                'name' => 'inicio',
-                'path' => home_url('/'),
-                'description' => 'Pagina principal del sitio.',
-                'synonyms' => ['home', 'home page', 'pagina principal', 'inicio'],
-            ],
-        ];
-
+        $routes = [];
         $dedupe = [];
-        foreach ($routes as $baseRoute) {
-            $dedupe[$this->build_route_dedupe_key((string) $baseRoute['name'], (string) $baseRoute['path'])] = true;
-        }
 
         if (function_exists('wp_get_nav_menus') && function_exists('wp_get_nav_menu_items')) {
             $routesById = $this->get_menu_routes_index();

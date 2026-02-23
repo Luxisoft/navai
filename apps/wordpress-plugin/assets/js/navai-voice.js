@@ -486,7 +486,6 @@
     lines.push("Rules:");
     lines.push("- If the user asks to open a website section, call navigate_to.");
     lines.push("- In navigate_to.target, prefer the exact route name listed in Allowed routes.");
-    lines.push("- Use inicio/home only if the user explicitly asks to go to home.");
     lines.push("- If the user asks to run an internal action, call execute_app_function or a direct function alias.");
     lines.push("- Always pass payload in execute_app_function. Use null when no arguments are needed.");
     lines.push("- Never invent routes or functions that are not listed.");
@@ -627,6 +626,7 @@
     var restBase = asTrimmedString(config.restBaseUrl);
     if (!restBase) {
       return {
+        ok: false,
         routes: [],
         warnings: ["[navai] Missing restBaseUrl in NAVAI_VOICE_CONFIG."]
       };
@@ -645,6 +645,7 @@
 
       if (!response.ok) {
         return {
+          ok: false,
           routes: [],
           warnings: ['[navai] Failed to load routes: ' + (await readErrorMessage(response))]
         };
@@ -659,17 +660,20 @@
 
       if (!isRecord(payload) || !Array.isArray(payload.items)) {
         return {
+          ok: false,
           routes: [],
           warnings: ["[navai] Invalid routes response."]
         };
       }
 
       return {
+        ok: true,
         routes: normalizeRoutes(payload.items),
         warnings: []
       };
     } catch (error) {
       return {
+        ok: false,
         routes: [],
         warnings: ["[navai] Failed to load routes: " + String(error)]
       };
@@ -838,9 +842,9 @@
     try {
       this.setStatus(getMessage(this.globalConfig, "requestingSecret", "Requesting client secret..."));
       var routesResult = await requestRoutes(this.globalConfig);
-      var mergedRoutes = normalizeRoutes(this.routes.concat(routesResult.routes));
-      if (mergedRoutes.length > 0) {
-        this.routes = mergedRoutes;
+      if (routesResult.ok) {
+        // Replace routes on every start to avoid carrying stale routes between sessions.
+        this.routes = routesResult.routes;
       }
       for (var r = 0; r < routesResult.warnings.length; r += 1) {
         this.appendLog(routesResult.warnings[r], "warn");
