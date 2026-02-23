@@ -817,6 +817,7 @@
   NavaiVoiceWidget.prototype.sendSessionUpdate = function () {
     var defaults = isRecord(this.globalConfig.defaults) ? this.globalConfig.defaults : {};
     var baseInstructions = this.instructionsOverride || asTrimmedString(defaults.instructions);
+    var voice = this.voiceOverride || asTrimmedString(defaults.voice);
     var toolsResult = buildToolDefinitions(this.routes, this.backendFunctions);
     this.directAliases = toolsResult.directAliases;
 
@@ -825,13 +826,24 @@
     }
 
     var instructions = buildAssistantInstructions(baseInstructions, this.routes, this.backendFunctions);
+    var session = {
+      type: "realtime",
+      instructions: instructions,
+      tools: toolsResult.tools,
+      tool_choice: "auto"
+    };
+
+    if (voice) {
+      session.audio = {
+        output: {
+          voice: voice
+        }
+      };
+    }
+
     this.sendRealtimeEvent({
       type: "session.update",
-      session: {
-        instructions: instructions,
-        tools: toolsResult.tools,
-        tool_choice: "auto"
-      }
+      session: session
     });
   };
 
@@ -858,7 +870,11 @@
     }
 
     if (type === "error") {
-      this.appendLog("Realtime error event received.", "error");
+      var errorMessage = "Realtime error event received.";
+      if (isRecord(parsed.error) && typeof parsed.error.message === "string" && parsed.error.message.trim() !== "") {
+        errorMessage = "Realtime error: " + parsed.error.message.trim();
+      }
+      this.appendLog(errorMessage, "error");
       return;
     }
 
