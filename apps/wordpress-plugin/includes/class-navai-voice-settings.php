@@ -1510,6 +1510,9 @@ class Navai_Voice_Settings
         if (!$this->is_navigable_url($url)) {
             return null;
         }
+        if (!$this->is_internal_site_url($url)) {
+            return null;
+        }
 
         $capability = isset($entry[1]) ? $this->normalize_capability((string) $entry[1]) : 'read';
         $pluginMeta = $this->resolve_route_plugin_group($url, $slug);
@@ -1874,6 +1877,29 @@ class Navai_Voice_Settings
         }
 
         return true;
+    }
+
+    private function is_internal_site_url(string $url): bool
+    {
+        $value = trim($url);
+        if ($value === '' || str_starts_with($value, '/')) {
+            return true;
+        }
+
+        $targetHost = wp_parse_url($value, PHP_URL_HOST);
+        if (!is_string($targetHost) || trim($targetHost) === '') {
+            return true;
+        }
+
+        $targetHost = strtolower($targetHost);
+        $homeHost = strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST));
+        $adminHost = strtolower((string) wp_parse_url(admin_url('/'), PHP_URL_HOST));
+
+        if ($targetHost === $homeHost || $targetHost === $adminHost) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
