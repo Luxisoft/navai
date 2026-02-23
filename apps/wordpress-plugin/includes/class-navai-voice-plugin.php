@@ -23,6 +23,7 @@ class Navai_Voice_Plugin
         add_action('rest_api_init', [$this->api, 'register_routes']);
         add_action('wp_enqueue_scripts', [$this, 'register_assets']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        add_action('admin_head', [$this, 'inject_admin_menu_icon_css']);
         add_action('admin_head-plugins.php', [$this, 'inject_plugins_page_logo_css']);
 
         add_filter('plugin_action_links_' . NAVAI_VOICE_BASENAME, [$this, 'add_plugin_action_links']);
@@ -66,6 +67,22 @@ class Navai_Voice_Plugin
                 height: 20px;
                 background: url('<?php echo $logoUrl; ?>') center/contain no-repeat;
                 display: inline-block;
+            }
+        </style>
+        <?php
+    }
+
+    public function inject_admin_menu_icon_css(): void
+    {
+        $menuId = 'toplevel_page_' . Navai_Voice_Settings::PAGE_SLUG;
+        ?>
+        <style>
+            #<?php echo esc_attr($menuId); ?> .wp-menu-image img {
+                width: 23px !important;
+                height: 23px !important;
+                max-width: 23px !important;
+                max-height: 23px !important;
+                padding-top: 5px !important;
             }
         </style>
         <?php
@@ -235,22 +252,16 @@ class Navai_Voice_Plugin
     private function resolve_public_routes(): array
     {
         $settings = $this->settings->get_settings();
-        $hasSelectedMenuItems = $this->has_selected_menu_items($settings);
-        $baseRoutes = [
-            [
+        $menuRoutes = $this->get_menu_routes_from_settings($settings);
+        $baseRoutes = [];
+        if (count($menuRoutes) > 0) {
+            $baseRoutes[] = [
                 'name' => 'inicio',
                 'path' => home_url('/'),
                 'description' => __('Pagina principal del sitio.', 'navai-voice'),
                 'synonyms' => ['home', 'home page', 'pagina principal', 'inicio'],
-            ],
-        ];
-
-        $menuRoutes = $this->get_menu_routes_from_settings($settings);
-        $baseRoutes = array_merge($baseRoutes, $menuRoutes);
-
-        // Only fallback to published pages when user did not select specific menu items.
-        if (!$hasSelectedMenuItems && count($baseRoutes) <= 1) {
-            $baseRoutes = array_merge($baseRoutes, $this->get_published_page_routes());
+            ];
+            $baseRoutes = array_merge($baseRoutes, $menuRoutes);
         }
 
         /** @var mixed $raw */
@@ -331,7 +342,7 @@ class Navai_Voice_Plugin
         $routesById = $this->get_menu_routes_index();
 
         if (count($selectedIds) === 0) {
-            return array_values($routesById);
+            return [];
         }
 
         $selectedRoutes = [];
@@ -391,14 +402,6 @@ class Navai_Voice_Plugin
     }
 
     /**
-     * @param array<string, mixed> $settings
-     */
-    private function has_selected_menu_items(array $settings): bool
-    {
-        return count($this->get_selected_menu_item_ids($settings)) > 0;
-    }
-
-    /**
      * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
      */
     private function get_menu_routes_index(): array
@@ -439,65 +442,6 @@ class Navai_Voice_Plugin
         }
 
         return $routesById;
-    }
-
-    /**
-     * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
-     */
-    private function get_published_page_routes(): array
-    {
-        if (!function_exists('get_pages') || !function_exists('get_permalink')) {
-            return [];
-        }
-
-        $pages = get_pages(
-            [
-                'post_status' => 'publish',
-                'sort_column' => 'menu_order,post_title',
-                'number' => 40,
-            ]
-        );
-        if (!is_array($pages)) {
-            return [];
-        }
-
-        $routes = [];
-        $dedupe = [];
-        foreach ($pages as $page) {
-            if (!is_object($page) || !isset($page->ID, $page->post_title)) {
-                continue;
-            }
-
-            $title = trim(wp_strip_all_tags((string) $page->post_title));
-            if ($title === '') {
-                continue;
-            }
-
-            $url = get_permalink((int) $page->ID);
-            if (!is_string($url) || !$this->is_navigable_url($url)) {
-                continue;
-            }
-
-            $key = $this->build_route_dedupe_key($title, $url);
-            if (isset($dedupe[$key])) {
-                continue;
-            }
-
-            $dedupe[$key] = true;
-            $routes[] = [
-                'name' => $title,
-                'path' => $url,
-                'description' => __('Pagina publicada en WordPress.', 'navai-voice'),
-                'synonyms' => $this->build_route_synonyms($title, $url),
-            ];
-        }
-
-        return $routes;
-    }
-
-    private function build_route_dedupe_key(string $name, string $path): string
-    {
-        return strtolower(trim($name)) . '|' . strtolower(untrailingslashit($path));
     }
 
     private function is_navigable_url(string $url): bool

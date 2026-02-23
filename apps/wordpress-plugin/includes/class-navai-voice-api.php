@@ -780,7 +780,11 @@ class Navai_Voice_API
     private function build_allowed_routes_catalog(): array
     {
         $settings = $this->settings->get_settings();
-        $hasSelectedMenuItems = $this->has_selected_menu_items($settings);
+        $selectedIds = $this->get_selected_menu_item_ids($settings);
+        if (count($selectedIds) === 0) {
+            return [];
+        }
+
         $routes = [
             [
                 'name' => 'inicio',
@@ -797,29 +801,13 @@ class Navai_Voice_API
 
         if (function_exists('wp_get_nav_menus') && function_exists('wp_get_nav_menu_items')) {
             $routesById = $this->get_menu_routes_index();
-
-            if ($hasSelectedMenuItems) {
-                $selectedIds = $this->get_selected_menu_item_ids($settings);
-                foreach ($selectedIds as $id) {
-                    if (!isset($routesById[$id]) || !is_array($routesById[$id])) {
-                        continue;
-                    }
-
-                    $this->append_route_if_new($routes, $dedupe, $routesById[$id]);
+            foreach ($selectedIds as $id) {
+                if (!isset($routesById[$id]) || !is_array($routesById[$id])) {
+                    continue;
                 }
-            } else {
-                foreach ($routesById as $route) {
-                    if (!is_array($route)) {
-                        continue;
-                    }
-                    $this->append_route_if_new($routes, $dedupe, $route);
-                }
+
+                $this->append_route_if_new($routes, $dedupe, $routesById[$id]);
             }
-        }
-
-        // Only fallback when no explicit menu selection exists.
-        if (!$hasSelectedMenuItems && count($routes) <= 1) {
-            $this->append_published_page_routes($routes, $dedupe);
         }
 
         return $routes;
@@ -837,14 +825,6 @@ class Navai_Voice_API
 
         $ids = array_map('absint', $idsRaw);
         return array_values(array_filter(array_unique($ids), static fn(int $id): bool => $id > 0));
-    }
-
-    /**
-     * @param array<string, mixed> $settings
-     */
-    private function has_selected_menu_items(array $settings): bool
-    {
-        return count($this->get_selected_menu_item_ids($settings)) > 0;
     }
 
     /**
@@ -936,57 +916,6 @@ class Navai_Voice_API
 
         $dedupe[$dedupeKey] = true;
         $routes[] = $route;
-    }
-
-    /**
-     * @param array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}> $routes
-     * @param array<string, bool> $dedupe
-     */
-    private function append_published_page_routes(array &$routes, array &$dedupe): void
-    {
-        if (!function_exists('get_pages') || !function_exists('get_permalink')) {
-            return;
-        }
-
-        $pages = get_pages(
-            [
-                'post_status' => 'publish',
-                'sort_column' => 'menu_order,post_title',
-                'number' => 40,
-            ]
-        );
-        if (!is_array($pages)) {
-            return;
-        }
-
-        foreach ($pages as $page) {
-            if (!is_object($page) || !isset($page->ID, $page->post_title)) {
-                continue;
-            }
-
-            $name = trim(wp_strip_all_tags((string) $page->post_title));
-            if ($name === '') {
-                continue;
-            }
-
-            $path = get_permalink((int) $page->ID);
-            if (!is_string($path) || !$this->is_navigable_url($path)) {
-                continue;
-            }
-
-            $dedupeKey = $this->build_route_dedupe_key($name, $path);
-            if (isset($dedupe[$dedupeKey])) {
-                continue;
-            }
-
-            $dedupe[$dedupeKey] = true;
-            $routes[] = [
-                'name' => $name,
-                'path' => $path,
-                'description' => 'Pagina publicada en WordPress.',
-                'synonyms' => $this->build_route_synonyms($name, $path),
-            ];
-        }
     }
 
     private function build_route_dedupe_key(string $name, string $path): string
