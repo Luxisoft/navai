@@ -275,6 +275,70 @@
     }
   }
 
+  function createRowFromTemplate(html) {
+    var wrapper = document.createElement("div");
+    wrapper.innerHTML = html.trim();
+    return wrapper.firstElementChild;
+  }
+
+  function initPrivateRouteBuilders(navigationPanel) {
+    var builders = navigationPanel.querySelectorAll(".navai-private-routes-builder");
+    if (!builders.length) {
+      return;
+    }
+
+    for (var i = 0; i < builders.length; i += 1) {
+      (function (builder) {
+        var list = builder.querySelector(".navai-private-routes-list");
+        var template = builder.querySelector(".navai-private-route-template");
+        var addButton = builder.querySelector(".navai-private-route-add");
+        if (!list || !template || !addButton) {
+          return;
+        }
+
+        var nextIndex = parseInt(builder.getAttribute("data-next-index") || "0", 10);
+        if (!Number.isFinite(nextIndex) || nextIndex < 0) {
+          nextIndex = list.children ? list.children.length : 0;
+        }
+
+        addButton.addEventListener("click", function () {
+          var html = template.innerHTML.replace(/__INDEX__/g, String(nextIndex));
+          var row = createRowFromTemplate(html);
+          if (!row) {
+            return;
+          }
+
+          list.appendChild(row);
+          nextIndex += 1;
+          builder.setAttribute("data-next-index", String(nextIndex));
+
+          var firstInput = row.querySelector('input[type="url"]');
+          if (firstInput && typeof firstInput.focus === "function") {
+            firstInput.focus();
+          }
+        });
+
+        builder.addEventListener("click", function (event) {
+          var target = event.target;
+          if (!target || !target.closest) {
+            return;
+          }
+
+          var removeButton = target.closest(".navai-private-route-remove");
+          if (!removeButton) {
+            return;
+          }
+
+          event.preventDefault();
+          var row = removeButton.closest(".navai-private-route-row");
+          if (row && row.parentNode) {
+            row.parentNode.removeChild(row);
+          }
+        });
+      })(builders[i]);
+    }
+  }
+
   function initNavigationControls() {
     var navigationPanel = document.querySelector('[data-navai-panel="navigation"]');
     if (!navigationPanel) {
@@ -287,6 +351,7 @@
       return;
     }
 
+    initPrivateRouteBuilders(navigationPanel);
     activateNavigationTab("public", navigationPanel);
 
     for (var i = 0; i < tabButtons.length; i += 1) {

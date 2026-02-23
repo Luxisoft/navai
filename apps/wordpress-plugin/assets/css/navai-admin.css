@@ -164,6 +164,56 @@
   width: 100%;
 }
 
+.navai-private-routes-builder {
+  border: 1px solid #dfe7f3;
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 12px;
+  margin: 0 0 12px;
+}
+
+.navai-private-routes-builder > h4 {
+  margin: 0 0 6px;
+}
+
+.navai-private-routes-list {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.navai-private-route-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(170px, 1fr) minmax(320px, 2fr) auto;
+  gap: 10px;
+  align-items: end;
+  border: 1px solid #e2e9f4;
+  border-radius: 10px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.navai-private-route-row label {
+  display: block;
+}
+
+.navai-private-route-row label > span {
+  display: block;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.navai-private-route-row select,
+.navai-private-route-row input[type="url"] {
+  width: 100%;
+}
+
+.navai-private-route-remove {
+  align-self: end;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
 .navai-nav-actions {
   display: flex;
   flex-wrap: wrap;
@@ -410,6 +460,14 @@
 
   .navai-nav-tabs {
     flex-wrap: wrap;
+  }
+
+  .navai-private-route-row {
+    grid-template-columns: 1fr;
+  }
+
+  .navai-private-route-remove {
+    margin-bottom: 0;
   }
 
   .navai-nav-group-head {

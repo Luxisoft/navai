@@ -114,6 +114,13 @@ class Navai_Voice_Settings
             'frontend_button_text_active',
             true
         );
+        $privateRoutePluginCatalog = $this->get_private_route_plugin_catalog($previous['private_custom_routes'] ?? []);
+        $availableRoles = $this->get_available_roles();
+        $privateCustomRoutes = $this->sanitize_private_custom_routes(
+            $source['private_custom_routes'] ?? [],
+            $privateRoutePluginCatalog,
+            $availableRoles
+        );
 
         $allowedRouteKeys = $this->sanitize_route_keys($source['allowed_route_keys'] ?? []);
         if (count($allowedRouteKeys) === 0 && array_key_exists('allowed_menu_item_ids', $source)) {
@@ -144,6 +151,7 @@ class Navai_Voice_Settings
             'frontend_show_button_text' => $frontendShowButtonText,
             'frontend_button_text_idle' => $frontendButtonTextIdle,
             'frontend_button_text_active' => $frontendButtonTextActive,
+            'private_custom_routes' => $privateCustomRoutes,
             'frontend_allowed_roles' => $this->sanitize_frontend_roles($source['frontend_allowed_roles'] ?? []),
             'active_tab' => $activeTab,
         ];
@@ -270,6 +278,8 @@ class Navai_Voice_Settings
         }
 
         $availableRoles = $this->get_available_roles();
+        $privateCustomRoutes = $this->get_private_custom_routes($settings);
+        $privateRoutePluginCatalog = $this->get_private_route_plugin_catalog($privateCustomRoutes);
         $navigationCatalog = $this->get_navigation_catalog();
         $publicRoutes = is_array($navigationCatalog['public'] ?? null) ? $navigationCatalog['public'] : [];
         $privateRoutes = is_array($navigationCatalog['private'] ?? null) ? $navigationCatalog['private'] : [];
@@ -462,7 +472,121 @@ class Navai_Voice_Settings
                         </div>
 
                         <div class="navai-nav-subpanel" data-navai-nav-panel="private">
-                            <p class="navai-admin-description"><?php echo esc_html__('Rutas privadas de panel accesibles por rol.', 'navai-voice'); ?></p>
+                            <p class="navai-admin-description"><?php echo esc_html__('Rutas privadas personalizadas por rol.', 'navai-voice'); ?></p>
+
+                            <div class="navai-private-routes-builder" data-next-index="<?php echo esc_attr((string) count($privateCustomRoutes)); ?>">
+                                <h4><?php echo esc_html__('Menus privados personalizados', 'navai-voice'); ?></h4>
+                                <p class="navai-admin-description">
+                                    <?php echo esc_html__('Agrega rutas manuales seleccionando plugin, rol y URL. Puedes editar o eliminar cada fila.', 'navai-voice'); ?>
+                                </p>
+
+                                <div class="navai-private-routes-list">
+                                    <?php foreach ($privateCustomRoutes as $routeIndex => $privateRouteConfig) : ?>
+                                        <?php
+                                        $rowId = sanitize_text_field((string) ($privateRouteConfig['id'] ?? ''));
+                                        $rowPluginKey = sanitize_text_field((string) ($privateRouteConfig['plugin_key'] ?? 'wp-core'));
+                                        if ($rowPluginKey === '') {
+                                            $rowPluginKey = 'wp-core';
+                                        }
+                                        $rowRole = sanitize_key((string) ($privateRouteConfig['role'] ?? ''));
+                                        $rowUrl = esc_url_raw((string) ($privateRouteConfig['url'] ?? ''));
+                                        ?>
+                                        <div class="navai-private-route-row">
+                                            <input
+                                                type="hidden"
+                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][<?php echo esc_attr((string) $routeIndex); ?>][id]"
+                                                value="<?php echo esc_attr($rowId); ?>"
+                                            />
+
+                                            <label>
+                                                <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
+                                                <select name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][<?php echo esc_attr((string) $routeIndex); ?>][plugin_key]">
+                                                    <?php foreach ($privateRoutePluginCatalog as $pluginKey => $pluginLabel) : ?>
+                                                        <option value="<?php echo esc_attr((string) $pluginKey); ?>" <?php selected($rowPluginKey, (string) $pluginKey); ?>>
+                                                            <?php echo esc_html((string) $pluginLabel); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
+
+                                            <label>
+                                                <span><?php echo esc_html__('Rol', 'navai-voice'); ?></span>
+                                                <select name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][<?php echo esc_attr((string) $routeIndex); ?>][role]">
+                                                    <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
+                                                        <option value="<?php echo esc_attr((string) $roleKey); ?>" <?php selected($rowRole, (string) $roleKey); ?>>
+                                                            <?php echo esc_html((string) $roleLabel); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
+
+                                            <label class="navai-private-route-url">
+                                                <span><?php echo esc_html__('URL', 'navai-voice'); ?></span>
+                                                <input
+                                                    type="url"
+                                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][<?php echo esc_attr((string) $routeIndex); ?>][url]"
+                                                    value="<?php echo esc_attr($rowUrl); ?>"
+                                                    placeholder="<?php echo esc_attr('https://example.com/wp-admin/admin.php?page=slug'); ?>"
+                                                />
+                                            </label>
+
+                                            <button type="button" class="button-link-delete navai-private-route-remove">
+                                                <?php echo esc_html__('Eliminar', 'navai-voice'); ?>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+
+                                <button type="button" class="button button-secondary navai-private-route-add">
+                                    <?php echo esc_html__('Anadir URL', 'navai-voice'); ?>
+                                </button>
+
+                                <template class="navai-private-route-template">
+                                    <div class="navai-private-route-row">
+                                        <input
+                                            type="hidden"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][__INDEX__][id]"
+                                            value=""
+                                        />
+
+                                        <label>
+                                            <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
+                                            <select name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][__INDEX__][plugin_key]">
+                                                <?php foreach ($privateRoutePluginCatalog as $pluginKey => $pluginLabel) : ?>
+                                                    <option value="<?php echo esc_attr((string) $pluginKey); ?>">
+                                                        <?php echo esc_html((string) $pluginLabel); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </label>
+
+                                        <label>
+                                            <span><?php echo esc_html__('Rol', 'navai-voice'); ?></span>
+                                            <select name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][__INDEX__][role]">
+                                                <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
+                                                    <option value="<?php echo esc_attr((string) $roleKey); ?>">
+                                                        <?php echo esc_html((string) $roleLabel); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </label>
+
+                                        <label class="navai-private-route-url">
+                                            <span><?php echo esc_html__('URL', 'navai-voice'); ?></span>
+                                            <input
+                                                type="url"
+                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][__INDEX__][url]"
+                                                value=""
+                                                placeholder="<?php echo esc_attr('https://example.com/wp-admin/admin.php?page=slug'); ?>"
+                                            />
+                                        </label>
+
+                                        <button type="button" class="button-link-delete navai-private-route-remove">
+                                            <?php echo esc_html__('Eliminar', 'navai-voice'); ?>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
 
                             <div class="navai-nav-actions">
                                 <button
@@ -534,7 +658,7 @@ class Navai_Voice_Settings
                             </div>
 
                             <?php if (count($privateRouteGroups) === 0) : ?>
-                                <p><?php echo esc_html__('No se encontraron rutas privadas del panel.', 'navai-voice'); ?></p>
+                                <p><?php echo esc_html__('No hay rutas privadas personalizadas. Usa el formulario de arriba para agregarlas.', 'navai-voice'); ?></p>
                             <?php else : ?>
                                 <div class="navai-nav-groups" data-navai-nav-scope="private">
                                     <?php foreach ($privateRouteGroups as $group) : ?>
@@ -1252,8 +1376,9 @@ class Navai_Voice_Settings
      */
     private function get_navigation_catalog(): array
     {
+        $settings = $this->get_settings();
         $publicRoutes = $this->collect_public_menu_routes();
-        $privateRoutes = $this->collect_private_routes();
+        $privateRoutes = $this->collect_private_routes($settings);
 
         $index = [];
         $legacyMap = [];
@@ -1424,6 +1549,234 @@ class Navai_Voice_Settings
     }
 
     /**
+     * @param array<string, mixed> $settings
+     * @return array<int, array{id: string, plugin_key: string, plugin_label: string, role: string, url: string}>
+     */
+    private function get_private_custom_routes(array $settings): array
+    {
+        $raw = is_array($settings['private_custom_routes'] ?? null)
+            ? $settings['private_custom_routes']
+            : [];
+        $availableRoles = $this->get_available_roles();
+        $pluginCatalog = $this->get_private_route_plugin_catalog($raw);
+
+        return $this->sanitize_private_custom_routes($raw, $pluginCatalog, $availableRoles);
+    }
+
+    /**
+     * @param mixed $existingRoutes
+     * @return array<string, string>
+     */
+    private function get_private_route_plugin_catalog($existingRoutes = []): array
+    {
+        $catalog = [
+            'wp-core' => __('WordPress / Sitio', 'navai-voice'),
+        ];
+
+        foreach ($this->get_installed_plugins() as $plugin) {
+            $pluginFile = isset($plugin['file']) ? (string) $plugin['file'] : '';
+            $slug = $this->plugin_file_to_slug($pluginFile);
+            if ($slug === '') {
+                continue;
+            }
+
+            $pluginKey = 'plugin:' . $slug;
+            $pluginLabel = sanitize_text_field((string) ($plugin['name'] ?? $slug));
+            if ($pluginLabel === '') {
+                $pluginLabel = $slug;
+            }
+
+            $catalog[$pluginKey] = $pluginLabel;
+        }
+
+        if (is_array($existingRoutes)) {
+            foreach ($existingRoutes as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+
+                $pluginKey = $this->sanitize_private_plugin_key((string) ($item['plugin_key'] ?? ''));
+                if ($pluginKey === '' || isset($catalog[$pluginKey])) {
+                    continue;
+                }
+
+                $catalog[$pluginKey] = $this->resolve_private_plugin_label(
+                    $pluginKey,
+                    (string) ($item['plugin_label'] ?? ''),
+                    $catalog
+                );
+            }
+        }
+
+        uasort(
+            $catalog,
+            static fn(string $a, string $b): int => strcasecmp($a, $b)
+        );
+
+        return $catalog;
+    }
+
+    /**
+     * @param mixed $value
+     * @param array<string, string> $pluginCatalog
+     * @param array<string, string> $availableRoles
+     * @return array<int, array{id: string, plugin_key: string, plugin_label: string, role: string, url: string}>
+     */
+    private function sanitize_private_custom_routes($value, array $pluginCatalog, array $availableRoles): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $routes = [];
+        $dedupe = [];
+        foreach ($value as $index => $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $pluginKey = $this->sanitize_private_plugin_key((string) ($item['plugin_key'] ?? 'wp-core'));
+            if ($pluginKey === '') {
+                $pluginKey = 'wp-core';
+            }
+
+            $role = sanitize_key((string) ($item['role'] ?? ''));
+            if ($role === '' || !isset($availableRoles[$role])) {
+                continue;
+            }
+
+            $url = trim((string) ($item['url'] ?? ''));
+            if (str_starts_with($url, '/')) {
+                $url = home_url($url);
+            }
+            $url = esc_url_raw($url);
+            if (!$this->is_navigable_url($url) || !$this->is_internal_site_url($url)) {
+                continue;
+            }
+
+            $dedupeKey = $pluginKey . '|' . $role . '|' . $this->build_url_dedupe_key($url);
+            if (isset($dedupe[$dedupeKey])) {
+                continue;
+            }
+            $dedupe[$dedupeKey] = true;
+
+            $rawId = (string) ($item['id'] ?? '');
+            $routeId = $this->sanitize_private_custom_route_id($rawId);
+            if ($routeId === '') {
+                $routeId = $this->generate_private_custom_route_id($pluginKey, $role, $url, (string) $index);
+            }
+
+            $routes[] = [
+                'id' => $routeId,
+                'plugin_key' => $pluginKey,
+                'plugin_label' => $this->resolve_private_plugin_label(
+                    $pluginKey,
+                    (string) ($item['plugin_label'] ?? ''),
+                    $pluginCatalog
+                ),
+                'role' => $role,
+                'url' => $url,
+            ];
+        }
+
+        return $routes;
+    }
+
+    private function sanitize_private_plugin_key(string $value): string
+    {
+        $key = strtolower(trim(sanitize_text_field($value)));
+        if ($key === '') {
+            return '';
+        }
+
+        $key = preg_replace('/[^a-z0-9:_-]/', '', $key);
+        if (!is_string($key) || trim($key) === '') {
+            return '';
+        }
+
+        if (in_array($key, ['core', 'wordpress', 'wp'], true)) {
+            return 'wp-core';
+        }
+
+        return $key;
+    }
+
+    private function sanitize_private_custom_route_id(string $value): string
+    {
+        $id = strtolower(trim($value));
+        if ($id === '') {
+            return '';
+        }
+
+        $id = preg_replace('/[^a-z0-9_-]/', '', $id);
+        if (!is_string($id) || trim($id) === '') {
+            return '';
+        }
+
+        return substr($id, 0, 48);
+    }
+
+    private function generate_private_custom_route_id(string $pluginKey, string $role, string $url, string $index): string
+    {
+        if (function_exists('wp_generate_uuid4')) {
+            $uuid = (string) wp_generate_uuid4();
+            $cleanUuid = $this->sanitize_private_custom_route_id($uuid);
+            if ($cleanUuid !== '') {
+                return $cleanUuid;
+            }
+        }
+
+        return substr(md5($pluginKey . '|' . $role . '|' . $url . '|' . $index . '|' . (string) microtime(true)), 0, 32);
+    }
+
+    /**
+     * @param array<string, string> $pluginCatalog
+     */
+    private function resolve_private_plugin_label(string $pluginKey, string $providedLabel, array $pluginCatalog): string
+    {
+        if (isset($pluginCatalog[$pluginKey])) {
+            return (string) $pluginCatalog[$pluginKey];
+        }
+
+        $cleanProvided = sanitize_text_field($providedLabel);
+        if ($cleanProvided !== '') {
+            return $cleanProvided;
+        }
+
+        $normalized = str_starts_with($pluginKey, 'plugin:') ? substr($pluginKey, 7) : $pluginKey;
+        $normalized = str_replace(['-', '_', ':'], ' ', (string) $normalized);
+        $normalized = trim($normalized);
+        if ($normalized === '') {
+            return __('WordPress / Sitio', 'navai-voice');
+        }
+
+        return ucwords($normalized);
+    }
+
+    private function build_private_route_title_from_url(string $url): string
+    {
+        $query = wp_parse_url($url, PHP_URL_QUERY);
+        if (is_string($query) && trim($query) !== '') {
+            $args = [];
+            parse_str($query, $args);
+            if (isset($args['page']) && is_string($args['page']) && trim($args['page']) !== '') {
+                return ucwords(str_replace(['-', '_'], ' ', sanitize_text_field((string) $args['page'])));
+            }
+        }
+
+        $path = wp_parse_url($url, PHP_URL_PATH);
+        if (is_string($path) && trim($path) !== '') {
+            $base = basename(trim($path, '/'));
+            $clean = sanitize_text_field((string) preg_replace('/\.php$/i', '', $base));
+            if ($clean !== '') {
+                return ucwords(str_replace(['-', '_'], ' ', $clean));
+            }
+        }
+
+        return __('Ruta privada', 'navai-voice');
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     private function collect_public_menu_routes(): array
@@ -1528,72 +1881,68 @@ class Navai_Voice_Settings
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function collect_private_routes(): array
+    private function collect_private_routes(array $settings): array
     {
-        $roles = $this->get_available_roles();
-        if (count($roles) === 0) {
+        $customRoutes = $this->get_private_custom_routes($settings);
+        if (count($customRoutes) === 0) {
             return [];
         }
 
-        $adminRoutes = $this->collect_admin_panel_routes();
-        if (count($adminRoutes) === 0) {
-            return [];
-        }
-
+        $availableRoles = $this->get_available_roles();
         $items = [];
-        $seenByRole = [];
-        foreach ($roles as $roleKey => $roleLabel) {
-            $roleToken = sanitize_key((string) $roleKey);
+        $seen = [];
+
+        foreach ($customRoutes as $customRoute) {
+            $roleToken = sanitize_key((string) ($customRoute['role'] ?? ''));
             if ($roleToken === '') {
                 continue;
             }
 
-            $seenByRole[$roleToken] = [];
-
-            foreach ($adminRoutes as $route) {
-                $title = sanitize_text_field((string) ($route['title'] ?? ''));
-                $url = esc_url_raw((string) ($route['url'] ?? ''));
-                $capability = (string) ($route['capability'] ?? 'read');
-                if ($title === '' || !$this->is_navigable_url($url)) {
-                    continue;
-                }
-
-                $includeAllPanelRoutes = in_array($roleToken, ['administrator', 'editor'], true);
-                if (!$includeAllPanelRoutes && !$this->role_can_access_capability($roleToken, $capability)) {
-                    continue;
-                }
-
-                $baseDedupeKey = $this->build_url_dedupe_key($url);
-                if (isset($seenByRole[$roleToken][$baseDedupeKey])) {
-                    continue;
-                }
-                $seenByRole[$roleToken][$baseDedupeKey] = true;
-
-                $pluginKey = sanitize_text_field((string) ($route['plugin_key'] ?? 'wp-core'));
-                if ($pluginKey === '') {
-                    $pluginKey = 'wp-core';
-                }
-                $pluginLabel = sanitize_text_field((string) ($route['plugin_label'] ?? __('WordPress / Sitio', 'navai-voice')));
-                if ($pluginLabel === '') {
-                    $pluginLabel = __('WordPress / Sitio', 'navai-voice');
-                }
-
-                $items[] = [
-                    'key' => 'private:' . $roleToken . ':' . md5($baseDedupeKey),
-                    'title' => $title,
-                    'url' => $url,
-                    'description' => sprintf(__('Ruta privada del panel para el rol %s.', 'navai-voice'), (string) $roleLabel),
-                    'synonyms' => is_array($route['synonyms'] ?? null)
-                        ? array_values(array_unique(array_map('sanitize_text_field', $route['synonyms'])))
-                        : $this->build_route_synonyms($title, $url),
-                    'visibility' => 'private',
-                    'roles' => [$roleToken],
-                    'legacy_ids' => [],
-                    'legacy_keys' => ['private:' . md5($baseDedupeKey)],
-                    'plugin_key' => $pluginKey,
-                    'plugin_label' => $pluginLabel,
-                ];
+            $roleLabel = isset($availableRoles[$roleToken]) ? (string) $availableRoles[$roleToken] : $roleToken;
+            $url = esc_url_raw((string) ($customRoute['url'] ?? ''));
+            if (!$this->is_navigable_url($url) || !$this->is_internal_site_url($url)) {
+                continue;
             }
+
+            $pluginKey = $this->sanitize_private_plugin_key((string) ($customRoute['plugin_key'] ?? 'wp-core'));
+            if ($pluginKey === '') {
+                $pluginKey = 'wp-core';
+            }
+
+            $pluginLabel = sanitize_text_field((string) ($customRoute['plugin_label'] ?? ''));
+            if ($pluginLabel === '') {
+                $pluginLabel = $this->resolve_private_plugin_label($pluginKey, '', []);
+            }
+
+            $routeId = $this->sanitize_private_custom_route_id((string) ($customRoute['id'] ?? ''));
+            if ($routeId === '') {
+                $routeId = $this->generate_private_custom_route_id($pluginKey, $roleToken, $url, 'persisted');
+            }
+
+            $baseDedupeKey = $this->build_url_dedupe_key($url);
+            $dedupeKey = $pluginKey . '|' . $roleToken . '|' . $baseDedupeKey;
+            if (isset($seen[$dedupeKey])) {
+                continue;
+            }
+            $seen[$dedupeKey] = true;
+
+            $title = $this->build_private_route_title_from_url($url);
+            $items[] = [
+                'key' => 'private_custom:' . $routeId,
+                'title' => $title,
+                'url' => $url,
+                'description' => sprintf(__('Ruta privada personalizada para el rol %s.', 'navai-voice'), (string) $roleLabel),
+                'synonyms' => $this->build_route_synonyms($title, $url),
+                'visibility' => 'private',
+                'roles' => [$roleToken],
+                'legacy_ids' => [],
+                'legacy_keys' => [
+                    'private:' . $roleToken . ':' . md5($baseDedupeKey),
+                    'private:' . md5($baseDedupeKey),
+                ],
+                'plugin_key' => $pluginKey,
+                'plugin_label' => $pluginLabel,
+            ];
         }
 
         usort(
@@ -2309,6 +2658,7 @@ class Navai_Voice_Settings
             'frontend_show_button_text' => true,
             'frontend_button_text_idle' => 'Hablar con NAVAI',
             'frontend_button_text_active' => 'Detener NAVAI',
+            'private_custom_routes' => [],
             'frontend_allowed_roles' => $this->get_default_frontend_roles(),
             'active_tab' => 'navigation',
         ];
