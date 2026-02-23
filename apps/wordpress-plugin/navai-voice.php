@@ -3,7 +3,7 @@
  * Plugin Name: NAVAI Voice
  * Plugin URI: https://navai.luxisoft.com/documentation/installation-wordpress
  * Description: Integracion de voz NAVAI para WordPress usando endpoints REST en PHP.
- * Version: 0.3.8
+ * Version: 0.3.9
  * Author: NAVAI
  * Text Domain: navai-voice
  * Requires at least: 6.2
@@ -53,7 +53,7 @@ if (!function_exists('navai_voice_render_bootstrap_error_notice')) {
 
         delete_transient('navai_voice_bootstrap_error');
         ?>
-        <div class="notice notice-error">
+        <div class="notice notice-error navai-voice-notice">
             <p><?php echo esc_html__('NAVAI Voice no pudo inicializarse: ', 'navai-voice') . esc_html($message); ?></p>
         </div>
         <?php
@@ -488,7 +488,7 @@ if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $currentPath) {
 }
 
 if (!defined('NAVAI_VOICE_VERSION')) {
-    define('NAVAI_VOICE_VERSION', '0.3.8');
+    define('NAVAI_VOICE_VERSION', '0.3.9');
 }
 if (!defined('NAVAI_VOICE_PATH')) {
     define('NAVAI_VOICE_PATH', $currentPath);

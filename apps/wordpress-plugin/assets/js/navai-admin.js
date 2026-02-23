@@ -40,6 +40,26 @@
     return text.trim();
   }
 
+  function removeForeignNotices() {
+    var bodyContent = document.getElementById("wpbody-content");
+    if (!bodyContent) {
+      return;
+    }
+
+    var notices = bodyContent.querySelectorAll(
+      ".notice, .update-nag, .error, .updated, .woocommerce-message, .woocommerce-layout__header, .omnisend-notice, [id^='message']"
+    );
+
+    for (var i = 0; i < notices.length; i += 1) {
+      var notice = notices[i];
+      if (notice.classList && notice.classList.contains("navai-voice-notice")) {
+        continue;
+      }
+
+      notice.remove();
+    }
+  }
+
   function activateTab(tab, tabButtons, tabPanels, hiddenInput) {
     var target = VALID_TABS[tab] ? tab : "navigation";
 
@@ -253,6 +273,7 @@
     }
 
     initNavigationControls();
+    removeForeignNotices();
   }
 
   if (document.readyState === "loading") {

@@ -1,7 +1,11 @@
-.toplevel_page_navai-voice-settings #wpbody-content > .notice,
-.toplevel_page_navai-voice-settings #wpbody-content > .update-nag,
-.toplevel_page_navai-voice-settings #wpbody-content > .error,
-.toplevel_page_navai-voice-settings #wpbody-content > .updated {
+.toplevel_page_navai-voice-settings #wpbody-content .notice:not(.navai-voice-notice),
+.toplevel_page_navai-voice-settings #wpbody-content .update-nag,
+.toplevel_page_navai-voice-settings #wpbody-content .error:not(.navai-voice-notice),
+.toplevel_page_navai-voice-settings #wpbody-content .updated:not(.navai-voice-notice),
+.toplevel_page_navai-voice-settings #wpbody-content .woocommerce-message,
+.toplevel_page_navai-voice-settings #wpbody-content .woocommerce-layout__header,
+.toplevel_page_navai-voice-settings #wpbody-content .omnisend-notice,
+.toplevel_page_navai-voice-settings #wpbody-content [id^="message"]:not(.navai-voice-notice) {
   display: none !important;
 }
 
