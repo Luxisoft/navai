@@ -23,7 +23,6 @@ class Navai_Voice_Plugin
         add_action('rest_api_init', [$this->api, 'register_routes']);
         add_action('wp_enqueue_scripts', [$this, 'register_assets']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
-        add_action('admin_head', [$this, 'inject_admin_menu_icon_css']);
         add_action('admin_head-plugins.php', [$this, 'inject_plugins_page_logo_css']);
 
         add_filter('plugin_action_links_' . NAVAI_VOICE_BASENAME, [$this, 'add_plugin_action_links']);
@@ -65,32 +64,8 @@ class Navai_Voice_Plugin
                 content: "";
                 width: 20px;
                 height: 20px;
-                border-radius: 4px;
-                background: url('<?php echo $logoUrl; ?>') center/cover no-repeat;
+                background: url('<?php echo $logoUrl; ?>') center/contain no-repeat;
                 display: inline-block;
-            }
-        </style>
-        <?php
-    }
-
-    public function inject_admin_menu_icon_css(): void
-    {
-        $menuId = 'toplevel_page_' . Navai_Voice_Settings::PAGE_SLUG;
-        $iconUrl = esc_url($this->resolve_admin_icon_url());
-        ?>
-        <style>
-            #<?php echo esc_attr($menuId); ?> .wp-menu-image::before {
-                content: "";
-                width: 20px;
-                height: 20px;
-                margin-top: 7px;
-                margin-left: 7px;
-                border-radius: 4px;
-                background: url('<?php echo $iconUrl; ?>') center/cover no-repeat;
-                display: block;
-            }
-            #<?php echo esc_attr($menuId); ?> .wp-menu-image.dashicons-before::before {
-                color: transparent;
             }
         </style>
         <?php
@@ -260,6 +235,7 @@ class Navai_Voice_Plugin
     private function resolve_public_routes(): array
     {
         $settings = $this->settings->get_settings();
+        $hasSelectedMenuItems = $this->has_selected_menu_items($settings);
         $baseRoutes = [
             [
                 'name' => 'inicio',
@@ -272,7 +248,8 @@ class Navai_Voice_Plugin
         $menuRoutes = $this->get_menu_routes_from_settings($settings);
         $baseRoutes = array_merge($baseRoutes, $menuRoutes);
 
-        if (count($baseRoutes) <= 1) {
+        // Only fallback to published pages when user did not select specific menu items.
+        if (!$hasSelectedMenuItems && count($baseRoutes) <= 1) {
             $baseRoutes = array_merge($baseRoutes, $this->get_published_page_routes());
         }
 
@@ -346,64 +323,25 @@ class Navai_Voice_Plugin
      */
     private function get_menu_routes_from_settings(array $settings): array
     {
-        if (!function_exists('wp_get_nav_menu_item') || !function_exists('wp_get_nav_menus') || !function_exists('wp_get_nav_menu_items')) {
+        if (!function_exists('wp_get_nav_menus') || !function_exists('wp_get_nav_menu_items')) {
             return [];
         }
 
-        $idsRaw = is_array($settings['allowed_menu_item_ids'] ?? null)
-            ? $settings['allowed_menu_item_ids']
-            : [];
-        $ids = array_values(array_unique(array_map('absint', $idsRaw)));
-        if (count($ids) === 0) {
-            $ids = $this->get_all_menu_item_ids();
+        $selectedIds = $this->get_selected_menu_item_ids($settings);
+        $routesById = $this->get_menu_routes_index();
+
+        if (count($selectedIds) === 0) {
+            return array_values($routesById);
         }
 
-        $routes = $this->get_routes_from_menu_item_ids($ids);
-        if (count($routes) === 0) {
-            // Recover if stored selected IDs are stale.
-            $routes = $this->get_routes_from_menu_item_ids($this->get_all_menu_item_ids());
+        $selectedRoutes = [];
+        foreach ($selectedIds as $id) {
+            if (isset($routesById[$id])) {
+                $selectedRoutes[] = $routesById[$id];
+            }
         }
 
-        return $routes;
-    }
-
-    /**
-     * @param array<int, int> $ids
-     * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
-     */
-    private function get_routes_from_menu_item_ids(array $ids): array
-    {
-        if (!function_exists('wp_get_nav_menu_item')) {
-            return [];
-        }
-
-        $routes = [];
-        $dedupe = [];
-        foreach ($ids as $id) {
-            if ($id <= 0) {
-                continue;
-            }
-
-            $item = wp_get_nav_menu_item($id);
-            if (!$item) {
-                continue;
-            }
-
-            $route = $this->build_route_from_menu_item($item);
-            if (!is_array($route)) {
-                continue;
-            }
-
-            $key = $this->build_route_dedupe_key((string) $route['name'], (string) $route['path']);
-            if (isset($dedupe[$key])) {
-                continue;
-            }
-
-            $dedupe[$key] = true;
-            $routes[] = $route;
-        }
-
-        return $routes;
+        return $selectedRoutes;
     }
 
     /**
@@ -439,16 +377,39 @@ class Navai_Voice_Plugin
     }
 
     /**
+     * @param array<string, mixed> $settings
      * @return array<int, int>
      */
-    private function get_all_menu_item_ids(): array
+    private function get_selected_menu_item_ids(array $settings): array
+    {
+        $idsRaw = is_array($settings['allowed_menu_item_ids'] ?? null)
+            ? $settings['allowed_menu_item_ids']
+            : [];
+
+        $ids = array_map('absint', $idsRaw);
+        return array_values(array_filter(array_unique($ids), static fn(int $id): bool => $id > 0));
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
+    private function has_selected_menu_items(array $settings): bool
+    {
+        return count($this->get_selected_menu_item_ids($settings)) > 0;
+    }
+
+    /**
+     * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
+     */
+    private function get_menu_routes_index(): array
     {
         $menus = wp_get_nav_menus();
         if (!is_array($menus) || count($menus) === 0) {
             return [];
         }
 
-        $ids = [];
+        $routesById = [];
+        $dedupe = [];
         foreach ($menus as $menu) {
             if (!isset($menu->term_id)) {
                 continue;
@@ -460,16 +421,31 @@ class Navai_Voice_Plugin
             }
 
             foreach ($items as $item) {
-                if (isset($item->ID)) {
-                    $itemId = absint((int) $item->ID);
-                    if ($itemId > 0) {
-                        $ids[] = $itemId;
-                    }
+                if (!is_object($item) || !isset($item->ID)) {
+                    continue;
                 }
+
+                $itemId = absint((int) $item->ID);
+                if ($itemId <= 0) {
+                    continue;
+                }
+
+                $route = $this->build_route_from_menu_item($item);
+                if (!is_array($route)) {
+                    continue;
+                }
+
+                $dedupeKey = $this->build_route_dedupe_key((string) $route['name'], (string) $route['path']);
+                if (isset($dedupe[$dedupeKey])) {
+                    continue;
+                }
+
+                $dedupe[$dedupeKey] = true;
+                $routesById[$itemId] = $route;
             }
         }
 
-        return array_values(array_unique($ids));
+        return $routesById;
     }
 
     /**

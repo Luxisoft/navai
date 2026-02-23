@@ -30,7 +30,7 @@ class Navai_Voice_Settings
             'manage_options',
             self::PAGE_SLUG,
             [$this, 'render_page'],
-            'dashicons-format-audio',
+            $this->resolve_admin_menu_icon_url(),
             58
         );
     }
@@ -569,6 +569,12 @@ class Navai_Voice_Settings
         }
 
         return NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg';
+    }
+
+    private function resolve_admin_menu_icon_url(): string
+    {
+        $iconUrl = $this->resolve_admin_icon_url();
+        return trim($iconUrl) !== '' ? $iconUrl : 'dashicons-format-audio';
     }
 
     /**

@@ -198,6 +198,7 @@
     }
 
     var routes = [];
+    var seen = {};
     for (var i = 0; i < raw.length; i += 1) {
       var item = raw[i];
       if (!isRecord(item)) {
@@ -224,6 +225,12 @@
       var normalizedName = normalizeTextForMatch(name);
       var pathTokens = extractPathTokens(path);
       var normalizedSynonyms = uniqueStrings(synonyms.concat(pathTokens));
+      var normalizedPath = normalizeRoutePathForCompare(path);
+      var dedupeKey = normalizedName + "|" + normalizedPath;
+      if (seen[dedupeKey]) {
+        continue;
+      }
+      seen[dedupeKey] = true;
 
       routes.push({
         name: name,
@@ -232,7 +239,7 @@
         synonyms: normalizedSynonyms,
         normalizedName: normalizedName,
         pathTokens: pathTokens,
-        normalizedPath: normalizeRoutePathForCompare(path)
+        normalizedPath: normalizedPath
       });
     }
 
