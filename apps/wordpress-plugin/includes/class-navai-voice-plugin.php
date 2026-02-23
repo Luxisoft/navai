@@ -194,6 +194,11 @@ class Navai_Voice_Plugin
     public function render_voice_shortcode(array $atts = []): string
     {
         $settings = $this->settings->get_settings();
+        $displayMode = $this->resolve_frontend_display_mode($settings);
+        if ($displayMode !== 'shortcode') {
+            return '';
+        }
+
         if (!$this->can_render_widget_for_current_user($settings)) {
             return '';
         }
@@ -226,6 +231,7 @@ class Navai_Voice_Plugin
                 'persist_active' => false,
                 'button_side' => 'left',
                 'widget_mode' => 'shortcode',
+                'show_status' => true,
             ]
         );
     }
@@ -242,7 +248,7 @@ class Navai_Voice_Plugin
         }
 
         $displayMode = $this->resolve_frontend_display_mode($settings);
-        if (!in_array($displayMode, ['global', 'both'], true)) {
+        if ($displayMode !== 'global') {
             return;
         }
 
@@ -268,6 +274,7 @@ class Navai_Voice_Plugin
                 'persist_active' => true,
                 'button_side' => $this->resolve_frontend_button_side($settings),
                 'widget_mode' => 'global',
+                'show_status' => false,
             ]
         );
     }
@@ -278,8 +285,7 @@ class Navai_Voice_Plugin
     private function resolve_public_routes(): array
     {
         $settings = $this->settings->get_settings();
-        $menuRoutes = $this->get_menu_routes_from_settings($settings);
-        $baseRoutes = $menuRoutes;
+        $baseRoutes = $this->settings->get_allowed_routes_for_current_user();
 
         /** @var mixed $raw */
         $raw = apply_filters('navai_voice_routes', $baseRoutes, $settings);
@@ -537,7 +543,7 @@ class Navai_Voice_Plugin
     private function resolve_frontend_display_mode(array $settings): string
     {
         $mode = isset($settings['frontend_display_mode']) ? sanitize_key((string) $settings['frontend_display_mode']) : '';
-        if (!in_array($mode, ['global', 'shortcode', 'both'], true)) {
+        if (!in_array($mode, ['global', 'shortcode'], true)) {
             return 'global';
         }
 
@@ -623,6 +629,7 @@ class Navai_Voice_Plugin
 
         $floating = !empty($options['floating']);
         $persistActive = !empty($options['persist_active']);
+        $showStatus = array_key_exists('show_status', $options) ? !empty($options['show_status']) : true;
         $widgetMode = isset($options['widget_mode']) ? sanitize_key((string) $options['widget_mode']) : 'shortcode';
         if (!in_array($widgetMode, ['global', 'shortcode'], true)) {
             $widgetMode = 'shortcode';
@@ -679,7 +686,9 @@ class Navai_Voice_Plugin
                 <span class="navai-voice-toggle-icon dashicons dashicons-microphone" aria-hidden="true"></span>
                 <span class="navai-voice-toggle-text"><?php echo esc_html($startLabel); ?></span>
             </button>
-            <p class="navai-voice-status" aria-live="polite"><?php echo esc_html__('Idle', 'navai-voice'); ?></p>
+            <?php if ($showStatus) : ?>
+                <p class="navai-voice-status" aria-live="polite"><?php echo esc_html__('Idle', 'navai-voice'); ?></p>
+            <?php endif; ?>
             <pre class="navai-voice-log" <?php echo $debug ? '' : 'hidden'; ?>></pre>
         </div>
         <?php

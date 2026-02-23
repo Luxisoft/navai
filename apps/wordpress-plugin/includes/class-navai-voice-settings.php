@@ -80,7 +80,7 @@ class Navai_Voice_Settings
         $frontendDisplayMode = isset($source['frontend_display_mode'])
             ? sanitize_key((string) $source['frontend_display_mode'])
             : (string) ($previous['frontend_display_mode'] ?? $defaults['frontend_display_mode']);
-        if (!in_array($frontendDisplayMode, ['global', 'shortcode', 'both'], true)) {
+        if (!in_array($frontendDisplayMode, ['global', 'shortcode'], true)) {
             $frontendDisplayMode = (string) $defaults['frontend_display_mode'];
         }
 
@@ -89,6 +89,13 @@ class Navai_Voice_Settings
             : (string) ($previous['frontend_button_side'] ?? $defaults['frontend_button_side']);
         if (!in_array($frontendButtonSide, ['left', 'right'], true)) {
             $frontendButtonSide = (string) $defaults['frontend_button_side'];
+        }
+
+        $allowedRouteKeys = $this->sanitize_route_keys($source['allowed_route_keys'] ?? []);
+        if (count($allowedRouteKeys) === 0 && array_key_exists('allowed_menu_item_ids', $source)) {
+            $allowedRouteKeys = $this->map_legacy_menu_item_ids_to_route_keys(
+                $this->sanitize_menu_item_ids($source['allowed_menu_item_ids'])
+            );
         }
 
         return [
@@ -103,6 +110,7 @@ class Navai_Voice_Settings
             'allow_public_client_secret' => !empty($source['allow_public_client_secret']),
             'allow_public_functions' => !empty($source['allow_public_functions']),
             'allowed_menu_item_ids' => $this->sanitize_menu_item_ids($source['allowed_menu_item_ids'] ?? []),
+            'allowed_route_keys' => $allowedRouteKeys,
             'allowed_plugin_files' => $this->sanitize_plugin_files($source['allowed_plugin_files'] ?? []),
             'manual_plugins' => $this->sanitize_manual_plugins((string) ($source['manual_plugins'] ?? '')),
             'frontend_display_mode' => $frontendDisplayMode,
@@ -112,6 +120,87 @@ class Navai_Voice_Settings
         ];
     }
 
+    /**
+     * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
+     */
+    public function get_allowed_routes_for_current_user(): array
+    {
+        $settings = $this->get_settings();
+        $selectedRouteKeys = $this->get_selected_route_keys($settings);
+        if (count($selectedRouteKeys) === 0) {
+            return [];
+        }
+
+        $catalog = $this->get_navigation_catalog();
+        $index = is_array($catalog['index'] ?? null) ? $catalog['index'] : [];
+        $currentRoles = $this->get_current_user_roles();
+
+        $routes = [];
+        $dedupe = [];
+        foreach ($selectedRouteKeys as $routeKey) {
+            if (!isset($index[$routeKey]) || !is_array($index[$routeKey])) {
+                continue;
+            }
+
+            $item = $index[$routeKey];
+            $visibility = isset($item['visibility']) ? (string) $item['visibility'] : 'public';
+            $roles = is_array($item['roles'] ?? null) ? array_map('sanitize_key', $item['roles']) : [];
+
+            if ($visibility === 'private') {
+                if (count($currentRoles) === 0 || count(array_intersect($currentRoles, $roles)) === 0) {
+                    continue;
+                }
+            }
+
+            $name = sanitize_text_field((string) ($item['title'] ?? ''));
+            $path = esc_url_raw((string) ($item['url'] ?? ''));
+            if ($name === '' || !$this->is_navigable_url($path)) {
+                continue;
+            }
+            if (str_starts_with($path, '/')) {
+                $path = home_url($path);
+            }
+
+            $description = sanitize_text_field((string) ($item['description'] ?? ''));
+            if ($description === '') {
+                $description = $visibility === 'private'
+                    ? __('Ruta privada seleccionada en WordPress.', 'navai-voice')
+                    : __('Ruta publica seleccionada en WordPress.', 'navai-voice');
+            }
+
+            $synonyms = [];
+            if (isset($item['synonyms']) && is_array($item['synonyms'])) {
+                foreach ($item['synonyms'] as $synonym) {
+                    if (!is_string($synonym)) {
+                        continue;
+                    }
+                    $clean = sanitize_text_field($synonym);
+                    if ($clean !== '') {
+                        $synonyms[] = $clean;
+                    }
+                }
+            }
+            if (count($synonyms) === 0) {
+                $synonyms = $this->build_route_synonyms($name, $path);
+            }
+
+            $dedupeKey = $this->build_route_dedupe_key($name, $path);
+            if (isset($dedupe[$dedupeKey])) {
+                continue;
+            }
+            $dedupe[$dedupeKey] = true;
+
+            $routes[] = [
+                'name' => $name,
+                'path' => $path,
+                'description' => $description,
+                'synonyms' => array_values(array_unique($synonyms)),
+            ];
+        }
+
+        return $routes;
+    }
+
     public function render_page(): void
     {
         if (!current_user_can('manage_options')) {
@@ -119,7 +208,7 @@ class Navai_Voice_Settings
         }
 
         $settings = $this->get_settings();
-        $allowedMenuItemIds = array_map('strval', is_array($settings['allowed_menu_item_ids']) ? $settings['allowed_menu_item_ids'] : []);
+        $allowedRouteKeys = $this->get_selected_route_keys($settings);
         $allowedPluginFiles = array_map('strval', is_array($settings['allowed_plugin_files']) ? $settings['allowed_plugin_files'] : []);
         $allowedFrontendRoles = array_map('strval', is_array($settings['frontend_allowed_roles']) ? $settings['frontend_allowed_roles'] : []);
         $activeTab = is_string($settings['active_tab'] ?? null) ? (string) $settings['active_tab'] : 'navigation';
@@ -128,30 +217,21 @@ class Navai_Voice_Settings
         if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
             $activeTab = 'navigation';
         }
-        if (!in_array($frontendDisplayMode, ['global', 'shortcode', 'both'], true)) {
+        if (!in_array($frontendDisplayMode, ['global', 'shortcode'], true)) {
             $frontendDisplayMode = 'global';
         }
         if (!in_array($frontendButtonSide, ['left', 'right'], true)) {
             $frontendButtonSide = 'left';
         }
 
-        $menuGroups = $this->get_menu_groups();
+        $navigationCatalog = $this->get_navigation_catalog();
+        $publicRoutes = is_array($navigationCatalog['public'] ?? null) ? $navigationCatalog['public'] : [];
+        $privateRoutesByRole = is_array($navigationCatalog['private_roles'] ?? null) ? $navigationCatalog['private_roles'] : [];
         $installedPlugins = $this->get_installed_plugins();
         $availableRoles = $this->get_available_roles();
         ?>
         <div class="wrap navai-admin-wrap">
             <div class="navai-admin-hero">
-                <div class="navai-admin-brand">
-                    <img
-                        class="navai-admin-icon"
-                        src="<?php echo esc_url($this->resolve_admin_icon_url()); ?>"
-                        alt="<?php echo esc_attr__('NAVAI icon', 'navai-voice'); ?>"
-                    />
-                    <div>
-                        <h1><?php echo esc_html__('NAVAI Voice Dashboard', 'navai-voice'); ?></h1>
-                        <p><?php echo esc_html__('Gestiona navegacion, plugins permitidos y runtime principal de NAVAI.', 'navai-voice'); ?></p>
-                    </div>
-                </div>
                 <div class="navai-admin-banner-wrap">
                     <img
                         class="navai-admin-banner"
@@ -160,6 +240,8 @@ class Navai_Voice_Settings
                     />
                 </div>
             </div>
+
+            <hr class="navai-admin-divider" />
 
             <form action="options.php" method="post" class="navai-admin-form">
                 <?php settings_fields('navai_voice_settings_group'); ?>
@@ -184,39 +266,90 @@ class Navai_Voice_Settings
 
                 <section class="navai-admin-panel" data-navai-panel="navigation">
                     <h2><?php echo esc_html__('Navegacion', 'navai-voice'); ?></h2>
-                    <p><?php echo esc_html__('Selecciona los items de menu permitidos para la tool navigate_to.', 'navai-voice'); ?></p>
+                    <p><?php echo esc_html__('Selecciona rutas permitidas para la tool navigate_to.', 'navai-voice'); ?></p>
 
-                    <?php if (count($menuGroups) === 0) : ?>
-                        <div class="notice notice-warning inline">
-                            <p><?php echo esc_html__('No se encontraron menus de WordPress. Crea menus en Apariencia > Menus.', 'navai-voice'); ?></p>
-                        </div>
-                    <?php else : ?>
-                        <?php foreach ($menuGroups as $group) : ?>
-                            <div class="navai-admin-card">
-                                <h3><?php echo esc_html($group['menu_name']); ?></h3>
-                                <div class="navai-admin-menu-grid">
-                                    <?php foreach ($group['items'] as $item) : ?>
-                                        <?php
-                                        $itemIdString = (string) $item['id'];
-                                        $isChecked = in_array($itemIdString, $allowedMenuItemIds, true);
-                                        ?>
-                                        <label class="navai-admin-check navai-admin-check-block">
-                                            <input
-                                                type="checkbox"
-                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_menu_item_ids][]"
-                                                value="<?php echo esc_attr($itemIdString); ?>"
-                                                <?php checked($isChecked, true); ?>
-                                            />
-                                            <span>
-                                                <strong><?php echo esc_html($item['title']); ?></strong><br />
-                                                <small><?php echo esc_html($item['url']); ?></small>
-                                            </span>
-                                        </label>
-                                    <?php endforeach; ?>
-                                </div>
+                    <div class="navai-admin-card">
+                        <h3><?php echo esc_html__('Menus publicos', 'navai-voice'); ?></h3>
+                        <p class="navai-admin-description"><?php echo esc_html__('Disponibles para visitantes, usuarios e invitados.', 'navai-voice'); ?></p>
+
+                        <?php if (count($publicRoutes) === 0) : ?>
+                            <p><?php echo esc_html__('No se encontraron menus publicos de WordPress.', 'navai-voice'); ?></p>
+                        <?php else : ?>
+                            <div class="navai-admin-menu-grid">
+                                <?php foreach ($publicRoutes as $item) : ?>
+                                    <?php
+                                    $routeKey = (string) ($item['key'] ?? '');
+                                    if ($routeKey === '') {
+                                        continue;
+                                    }
+                                    $isChecked = in_array($routeKey, $allowedRouteKeys, true);
+                                    ?>
+                                    <label class="navai-admin-check navai-admin-check-block">
+                                        <input
+                                            type="checkbox"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_route_keys][]"
+                                            value="<?php echo esc_attr($routeKey); ?>"
+                                            <?php checked($isChecked, true); ?>
+                                        />
+                                        <span>
+                                            <strong><?php echo esc_html((string) ($item['title'] ?? '')); ?></strong><br />
+                                            <small><?php echo esc_html((string) ($item['url'] ?? '')); ?></small>
+                                        </span>
+                                    </label>
+                                <?php endforeach; ?>
                             </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="navai-admin-card">
+                        <h3><?php echo esc_html__('Menus privados', 'navai-voice'); ?></h3>
+                        <p class="navai-admin-description"><?php echo esc_html__('Rutas privadas del panel, desglosadas por rol.', 'navai-voice'); ?></p>
+
+                        <?php if (count($privateRoutesByRole) === 0) : ?>
+                            <p><?php echo esc_html__('No se encontraron rutas privadas por rol.', 'navai-voice'); ?></p>
+                        <?php else : ?>
+                            <?php foreach ($privateRoutesByRole as $roleKey => $roleGroup) : ?>
+                                <?php
+                                $roleLabel = (string) ($roleGroup['label'] ?? $roleKey);
+                                $roleItems = is_array($roleGroup['items'] ?? null) ? $roleGroup['items'] : [];
+                                ?>
+                                <div class="navai-admin-role-section">
+                                    <h4>
+                                        <?php echo esc_html($roleLabel); ?>
+                                        <small>(<?php echo esc_html((string) $roleKey); ?>)</small>
+                                    </h4>
+
+                                    <?php if (count($roleItems) === 0) : ?>
+                                        <p class="navai-admin-description"><?php echo esc_html__('Sin rutas privadas para este rol.', 'navai-voice'); ?></p>
+                                    <?php else : ?>
+                                        <div class="navai-admin-menu-grid">
+                                            <?php foreach ($roleItems as $item) : ?>
+                                                <?php
+                                                $routeKey = (string) ($item['key'] ?? '');
+                                                if ($routeKey === '') {
+                                                    continue;
+                                                }
+                                                $isChecked = in_array($routeKey, $allowedRouteKeys, true);
+                                                ?>
+                                                <label class="navai-admin-check navai-admin-check-block">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_route_keys][]"
+                                                        value="<?php echo esc_attr($routeKey); ?>"
+                                                        <?php checked($isChecked, true); ?>
+                                                    />
+                                                    <span>
+                                                        <strong><?php echo esc_html((string) ($item['title'] ?? '')); ?></strong><br />
+                                                        <small><?php echo esc_html((string) ($item['url'] ?? '')); ?></small>
+                                                    </span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 </section>
 
                 <section class="navai-admin-panel" data-navai-panel="plugins">
@@ -378,9 +511,6 @@ class Navai_Voice_Settings
                                 <option value="shortcode" <?php selected($frontendDisplayMode, 'shortcode'); ?>>
                                     <?php echo esc_html__('Solo shortcode manual', 'navai-voice'); ?>
                                 </option>
-                                <option value="both" <?php selected($frontendDisplayMode, 'both'); ?>>
-                                    <?php echo esc_html__('Global + shortcode', 'navai-voice'); ?>
-                                </option>
                             </select>
                         </label>
 
@@ -436,7 +566,7 @@ class Navai_Voice_Settings
                             <span class="navai-admin-field-title"><?php echo esc_html__('Shortcode manual', 'navai-voice'); ?></span>
                             <input class="regular-text code navai-admin-code" type="text" value="[navai_voice]" readonly />
                             <p class="description navai-admin-description">
-                                <?php echo esc_html__('Puedes pegar este shortcode en cualquier pagina o bloque cuando uses modo manual o combinado.', 'navai-voice'); ?>
+                                <?php echo esc_html__('Puedes pegar este shortcode en cualquier pagina o bloque cuando uses modo manual.', 'navai-voice'); ?>
                             </p>
                         </div>
                     </div>
@@ -512,6 +642,28 @@ class Navai_Voice_Settings
             $id = absint($item);
             if ($id > 0) {
                 $clean[] = $id;
+            }
+        }
+
+        return array_values(array_unique($clean));
+    }
+
+    /**
+     * @param mixed $value
+     * @return array<int, string>
+     */
+    private function sanitize_route_keys($value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $clean = [];
+        foreach ($value as $item) {
+            $key = strtolower(trim((string) $item));
+            $key = preg_replace('/[^a-z0-9:_-]/', '', $key);
+            if (is_string($key) && $key !== '') {
+                $clean[] = $key;
             }
         }
 
@@ -619,9 +771,122 @@ class Navai_Voice_Settings
     }
 
     /**
-     * @return array<int, array{menu_name: string, items: array<int, array{id: int, title: string, url: string}>}>
+     * @param array<string, mixed> $settings
+     * @return array<int, string>
      */
-    private function get_menu_groups(): array
+    private function get_selected_route_keys(array $settings): array
+    {
+        $keys = $this->sanitize_route_keys($settings['allowed_route_keys'] ?? []);
+        if (count($keys) > 0) {
+            return $keys;
+        }
+
+        $legacyIds = $this->sanitize_menu_item_ids($settings['allowed_menu_item_ids'] ?? []);
+        if (count($legacyIds) === 0) {
+            return [];
+        }
+
+        return $this->map_legacy_menu_item_ids_to_route_keys($legacyIds);
+    }
+
+    /**
+     * @param array<int, int> $legacyIds
+     * @return array<int, string>
+     */
+    private function map_legacy_menu_item_ids_to_route_keys(array $legacyIds): array
+    {
+        if (count($legacyIds) === 0) {
+            return [];
+        }
+
+        $catalog = $this->get_navigation_catalog();
+        $legacyMap = is_array($catalog['legacy_menu_id_map'] ?? null) ? $catalog['legacy_menu_id_map'] : [];
+
+        $keys = [];
+        foreach ($legacyIds as $legacyId) {
+            if (isset($legacyMap[$legacyId]) && is_string($legacyMap[$legacyId])) {
+                $keys[] = $legacyMap[$legacyId];
+            }
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function get_current_user_roles(): array
+    {
+        if (!is_user_logged_in()) {
+            return [];
+        }
+
+        $user = wp_get_current_user();
+        if (!($user instanceof WP_User) || !is_array($user->roles)) {
+            return [];
+        }
+
+        $roles = [];
+        foreach ($user->roles as $role) {
+            $key = sanitize_key((string) $role);
+            if ($key !== '') {
+                $roles[] = $key;
+            }
+        }
+
+        return array_values(array_unique($roles));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function get_navigation_catalog(): array
+    {
+        $publicRoutes = $this->collect_public_menu_routes();
+        $privateRoles = $this->collect_private_role_routes();
+
+        $index = [];
+        $legacyMap = [];
+
+        foreach ($publicRoutes as $item) {
+            $key = (string) ($item['key'] ?? '');
+            if ($key === '') {
+                continue;
+            }
+
+            $index[$key] = $item;
+
+            $legacyIds = is_array($item['legacy_ids'] ?? null) ? $item['legacy_ids'] : [];
+            foreach ($legacyIds as $legacyId) {
+                $id = absint($legacyId);
+                if ($id > 0) {
+                    $legacyMap[$id] = $key;
+                }
+            }
+        }
+
+        foreach ($privateRoles as $roleGroup) {
+            $items = is_array($roleGroup['items'] ?? null) ? $roleGroup['items'] : [];
+            foreach ($items as $item) {
+                $key = (string) ($item['key'] ?? '');
+                if ($key !== '') {
+                    $index[$key] = $item;
+                }
+            }
+        }
+
+        return [
+            'public' => $publicRoutes,
+            'private_roles' => $privateRoles,
+            'index' => $index,
+            'legacy_menu_id_map' => $legacyMap,
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function collect_public_menu_routes(): array
     {
         if (!function_exists('wp_get_nav_menus') || !function_exists('wp_get_nav_menu_items')) {
             return [];
@@ -632,51 +897,404 @@ class Navai_Voice_Settings
             return [];
         }
 
-        $groups = [];
+        $itemsByDedupeKey = [];
         foreach ($menus as $menu) {
             if (!isset($menu->term_id)) {
                 continue;
             }
 
             $items = wp_get_nav_menu_items((int) $menu->term_id, ['update_post_term_cache' => false]);
-            if (!is_array($items) || count($items) === 0) {
+            if (!is_array($items)) {
                 continue;
             }
 
-            $groupItems = [];
             foreach ($items as $item) {
-                if (!isset($item->ID, $item->title, $item->url)) {
+                if (!is_object($item) || !isset($item->ID, $item->title, $item->url)) {
+                    continue;
+                }
+
+                $legacyId = absint((int) $item->ID);
+                if ($legacyId <= 0) {
                     continue;
                 }
 
                 $url = esc_url_raw((string) $item->url);
+                if (str_starts_with($url, '/')) {
+                    $url = home_url($url);
+                }
                 if (!$this->is_navigable_url($url)) {
                     continue;
                 }
 
                 $title = trim(wp_strip_all_tags((string) $item->title));
                 if ($title === '') {
-                    $title = sprintf(__('Menu item %d', 'navai-voice'), (int) $item->ID);
+                    $title = sprintf(__('Menu item %d', 'navai-voice'), $legacyId);
                 }
 
-                $groupItems[] = [
-                    'id' => (int) $item->ID,
+                $dedupeKey = $this->build_route_dedupe_key($title, $url);
+                if (!isset($itemsByDedupeKey[$dedupeKey])) {
+                    $routeKey = 'public:' . md5($dedupeKey);
+                    $itemsByDedupeKey[$dedupeKey] = [
+                        'key' => $routeKey,
+                        'title' => $title,
+                        'url' => $url,
+                        'description' => __('Ruta publica seleccionada en menus de WordPress.', 'navai-voice'),
+                        'synonyms' => $this->build_route_synonyms($title, $url),
+                        'visibility' => 'public',
+                        'roles' => [],
+                        'legacy_ids' => [$legacyId],
+                    ];
+                    continue;
+                }
+
+                if (!in_array($legacyId, $itemsByDedupeKey[$dedupeKey]['legacy_ids'], true)) {
+                    $itemsByDedupeKey[$dedupeKey]['legacy_ids'][] = $legacyId;
+                }
+            }
+        }
+
+        $items = array_values($itemsByDedupeKey);
+        usort(
+            $items,
+            static fn(array $a, array $b): int => strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? ''))
+        );
+
+        return $items;
+    }
+
+    /**
+     * @return array<string, array{label: string, items: array<int, array<string, mixed>>}>
+     */
+    private function collect_private_role_routes(): array
+    {
+        $roles = $this->get_available_roles();
+        if (count($roles) === 0) {
+            return [];
+        }
+
+        $adminRoutes = $this->collect_admin_panel_routes();
+        if (count($adminRoutes) === 0) {
+            return [];
+        }
+
+        $privateByRole = [];
+        foreach ($roles as $roleKey => $roleLabel) {
+            $includeAllPanelRoutes = in_array($roleKey, ['administrator', 'editor'], true);
+            $seen = [];
+            $items = [];
+
+            foreach ($adminRoutes as $route) {
+                $title = (string) ($route['title'] ?? '');
+                $url = (string) ($route['url'] ?? '');
+                $capability = (string) ($route['capability'] ?? 'read');
+
+                if ($title === '' || !$this->is_navigable_url($url)) {
+                    continue;
+                }
+
+                if (!$includeAllPanelRoutes && !$this->role_can_access_capability((string) $roleKey, $capability)) {
+                    continue;
+                }
+
+                $baseDedupeKey = $this->build_route_dedupe_key($title, $url);
+                if (isset($seen[$baseDedupeKey])) {
+                    continue;
+                }
+                $seen[$baseDedupeKey] = true;
+
+                $itemKey = 'private:' . sanitize_key((string) $roleKey) . ':' . md5($baseDedupeKey);
+
+                $items[] = [
+                    'key' => $itemKey,
                     'title' => $title,
                     'url' => $url,
+                    'description' => sprintf(__('Ruta privada de panel para el rol %s.', 'navai-voice'), (string) $roleLabel),
+                    'synonyms' => is_array($route['synonyms'] ?? null)
+                        ? array_values(array_unique(array_map('sanitize_text_field', $route['synonyms'])))
+                        : $this->build_route_synonyms($title, $url),
+                    'visibility' => 'private',
+                    'roles' => [sanitize_key((string) $roleKey)],
+                    'legacy_ids' => [],
                 ];
             }
 
-            if (count($groupItems) === 0) {
+            if (count($items) === 0) {
                 continue;
             }
 
-            $groups[] = [
-                'menu_name' => (string) $menu->name,
-                'items' => $groupItems,
+            usort(
+                $items,
+                static fn(array $a, array $b): int => strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? ''))
+            );
+
+            $privateByRole[(string) $roleKey] = [
+                'label' => (string) $roleLabel,
+                'items' => $items,
             ];
         }
 
-        return $groups;
+        return $privateByRole;
+    }
+
+    /**
+     * @return array<int, array{title: string, url: string, capability: string, synonyms: array<int, string>}>
+     */
+    private function collect_admin_panel_routes(): array
+    {
+        $routes = [];
+        $seen = [];
+
+        global $menu, $submenu;
+
+        if (is_array($menu)) {
+            foreach ($menu as $entry) {
+                $route = $this->build_admin_route_from_menu_entry($entry);
+                if (is_array($route)) {
+                    $this->append_admin_route_if_new($routes, $seen, $route);
+                }
+            }
+        }
+
+        if (is_array($submenu)) {
+            foreach ($submenu as $entries) {
+                if (!is_array($entries)) {
+                    continue;
+                }
+
+                foreach ($entries as $entry) {
+                    $route = $this->build_admin_route_from_menu_entry($entry);
+                    if (is_array($route)) {
+                        $this->append_admin_route_if_new($routes, $seen, $route);
+                    }
+                }
+            }
+        }
+
+        foreach ($this->get_admin_fallback_routes() as $route) {
+            $this->append_admin_route_if_new($routes, $seen, $route);
+        }
+
+        usort(
+            $routes,
+            static fn(array $a, array $b): int => strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? ''))
+        );
+
+        return $routes;
+    }
+
+    /**
+     * @param array<int, array{title: string, url: string, capability: string, synonyms: array<int, string>}> $routes
+     * @param array<string, bool> $seen
+     * @param array{title: string, url: string, capability: string, synonyms: array<int, string>} $route
+     */
+    private function append_admin_route_if_new(array &$routes, array &$seen, array $route): void
+    {
+        $title = (string) ($route['title'] ?? '');
+        $url = (string) ($route['url'] ?? '');
+        if ($title === '' || !$this->is_navigable_url($url)) {
+            return;
+        }
+
+        $dedupeKey = $this->build_route_dedupe_key($title, $url);
+        if (isset($seen[$dedupeKey])) {
+            return;
+        }
+
+        $seen[$dedupeKey] = true;
+        $routes[] = $route;
+    }
+
+    /**
+     * @param mixed $entry
+     * @return array{title: string, url: string, capability: string, synonyms: array<int, string>}|null
+     */
+    private function build_admin_route_from_menu_entry($entry): ?array
+    {
+        if (!is_array($entry) || !isset($entry[0], $entry[2])) {
+            return null;
+        }
+
+        $title = trim(wp_strip_all_tags((string) $entry[0]));
+        if ($title === '') {
+            return null;
+        }
+
+        $slug = trim((string) $entry[2]);
+        if ($slug === '' || str_starts_with(strtolower($slug), 'separator')) {
+            return null;
+        }
+
+        $url = $this->build_admin_menu_url($slug);
+        if (!$this->is_navigable_url($url)) {
+            return null;
+        }
+
+        $capability = isset($entry[1]) ? $this->normalize_capability((string) $entry[1]) : 'read';
+
+        return [
+            'title' => $title,
+            'url' => $url,
+            'capability' => $capability,
+            'synonyms' => $this->build_route_synonyms($title, $url),
+        ];
+    }
+
+    private function build_admin_menu_url(string $slug): string
+    {
+        $cleanSlug = ltrim(trim($slug), '/');
+        if ($cleanSlug === '') {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $cleanSlug) === 1) {
+            return esc_url_raw($cleanSlug);
+        }
+
+        if (str_starts_with($cleanSlug, '#')) {
+            return '';
+        }
+
+        if (str_contains($cleanSlug, '.php')) {
+            return esc_url_raw(admin_url($cleanSlug));
+        }
+
+        return esc_url_raw(add_query_arg('page', $cleanSlug, admin_url('admin.php')));
+    }
+
+    /**
+     * @return array<int, array{title: string, url: string, capability: string, synonyms: array<int, string>}>
+     */
+    private function get_admin_fallback_routes(): array
+    {
+        $items = [
+            ['title' => __('Escritorio', 'navai-voice'), 'url' => admin_url('index.php'), 'capability' => 'read'],
+            ['title' => __('Entradas', 'navai-voice'), 'url' => admin_url('edit.php'), 'capability' => 'edit_posts'],
+            ['title' => __('Medios', 'navai-voice'), 'url' => admin_url('upload.php'), 'capability' => 'upload_files'],
+            ['title' => __('Paginas', 'navai-voice'), 'url' => admin_url('edit.php?post_type=page'), 'capability' => 'edit_pages'],
+            ['title' => __('Comentarios', 'navai-voice'), 'url' => admin_url('edit-comments.php'), 'capability' => 'moderate_comments'],
+            ['title' => __('Apariencia', 'navai-voice'), 'url' => admin_url('themes.php'), 'capability' => 'edit_theme_options'],
+            ['title' => __('Plugins', 'navai-voice'), 'url' => admin_url('plugins.php'), 'capability' => 'activate_plugins'],
+            ['title' => __('Usuarios', 'navai-voice'), 'url' => admin_url('users.php'), 'capability' => 'list_users'],
+            ['title' => __('Herramientas', 'navai-voice'), 'url' => admin_url('tools.php'), 'capability' => 'edit_posts'],
+            ['title' => __('Ajustes', 'navai-voice'), 'url' => admin_url('options-general.php'), 'capability' => 'manage_options'],
+        ];
+
+        $routes = [];
+        foreach ($items as $item) {
+            $title = sanitize_text_field((string) $item['title']);
+            $url = esc_url_raw((string) $item['url']);
+            if ($title === '' || !$this->is_navigable_url($url)) {
+                continue;
+            }
+
+            $routes[] = [
+                'title' => $title,
+                'url' => $url,
+                'capability' => $this->normalize_capability((string) ($item['capability'] ?? 'read')),
+                'synonyms' => $this->build_route_synonyms($title, $url),
+            ];
+        }
+
+        return $routes;
+    }
+
+    private function role_can_access_capability(string $roleKey, string $capability): bool
+    {
+        $cap = $this->normalize_capability($capability);
+        if ($cap === '' || $cap === 'read') {
+            return true;
+        }
+
+        if ($roleKey === 'administrator') {
+            return true;
+        }
+
+        if (!function_exists('wp_roles')) {
+            return false;
+        }
+
+        $roles = wp_roles();
+        if (!is_object($roles) || !isset($roles->roles[$roleKey]) || !is_array($roles->roles[$roleKey])) {
+            return false;
+        }
+
+        $roleData = $roles->roles[$roleKey];
+        $capabilities = is_array($roleData['capabilities'] ?? null) ? $roleData['capabilities'] : [];
+        if (count($capabilities) === 0) {
+            return false;
+        }
+
+        $parts = preg_split('/[\s,|]+/', $cap) ?: [];
+        foreach ($parts as $part) {
+            $token = $this->normalize_capability((string) $part);
+            if ($token !== '' && !empty($capabilities[$token])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalize_capability(string $capability): string
+    {
+        $value = strtolower(trim($capability));
+        if ($value === '') {
+            return '';
+        }
+
+        $value = preg_replace('/[^a-z0-9_,|\s-]/', '', $value);
+        if (!is_string($value)) {
+            return '';
+        }
+
+        return trim($value);
+    }
+
+    private function build_route_dedupe_key(string $name, string $path): string
+    {
+        return strtolower(trim($name)) . '|' . strtolower(untrailingslashit($path));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function build_route_synonyms(string $name, string $path): array
+    {
+        $synonyms = [];
+
+        $cleanName = sanitize_text_field($name);
+        if ($cleanName !== '') {
+            $synonyms[] = strtolower($cleanName);
+        }
+
+        foreach ($this->extract_path_segments($path) as $segment) {
+            $synonyms[] = strtolower($segment);
+        }
+
+        return array_values(array_unique(array_filter($synonyms, static fn(string $value): bool => $value !== '')));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extract_path_segments(string $path): array
+    {
+        $segments = [];
+
+        $relativePath = wp_parse_url($path, PHP_URL_PATH);
+        if (!is_string($relativePath) || trim($relativePath) === '') {
+            return $segments;
+        }
+
+        $parts = explode('/', trim($relativePath, '/'));
+        foreach ($parts as $part) {
+            $token = sanitize_title($part);
+            if ($token !== '') {
+                $segments[] = str_replace('-', ' ', $token);
+            }
+        }
+
+        return array_values(array_unique($segments));
     }
 
     private function is_navigable_url(string $url): bool
@@ -760,6 +1378,7 @@ class Navai_Voice_Settings
             'allow_public_client_secret' => true,
             'allow_public_functions' => true,
             'allowed_menu_item_ids' => [],
+            'allowed_route_keys' => [],
             'allowed_plugin_files' => [],
             'manual_plugins' => '',
             'frontend_display_mode' => 'global',

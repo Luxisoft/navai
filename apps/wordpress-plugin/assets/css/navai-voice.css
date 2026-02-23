@@ -114,14 +114,7 @@
 }
 
 .navai-voice-widget--floating .navai-voice-status {
-  display: inline-block;
-  width: auto;
-  padding: 0.34rem 0.65rem;
-  border-radius: 999px;
-  background: #ffffff;
-  border: 1px solid #dde5f2;
-  font-size: 0.82rem;
-  box-shadow: 0 4px 10px rgba(11, 25, 43, 0.12);
+  display: none !important;
 }
 
 .navai-voice-widget--floating .navai-voice-log {

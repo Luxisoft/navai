@@ -783,27 +783,7 @@ class Navai_Voice_API
      */
     private function build_allowed_routes_catalog(): array
     {
-        $settings = $this->settings->get_settings();
-        $selectedIds = $this->get_selected_menu_item_ids($settings);
-        if (count($selectedIds) === 0) {
-            return [];
-        }
-
-        $routes = [];
-        $dedupe = [];
-
-        if (function_exists('wp_get_nav_menus') && function_exists('wp_get_nav_menu_items')) {
-            $routesById = $this->get_menu_routes_index();
-            foreach ($selectedIds as $id) {
-                if (!isset($routesById[$id]) || !is_array($routesById[$id])) {
-                    continue;
-                }
-
-                $this->append_route_if_new($routes, $dedupe, $routesById[$id]);
-            }
-        }
-
-        return $routes;
+        return $this->settings->get_allowed_routes_for_current_user();
     }
 
     /**
