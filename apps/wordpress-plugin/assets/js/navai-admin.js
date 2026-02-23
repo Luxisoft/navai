@@ -433,6 +433,240 @@
     });
   }
 
+  function applyPluginFunctionFilters(pluginPanel) {
+    if (!pluginPanel) {
+      return;
+    }
+
+    var textInput = pluginPanel.querySelector(".navai-plugin-func-filter-text");
+    var pluginSelect = pluginPanel.querySelector(".navai-plugin-func-filter-plugin");
+    var roleSelect = pluginPanel.querySelector(".navai-plugin-func-filter-role");
+
+    var textNeedle = normalizeText(textInput ? textInput.value : "");
+    var pluginNeedle = normalizeText(pluginSelect ? pluginSelect.value : "");
+    var roleNeedle = normalizeText(roleSelect ? roleSelect.value : "");
+
+    var groups = pluginPanel.querySelectorAll(".navai-plugin-func-group");
+    for (var i = 0; i < groups.length; i += 1) {
+      var group = groups[i];
+      var items = group.querySelectorAll(".navai-plugin-func-item");
+      var groupHasVisibleItem = false;
+
+      for (var j = 0; j < items.length; j += 1) {
+        var item = items[j];
+        var searchHaystack = normalizeText(item.getAttribute("data-plugin-func-search") || "");
+        var itemPlugin = normalizeText(item.getAttribute("data-plugin-func-plugin") || "");
+        var itemRoles = normalizeText(item.getAttribute("data-plugin-func-roles") || "");
+
+        var matchText = textNeedle === "" || searchHaystack.indexOf(textNeedle) !== -1;
+        var matchPlugin = pluginNeedle === "" || pluginNeedle === itemPlugin;
+
+        var matchRole = true;
+        if (roleNeedle !== "") {
+          var roleTokens = itemRoles === "" ? [] : itemRoles.split("|");
+          matchRole = roleTokens.indexOf(roleNeedle) !== -1;
+        }
+
+        var visible = matchText && matchPlugin && matchRole;
+        item.classList.toggle("is-hidden", !visible);
+        if (visible) {
+          groupHasVisibleItem = true;
+        }
+      }
+
+      group.classList.toggle("is-hidden", !groupHasVisibleItem);
+    }
+  }
+
+  function isPluginFunctionItemVisible(item) {
+    if (!item || !item.classList || item.classList.contains("is-hidden")) {
+      return false;
+    }
+
+    var parentGroup = item.closest(".navai-plugin-func-group");
+    if (parentGroup && parentGroup.classList.contains("is-hidden")) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function getPluginFunctionCheckbox(item) {
+    if (!item || !item.querySelector) {
+      return null;
+    }
+
+    return item.querySelector('input[type="checkbox"]');
+  }
+
+  function setSelectionForPluginFunctionItems(items, shouldSelect, roleNeedle) {
+    for (var i = 0; i < items.length; i += 1) {
+      var item = items[i];
+      if (!isPluginFunctionItemVisible(item)) {
+        continue;
+      }
+
+      if (typeof roleNeedle === "string" && roleNeedle !== "") {
+        var itemRoles = normalizeText(item.getAttribute("data-plugin-func-roles") || "");
+        var roleTokens = itemRoles === "" ? [] : itemRoles.split("|");
+        if (roleTokens.indexOf(roleNeedle) === -1) {
+          continue;
+        }
+      }
+
+      var checkbox = getPluginFunctionCheckbox(item);
+      if (!checkbox || checkbox.disabled) {
+        continue;
+      }
+
+      checkbox.checked = !!shouldSelect;
+    }
+  }
+
+  function handlePluginFunctionCheckAction(actionButton, pluginPanel) {
+    if (!actionButton || !pluginPanel) {
+      return;
+    }
+
+    var action = normalizeText(actionButton.getAttribute("data-navai-plugin-func-action") || "");
+    if (action === "") {
+      return;
+    }
+
+    var shouldSelect = action.indexOf("deselect") === -1;
+
+    if (action === "scope-select" || action === "scope-deselect") {
+      setSelectionForPluginFunctionItems(pluginPanel.querySelectorAll(".navai-plugin-func-item"), shouldSelect, "");
+      return;
+    }
+
+    if (action === "group-select" || action === "group-deselect") {
+      var group = actionButton.closest(".navai-plugin-func-group");
+      if (!group) {
+        return;
+      }
+
+      setSelectionForPluginFunctionItems(group.querySelectorAll(".navai-plugin-func-item"), shouldSelect, "");
+      return;
+    }
+
+    if (action === "role-select" || action === "role-deselect") {
+      var roleSelect = pluginPanel.querySelector(".navai-plugin-func-filter-role");
+      var roleNeedle = normalizeText(roleSelect ? roleSelect.value : "");
+      setSelectionForPluginFunctionItems(pluginPanel.querySelectorAll(".navai-plugin-func-item"), shouldSelect, roleNeedle);
+    }
+  }
+
+  function initPluginFunctionBuilders(pluginPanel) {
+    if (!pluginPanel) {
+      return;
+    }
+
+    var builders = pluginPanel.querySelectorAll(".navai-plugin-functions-builder");
+    if (!builders.length) {
+      return;
+    }
+
+    for (var i = 0; i < builders.length; i += 1) {
+      (function (builder) {
+        var list = builder.querySelector(".navai-plugin-functions-list");
+        var template = builder.querySelector(".navai-plugin-function-template");
+        var addButton = builder.querySelector(".navai-plugin-function-add");
+        if (!list || !template || !addButton) {
+          return;
+        }
+
+        var nextIndex = parseInt(builder.getAttribute("data-next-index") || "0", 10);
+        if (!Number.isFinite(nextIndex) || nextIndex < 0) {
+          nextIndex = list.children ? list.children.length : 0;
+        }
+
+        addButton.addEventListener("click", function () {
+          var html = template.innerHTML.replace(/__INDEX__/g, String(nextIndex));
+          var row = createRowFromTemplate(html);
+          if (!row) {
+            return;
+          }
+
+          list.appendChild(row);
+          nextIndex += 1;
+          builder.setAttribute("data-next-index", String(nextIndex));
+
+          var firstInput = row.querySelector('input[type="text"]');
+          if (firstInput && typeof firstInput.focus === "function") {
+            firstInput.focus();
+          }
+        });
+
+        builder.addEventListener("click", function (event) {
+          var target = event.target;
+          if (!target || !target.closest) {
+            return;
+          }
+
+          var removeButton = target.closest(".navai-plugin-function-remove");
+          if (!removeButton) {
+            return;
+          }
+
+          event.preventDefault();
+          var row = removeButton.closest(".navai-plugin-function-row");
+          if (row && row.parentNode) {
+            row.parentNode.removeChild(row);
+          }
+        });
+      })(builders[i]);
+    }
+  }
+
+  function initPluginFunctionsControls() {
+    var pluginPanel = document.querySelector('[data-navai-panel="plugins"]');
+    if (!pluginPanel) {
+      return;
+    }
+
+    initPluginFunctionBuilders(pluginPanel);
+
+    var textInput = pluginPanel.querySelector(".navai-plugin-func-filter-text");
+    var pluginSelect = pluginPanel.querySelector(".navai-plugin-func-filter-plugin");
+    var roleSelect = pluginPanel.querySelector(".navai-plugin-func-filter-role");
+
+    if (textInput) {
+      textInput.addEventListener("input", function () {
+        applyPluginFunctionFilters(pluginPanel);
+      });
+    }
+
+    if (pluginSelect) {
+      pluginSelect.addEventListener("change", function () {
+        applyPluginFunctionFilters(pluginPanel);
+      });
+    }
+
+    if (roleSelect) {
+      roleSelect.addEventListener("change", function () {
+        applyPluginFunctionFilters(pluginPanel);
+      });
+    }
+
+    pluginPanel.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest) {
+        return;
+      }
+
+      var checkActionButton = target.closest(".navai-plugin-func-check-action");
+      if (!checkActionButton) {
+        return;
+      }
+
+      event.preventDefault();
+      handlePluginFunctionCheckAction(checkActionButton, pluginPanel);
+    });
+
+    applyPluginFunctionFilters(pluginPanel);
+  }
+
   function initDashboardTabs() {
     var tabButtons = document.querySelectorAll(".navai-admin-tab-button");
     var tabPanels = document.querySelectorAll(".navai-admin-panel");
@@ -452,6 +686,7 @@
     }
 
     initNavigationControls();
+    initPluginFunctionsControls();
     removeForeignNotices();
   }
 

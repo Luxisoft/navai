@@ -357,8 +357,15 @@ class Navai_Voice_API
     {
         $catalog = $this->build_allowed_plugins_catalog();
         $actionsRegistry = $this->get_plugin_actions_registry();
+        $customPluginFunctions = $this->settings->get_allowed_plugin_functions_for_current_user();
+        $allowedCustomActions = $this->build_allowed_custom_actions_map($customPluginFunctions);
+        $customDefinitions = $this->build_custom_plugin_function_definitions(
+            $customPluginFunctions,
+            $catalog,
+            $actionsRegistry
+        );
 
-        return [
+        $builtinDefinitions = [
             [
                 'name' => 'list_allowed_plugins',
                 'description' => 'List plugins allowed in NAVAI dashboard.',
@@ -429,6 +436,9 @@ class Navai_Voice_API
                     }
 
                     $actions = $this->resolve_plugin_actions($resolved, $actionsRegistry);
+                    if (count($allowedCustomActions) > 0) {
+                        $actions = $this->filter_actions_by_allowed_map($resolved, $actions, $allowedCustomActions);
+                    }
                     return [
                         'ok' => true,
                         'plugin' => $resolved['plugin_file'],
@@ -469,6 +479,9 @@ class Navai_Voice_API
                     }
 
                     $actions = $this->resolve_plugin_actions($resolved, $actionsRegistry);
+                    if (count($allowedCustomActions) > 0) {
+                        $actions = $this->filter_actions_by_allowed_map($resolved, $actions, $allowedCustomActions);
+                    }
                     if (!isset($actions[$actionName]) || !is_callable($actions[$actionName])) {
                         return [
                             'ok' => false,
@@ -502,10 +515,272 @@ class Navai_Voice_API
                 },
             ],
         ];
+
+        return array_merge($builtinDefinitions, $customDefinitions);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $customPluginFunctions
+     * @return array<string, array<string, bool>>
+     */
+    private function build_allowed_custom_actions_map(array $customPluginFunctions): array
+    {
+        $map = [];
+
+        foreach ($customPluginFunctions as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $pluginKey = strtolower(trim((string) ($item['plugin_key'] ?? '')));
+            $actionName = strtolower(trim((string) ($item['plugin_function'] ?? '')));
+            if ($pluginKey === '' || $actionName === '') {
+                continue;
+            }
+
+            if (!isset($map[$pluginKey])) {
+                $map[$pluginKey] = [];
+            }
+            $map[$pluginKey][$actionName] = true;
+
+            if (str_starts_with($pluginKey, 'plugin:')) {
+                $slug = substr($pluginKey, 7);
+                if ($slug !== '') {
+                    if (!isset($map[$slug])) {
+                        $map[$slug] = [];
+                    }
+                    $map[$slug][$actionName] = true;
+
+                    $pluginFile = $slug . '/' . $slug . '.php';
+                    if (!isset($map[$pluginFile])) {
+                        $map[$pluginFile] = [];
+                    }
+                    $map[$pluginFile][$actionName] = true;
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param array<string, mixed> $plugin
+     * @param array<string, callable> $actions
+     * @param array<string, array<string, bool>> $allowedMap
+     * @return array<string, callable>
+     */
+    private function filter_actions_by_allowed_map(array $plugin, array $actions, array $allowedMap): array
+    {
+        if (count($actions) === 0 || count($allowedMap) === 0) {
+            return [];
+        }
+
+        $identifiers = $this->resolve_plugin_identifiers_for_map($plugin);
+        if (count($identifiers) === 0) {
+            return [];
+        }
+
+        $allowedActions = [];
+        foreach ($identifiers as $identifier) {
+            if (isset($allowedMap[$identifier]) && is_array($allowedMap[$identifier])) {
+                $allowedActions = array_merge($allowedActions, array_keys($allowedMap[$identifier]));
+            }
+        }
+        $allowedLookup = array_fill_keys(array_values(array_unique($allowedActions)), true);
+
+        $filtered = [];
+        foreach ($actions as $actionName => $callback) {
+            $actionId = strtolower(trim((string) $actionName));
+            if ($actionId !== '' && isset($allowedLookup[$actionId])) {
+                $filtered[$actionId] = $callback;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * @param array<string, mixed> $plugin
+     * @return array<int, string>
+     */
+    private function resolve_plugin_identifiers_for_map(array $plugin): array
+    {
+        $identifiers = [];
+
+        $pluginKey = strtolower(trim((string) ($plugin['plugin_key'] ?? '')));
+        if ($pluginKey !== '') {
+            $identifiers[] = $pluginKey;
+            if (str_starts_with($pluginKey, 'plugin:')) {
+                $slugFromKey = substr($pluginKey, 7);
+                if ($slugFromKey !== '') {
+                    $identifiers[] = $slugFromKey;
+                    $identifiers[] = $slugFromKey . '/' . $slugFromKey . '.php';
+                }
+            }
+        }
+
+        $pluginFile = strtolower(trim((string) ($plugin['plugin_file'] ?? '')));
+        if ($pluginFile !== '') {
+            $identifiers[] = $pluginFile;
+        }
+
+        $slug = strtolower(trim((string) ($plugin['slug'] ?? '')));
+        if ($slug !== '') {
+            $identifiers[] = $slug;
+            $identifiers[] = $slug . '/' . $slug . '.php';
+        }
+
+        return array_values(array_unique(array_filter($identifiers, static fn(string $value): bool => $value !== '')));
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $customPluginFunctions
+     * @param array<int, array<string, mixed>> $catalog
+     * @param array<string, array<string, callable>> $actionsRegistry
+     * @return array<int, array{name: string, description: string, source: string, callback: callable}>
+     */
+    private function build_custom_plugin_function_definitions(
+        array $customPluginFunctions,
+        array $catalog,
+        array $actionsRegistry
+    ): array {
+        $definitions = [];
+
+        foreach ($customPluginFunctions as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $functionName = $this->normalize_function_name((string) ($item['function_name'] ?? ''));
+            $pluginFunction = strtolower(trim((string) ($item['plugin_function'] ?? '')));
+            $description = isset($item['description']) && is_string($item['description'])
+                ? trim($item['description'])
+                : '';
+            if ($functionName === '' || $pluginFunction === '') {
+                continue;
+            }
+            if ($description === '') {
+                $description = 'Custom plugin function configured in NAVAI dashboard.';
+            }
+
+            $pluginConfig = $this->resolve_plugin_from_custom_function($item, $catalog);
+            if ($pluginConfig === null) {
+                continue;
+            }
+
+            $definitions[] = [
+                'name' => $functionName,
+                'description' => $description,
+                'source' => 'navai-dashboard-custom',
+                'callback' => function (array $payload, array $context) use ($pluginConfig, $pluginFunction, $actionsRegistry) {
+                    $actions = $this->resolve_plugin_actions($pluginConfig, $actionsRegistry);
+                    if (!isset($actions[$pluginFunction]) || !is_callable($actions[$pluginFunction])) {
+                        return [
+                            'ok' => false,
+                            'error' => 'Configured plugin function is not registered or callable.',
+                            'plugin' => $pluginConfig['plugin_file'] ?? '',
+                            'action' => $pluginFunction,
+                        ];
+                    }
+
+                    $args = [];
+                    if (isset($payload['args']) && is_array($payload['args'])) {
+                        $args = $payload['args'];
+                    } elseif (isset($payload['payload']) && is_array($payload['payload'])) {
+                        $args = $payload['payload'];
+                    } elseif (is_array($payload)) {
+                        $args = $payload;
+                    }
+
+                    $result = call_user_func(
+                        $actions[$pluginFunction],
+                        $args,
+                        [
+                            'request' => $context['request'] ?? null,
+                            'plugin' => $pluginConfig,
+                        ]
+                    );
+
+                    return [
+                        'ok' => true,
+                        'plugin' => $pluginConfig['plugin_file'] ?? '',
+                        'action' => $pluginFunction,
+                        'result' => $result,
+                    ];
+                },
+            ];
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * @param array<string, mixed> $customFunction
+     * @param array<int, array<string, mixed>> $catalog
+     * @return array<string, mixed>|null
+     */
+    private function resolve_plugin_from_custom_function(array $customFunction, array $catalog): ?array
+    {
+        $pluginKey = strtolower(trim((string) ($customFunction['plugin_key'] ?? '')));
+        if ($pluginKey === '') {
+            return null;
+        }
+
+        foreach ($catalog as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $entryPluginKey = strtolower(trim((string) ($entry['plugin_key'] ?? '')));
+            if ($entryPluginKey !== '' && $entryPluginKey === $pluginKey) {
+                return $entry;
+            }
+        }
+
+        if ($pluginKey === 'wp-core') {
+            return [
+                'plugin_key' => 'wp-core',
+                'plugin_file' => 'wp-core/wp-core.php',
+                'slug' => 'wp-core',
+                'name' => 'WordPress / Sitio',
+                'description' => '',
+                'version' => '',
+                'author' => '',
+                'active' => true,
+                'installed' => true,
+                'source' => 'custom',
+            ];
+        }
+
+        $slug = str_starts_with($pluginKey, 'plugin:') ? substr($pluginKey, 7) : $pluginKey;
+        if ($slug === '') {
+            return null;
+        }
+
+        $name = isset($customFunction['plugin_label']) && is_string($customFunction['plugin_label'])
+            ? trim($customFunction['plugin_label'])
+            : $slug;
+        if ($name === '') {
+            $name = $slug;
+        }
+
+        return [
+            'plugin_key' => 'plugin:' . $slug,
+            'plugin_file' => $slug . '/' . $slug . '.php',
+            'slug' => $slug,
+            'name' => $name,
+            'description' => '',
+            'version' => '',
+            'author' => '',
+            'active' => false,
+            'installed' => false,
+            'source' => 'custom',
+        ];
     }
 
     /**
      * @return array<int, array{
+     *   plugin_key: string,
      *   plugin_file: string,
      *   slug: string,
      *   name: string,
@@ -536,8 +811,66 @@ class Navai_Voice_API
             )))
             : [];
         $manualTokens = $this->parse_manual_plugins((string) ($settings['manual_plugins'] ?? ''));
+        $customPluginFunctions = $this->settings->get_allowed_plugin_functions_for_current_user();
 
-        $catalogByFile = [];
+        $catalogByKey = [];
+
+        foreach ($customPluginFunctions as $customFunction) {
+            if (!is_array($customFunction)) {
+                continue;
+            }
+
+            $pluginKey = strtolower(trim((string) ($customFunction['plugin_key'] ?? '')));
+            if ($pluginKey === '') {
+                continue;
+            }
+
+            if ($pluginKey === 'wp-core') {
+                $entry = [
+                    'plugin_key' => 'wp-core',
+                    'plugin_file' => 'wp-core/wp-core.php',
+                    'slug' => 'wp-core',
+                    'name' => 'WordPress / Sitio',
+                    'description' => '',
+                    'version' => '',
+                    'author' => '',
+                    'active' => true,
+                    'installed' => true,
+                    'source' => 'custom',
+                ];
+                $catalogByKey[$entry['plugin_key']] = $entry;
+                continue;
+            }
+
+            $slug = str_starts_with($pluginKey, 'plugin:') ? substr($pluginKey, 7) : $pluginKey;
+            if ($slug === '') {
+                continue;
+            }
+
+            $matchedPluginFile = $this->resolve_plugin_file_from_token($slug, $installedPlugins);
+            if ($matchedPluginFile !== null) {
+                $entry = $this->resolve_plugin_entry($matchedPluginFile, $installedPlugins, 'custom');
+            } else {
+                $entry = [
+                    'plugin_key' => 'plugin:' . $slug,
+                    'plugin_file' => $slug . '/' . $slug . '.php',
+                    'slug' => $slug,
+                    'name' => isset($customFunction['plugin_label']) && is_string($customFunction['plugin_label'])
+                        ? trim((string) $customFunction['plugin_label'])
+                        : $slug,
+                    'description' => '',
+                    'version' => '',
+                    'author' => '',
+                    'active' => false,
+                    'installed' => false,
+                    'source' => 'custom',
+                ];
+            }
+
+            if (!isset($catalogByKey[$entry['plugin_key']])) {
+                $catalogByKey[$entry['plugin_key']] = $entry;
+            }
+        }
 
         foreach ($selectedPluginFiles as $pluginFile) {
             if ($pluginFile === '') {
@@ -545,7 +878,9 @@ class Navai_Voice_API
             }
 
             $entry = $this->resolve_plugin_entry($pluginFile, $installedPlugins, 'dashboard_selection');
-            $catalogByFile[$entry['plugin_file']] = $entry;
+            if (!isset($catalogByKey[$entry['plugin_key']])) {
+                $catalogByKey[$entry['plugin_key']] = $entry;
+            }
         }
 
         foreach ($manualTokens as $token) {
@@ -556,16 +891,18 @@ class Navai_Voice_API
             $matchedPluginFile = $this->resolve_plugin_file_from_token($token, $installedPlugins);
             if ($matchedPluginFile !== null) {
                 $entry = $this->resolve_plugin_entry($matchedPluginFile, $installedPlugins, 'manual');
-                if (!isset($catalogByFile[$entry['plugin_file']])) {
-                    $catalogByFile[$entry['plugin_file']] = $entry;
+                if (!isset($catalogByKey[$entry['plugin_key']])) {
+                    $catalogByKey[$entry['plugin_key']] = $entry;
                 }
                 continue;
             }
 
             $slug = $this->plugin_file_to_slug($token);
             $pluginFile = str_contains($token, '/') ? plugin_basename($token) : $slug . '/' . $slug . '.php';
-            if (!isset($catalogByFile[$pluginFile])) {
-                $catalogByFile[$pluginFile] = [
+            $pluginKey = 'plugin:' . $slug;
+            if (!isset($catalogByKey[$pluginKey])) {
+                $catalogByKey[$pluginKey] = [
+                    'plugin_key' => $pluginKey,
                     'plugin_file' => $pluginFile,
                     'slug' => $slug,
                     'name' => $slug,
@@ -579,12 +916,13 @@ class Navai_Voice_API
             }
         }
 
-        return array_values($catalogByFile);
+        return array_values($catalogByKey);
     }
 
     /**
      * @param array<string, array<string, mixed>> $installedPlugins
      * @return array{
+     *   plugin_key: string,
      *   plugin_file: string,
      *   slug: string,
      *   name: string,
@@ -615,6 +953,7 @@ class Navai_Voice_API
             : (isset($data['Author']) && is_string($data['Author']) ? wp_strip_all_tags($data['Author']) : '');
 
         return [
+            'plugin_key' => 'plugin:' . $this->plugin_file_to_slug($normalizedFile),
             'plugin_file' => $normalizedFile,
             'slug' => $this->plugin_file_to_slug($normalizedFile),
             'name' => $name,
@@ -703,10 +1042,11 @@ class Navai_Voice_API
             }
 
             $pluginFile = strtolower((string) ($entry['plugin_file'] ?? ''));
+            $pluginKey = strtolower((string) ($entry['plugin_key'] ?? ''));
             $slug = strtolower((string) ($entry['slug'] ?? ''));
             $name = strtolower((string) ($entry['name'] ?? ''));
 
-            if ($needle === $pluginFile || $needle === $slug || $needle === $name) {
+            if ($needle === $pluginFile || $needle === $pluginKey || $needle === $slug || $needle === $name) {
                 return $entry;
             }
         }
@@ -763,9 +1103,14 @@ class Navai_Voice_API
      */
     private function resolve_plugin_actions(array $plugin, array $actionsRegistry): array
     {
+        $pluginKey = strtolower((string) ($plugin['plugin_key'] ?? ''));
         $pluginFile = strtolower((string) ($plugin['plugin_file'] ?? ''));
         $slug = strtolower((string) ($plugin['slug'] ?? ''));
         $actions = [];
+
+        if ($pluginKey !== '' && isset($actionsRegistry[$pluginKey]) && is_array($actionsRegistry[$pluginKey])) {
+            $actions = array_merge($actions, $actionsRegistry[$pluginKey]);
+        }
 
         if ($pluginFile !== '' && isset($actionsRegistry[$pluginFile]) && is_array($actionsRegistry[$pluginFile])) {
             $actions = array_merge($actions, $actionsRegistry[$pluginFile]);

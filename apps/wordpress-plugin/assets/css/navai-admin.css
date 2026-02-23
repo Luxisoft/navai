@@ -215,6 +215,56 @@
   white-space: nowrap;
 }
 
+.navai-plugin-functions-builder {
+  border: 1px solid #dfe7f3;
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 12px;
+  margin: 0 0 12px;
+}
+
+.navai-plugin-functions-builder > h3 {
+  margin: 0 0 6px;
+}
+
+.navai-plugin-functions-list {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.navai-plugin-function-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(160px, 1fr) minmax(170px, 1fr) minmax(170px, 1fr) minmax(240px, 2fr) auto;
+  gap: 10px;
+  align-items: end;
+  border: 1px solid #e2e9f4;
+  border-radius: 10px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.navai-plugin-function-row label {
+  display: block;
+}
+
+.navai-plugin-function-row label > span {
+  display: block;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.navai-plugin-function-row select,
+.navai-plugin-function-row input[type="text"] {
+  width: 100%;
+}
+
+.navai-plugin-function-remove {
+  align-self: end;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
 .navai-nav-actions {
   display: flex;
   flex-wrap: wrap;
@@ -245,6 +295,56 @@
 .navai-nav-route-group > h4 {
   margin: 0 0 10px;
   color: #243145;
+}
+
+.navai-plugin-func-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.navai-plugin-func-group {
+  border: 1px solid #e3eaf5;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fdfefe;
+}
+
+.navai-plugin-func-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.navai-plugin-func-group-head > h4 {
+  margin: 0;
+  color: #243145;
+}
+
+.navai-plugin-func-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.navai-plugin-func-item input[type="checkbox"] {
+  margin-top: 4px;
+}
+
+.navai-plugin-func-main {
+  display: block;
+  min-width: 0;
+}
+
+.navai-plugin-func-main strong,
+.navai-plugin-func-main small {
+  display: block;
+}
+
+.navai-plugin-func-item.is-hidden,
+.navai-plugin-func-group.is-hidden {
+  display: none !important;
 }
 
 .navai-nav-group-head {
@@ -472,7 +572,15 @@
     grid-template-columns: 1fr;
   }
 
+  .navai-plugin-function-row {
+    grid-template-columns: 1fr;
+  }
+
   .navai-private-route-remove {
+    margin-bottom: 0;
+  }
+
+  .navai-plugin-function-remove {
     margin-bottom: 0;
   }
 
