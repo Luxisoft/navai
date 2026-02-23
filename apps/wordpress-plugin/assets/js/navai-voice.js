@@ -47,6 +47,48 @@
     return asTrimmedString(value).toLowerCase();
   }
 
+  function normalizeTextForMatch(value) {
+    var text = asTrimmedString(value).toLowerCase();
+    if (!text) {
+      return "";
+    }
+
+    if (typeof text.normalize === "function") {
+      text = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    text = text
+      .replace(/[\u2018\u2019\u201C\u201D'"`´]/g, " ")
+      .replace(/[^a-z0-9/_\s-]/g, " ")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return text;
+  }
+
+  function uniqueStrings(values) {
+    var output = [];
+    var seen = {};
+
+    for (var i = 0; i < values.length; i += 1) {
+      var item = asTrimmedString(values[i]);
+      if (!item) {
+        continue;
+      }
+
+      var key = item.toLowerCase();
+      if (seen[key]) {
+        continue;
+      }
+
+      seen[key] = true;
+      output.push(item);
+    }
+
+    return output;
+  }
+
   function getGlobalConfig() {
     if (isRecord(window.NAVAI_VOICE_CONFIG)) {
       return window.NAVAI_VOICE_CONFIG;
@@ -78,6 +120,78 @@
     }
   }
 
+  function extractPathTokens(path) {
+    var tokens = [];
+    var pathname = "";
+
+    try {
+      pathname = new URL(path, window.location.origin).pathname || "";
+    } catch (_error) {
+      pathname = asTrimmedString(path);
+    }
+
+    if (!pathname) {
+      return tokens;
+    }
+
+    var parts = pathname.split("/");
+    for (var i = 0; i < parts.length; i += 1) {
+      var decoded = "";
+      try {
+        decoded = decodeURIComponent(parts[i]);
+      } catch (_error2) {
+        decoded = parts[i];
+      }
+
+      var token = normalizeTextForMatch(decoded);
+      if (token) {
+        tokens.push(token);
+      }
+    }
+
+    return uniqueStrings(tokens);
+  }
+
+  function buildTargetCandidates(target) {
+    var raw = asTrimmedString(target);
+    if (!raw) {
+      return [];
+    }
+
+    var base = normalizeTextForMatch(raw);
+    var candidates = [];
+    if (base) {
+      candidates.push(base);
+    }
+
+    var stripped = base
+      .replace(/^(por favor|porfa)\s+/, "")
+      .replace(/^(ve|vaya|ir|ir a|abre|abrir|navega|navegar|ll[eé]vame|llevarme|go to|open)\s+/, "")
+      .trim();
+    if (stripped) {
+      candidates.push(stripped);
+    }
+
+    var withoutArticle = stripped.replace(/^(al|a la|a el|a)\s+/, "").trim();
+    if (withoutArticle) {
+      candidates.push(withoutArticle);
+    }
+
+    var prepositions = [" a ", " al ", " a la ", " to "];
+    for (var i = 0; i < prepositions.length; i += 1) {
+      var sep = prepositions[i];
+      var idx = withoutArticle.lastIndexOf(sep);
+      if (idx > -1) {
+        var tail = withoutArticle.slice(idx + sep.length).trim();
+        if (tail) {
+          candidates.push(tail);
+        }
+      }
+    }
+
+    return uniqueStrings(candidates);
+  }
+
   function normalizeRoutes(raw) {
     if (!Array.isArray(raw)) {
       return [];
@@ -102,16 +216,23 @@
         for (var j = 0; j < item.synonyms.length; j += 1) {
           var synonym = asTrimmedString(item.synonyms[j]);
           if (synonym) {
-            synonyms.push(synonym.toLowerCase());
+            synonyms.push(normalizeTextForMatch(synonym));
           }
         }
       }
+
+      var normalizedName = normalizeTextForMatch(name);
+      var pathTokens = extractPathTokens(path);
+      var normalizedSynonyms = uniqueStrings(synonyms.concat(pathTokens));
 
       routes.push({
         name: name,
         path: path,
         description: description,
-        synonyms: synonyms
+        synonyms: normalizedSynonyms,
+        normalizedName: normalizedName,
+        pathTokens: pathTokens,
+        normalizedPath: normalizeRoutePathForCompare(path)
       });
     }
 
@@ -119,28 +240,87 @@
   }
 
   function resolveAllowedRoute(target, routes) {
-    var candidate = normalizeMatchValue(target);
-    if (!candidate) {
+    if (!routes.length) {
       return null;
     }
 
-    for (var i = 0; i < routes.length; i += 1) {
-      var route = routes[i];
-      if (normalizeMatchValue(route.name) === candidate) {
-        return route.path;
-      }
+    var candidates = buildTargetCandidates(target);
+    if (!candidates.length) {
+      return null;
+    }
 
-      if (route.synonyms.indexOf(candidate) >= 0) {
-        return route.path;
+    for (var i = 0; i < candidates.length; i += 1) {
+      var candidate = candidates[i];
+
+      for (var j = 0; j < routes.length; j += 1) {
+        var route = routes[j];
+        if (route.normalizedName === candidate) {
+          return route.path;
+        }
+
+        if (route.synonyms.indexOf(candidate) >= 0) {
+          return route.path;
+        }
       }
     }
 
-    var candidatePath = normalizeRoutePathForCompare(candidate);
-    for (var j = 0; j < routes.length; j += 1) {
-      var routePath = normalizeRoutePathForCompare(routes[j].path);
-      if (routePath && routePath === candidatePath) {
-        return routes[j].path;
+    for (var c = 0; c < candidates.length; c += 1) {
+      var candidatePath = normalizeRoutePathForCompare(candidates[c]);
+      if (!candidatePath) {
+        continue;
       }
+
+      for (var p = 0; p < routes.length; p += 1) {
+        if (routes[p].normalizedPath && routes[p].normalizedPath === candidatePath) {
+          return routes[p].path;
+        }
+      }
+    }
+
+    var best = null;
+    var bestScore = 0;
+    for (var r = 0; r < routes.length; r += 1) {
+      var routeItem = routes[r];
+      var routeName = routeItem.normalizedName;
+      var routeSynonyms = routeItem.synonyms || [];
+      var score = 0;
+
+      for (var k = 0; k < candidates.length; k += 1) {
+        var current = candidates[k];
+        if (!current) {
+          continue;
+        }
+
+        if (routeName && current.indexOf(routeName) > -1) {
+          score = Math.max(score, 90 + routeName.length);
+        }
+        if (routeName && routeName.indexOf(current) > -1) {
+          score = Math.max(score, 70 + current.length);
+        }
+
+        for (var s = 0; s < routeSynonyms.length; s += 1) {
+          var synonymValue = routeSynonyms[s];
+          if (!synonymValue) {
+            continue;
+          }
+          if (current === synonymValue) {
+            score = Math.max(score, 88 + synonymValue.length);
+          } else if (current.indexOf(synonymValue) > -1) {
+            score = Math.max(score, 64 + synonymValue.length);
+          } else if (synonymValue.indexOf(current) > -1) {
+            score = Math.max(score, 58 + current.length);
+          }
+        }
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = routeItem.path;
+      }
+    }
+
+    if (best && bestScore >= 60) {
+      return best;
     }
 
     return null;
@@ -298,6 +478,8 @@
     lines = lines.concat(functionLines);
     lines.push("Rules:");
     lines.push("- If the user asks to open a website section, call navigate_to.");
+    lines.push("- In navigate_to.target, prefer the exact route name listed in Allowed routes.");
+    lines.push("- Use inicio/home only if the user explicitly asks to go to home.");
     lines.push("- If the user asks to run an internal action, call execute_app_function or a direct function alias.");
     lines.push("- Always pass payload in execute_app_function. Use null when no arguments are needed.");
     lines.push("- Never invent routes or functions that are not listed.");

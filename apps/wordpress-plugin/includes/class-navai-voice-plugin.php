@@ -23,6 +23,7 @@ class Navai_Voice_Plugin
         add_action('rest_api_init', [$this->api, 'register_routes']);
         add_action('wp_enqueue_scripts', [$this, 'register_assets']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        add_action('admin_head', [$this, 'inject_admin_menu_icon_css']);
         add_action('admin_head-plugins.php', [$this, 'inject_plugins_page_logo_css']);
 
         add_filter('plugin_action_links_' . NAVAI_VOICE_BASENAME, [$this, 'add_plugin_action_links']);
@@ -35,7 +36,7 @@ class Navai_Voice_Plugin
      */
     public function add_plugin_action_links(array $links): array
     {
-        $settingsUrl = admin_url('options-general.php?page=' . Navai_Voice_Settings::PAGE_SLUG);
+        $settingsUrl = admin_url('admin.php?page=' . Navai_Voice_Settings::PAGE_SLUG);
         $settingsLink = sprintf(
             '<a href="%s">%s</a>',
             esc_url($settingsUrl),
@@ -72,12 +73,39 @@ class Navai_Voice_Plugin
         <?php
     }
 
+    public function inject_admin_menu_icon_css(): void
+    {
+        $menuId = 'toplevel_page_' . Navai_Voice_Settings::PAGE_SLUG;
+        $iconUrl = esc_url(NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg');
+        ?>
+        <style>
+            #<?php echo esc_attr($menuId); ?> .wp-menu-image::before {
+                content: "";
+                width: 20px;
+                height: 20px;
+                margin-top: 7px;
+                margin-left: 7px;
+                border-radius: 4px;
+                background: url('<?php echo $iconUrl; ?>') center/cover no-repeat;
+                display: block;
+            }
+            #<?php echo esc_attr($menuId); ?> .wp-menu-image.dashicons-before::before {
+                color: transparent;
+            }
+        </style>
+        <?php
+    }
+
     /**
      * @param string $hookSuffix
      */
     public function enqueue_admin_assets(string $hookSuffix): void
     {
-        if ($hookSuffix !== 'settings_page_' . Navai_Voice_Settings::PAGE_SLUG) {
+        $validHookSuffixes = [
+            'toplevel_page_' . Navai_Voice_Settings::PAGE_SLUG,
+            'settings_page_' . Navai_Voice_Settings::PAGE_SLUG,
+        ];
+        if (!in_array($hookSuffix, $validHookSuffixes, true)) {
             return;
         }
 
@@ -271,7 +299,7 @@ class Navai_Voice_Plugin
             }
 
             $path = esc_url_raw($path);
-            if ($path === '') {
+            if (!$this->is_navigable_url($path)) {
                 continue;
             }
 
@@ -294,6 +322,7 @@ class Navai_Voice_Plugin
                     }
                 }
             }
+            $synonyms = array_merge($synonyms, $this->build_route_synonyms($name, $path));
 
             $routes[] = [
                 'name' => $name,
@@ -336,7 +365,7 @@ class Navai_Voice_Plugin
             }
 
             $url = esc_url_raw((string) $item->url);
-            if ($url === '') {
+            if (!$this->is_navigable_url($url)) {
                 continue;
             }
 
@@ -345,15 +374,76 @@ class Navai_Voice_Plugin
                 continue;
             }
 
+            if (str_starts_with($url, '/')) {
+                $url = home_url($url);
+            }
+
             $routes[] = [
                 'name' => $title,
                 'path' => $url,
                 'description' => __('Ruta de menu seleccionada en WordPress.', 'navai-voice'),
-                'synonyms' => [strtolower($title)],
+                'synonyms' => $this->build_route_synonyms($title, $url),
             ];
         }
 
         return $routes;
+    }
+
+    private function is_navigable_url(string $url): bool
+    {
+        $value = trim($url);
+        if ($value === '' || $value === '#') {
+            return false;
+        }
+
+        $normalized = strtolower($value);
+        if (str_starts_with($normalized, 'javascript:')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function build_route_synonyms(string $name, string $path): array
+    {
+        $synonyms = [];
+
+        $cleanName = sanitize_text_field($name);
+        if ($cleanName !== '') {
+            $synonyms[] = strtolower($cleanName);
+        }
+
+        foreach ($this->extract_path_segments($path) as $segment) {
+            $synonyms[] = strtolower($segment);
+        }
+
+        return array_values(array_unique(array_filter($synonyms, static fn(string $value): bool => $value !== '')));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extract_path_segments(string $path): array
+    {
+        $segments = [];
+
+        $relativePath = wp_parse_url($path, PHP_URL_PATH);
+        if (!is_string($relativePath) || trim($relativePath) === '') {
+            return $segments;
+        }
+
+        $parts = explode('/', trim($relativePath, '/'));
+        foreach ($parts as $part) {
+            $token = sanitize_title($part);
+            if ($token !== '') {
+                $segments[] = str_replace('-', ' ', $token);
+            }
+        }
+
+        return array_values(array_unique($segments));
     }
 
     /**

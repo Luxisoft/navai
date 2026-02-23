@@ -9,7 +9,7 @@ Ruta propuesta en este repo:
 ## Que incluye este esqueleto
 
 - Plugin bootstrap: `navai-voice.php`
-- Dashboard en admin: `Ajustes > NAVAI Voice` con secciones:
+- Dashboard en admin: menu lateral `NAVAI Voice` con secciones:
   - `Navegacion` (items de menu permitidos para `navigate_to`)
   - `Plugins` (plugins permitidos para consulta/acciones)
   - `Ajustes` (configuracion principal)
@@ -23,7 +23,7 @@ Ruta propuesta en este repo:
 
 1. Copia la carpeta `apps/wordpress-plugin` a `wp-content/plugins/navai-voice`.
 2. Activa el plugin en WordPress.
-3. Ve a `Ajustes > NAVAI Voice`.
+3. Ve al menu lateral `NAVAI Voice`.
 4. Guarda al menos:
    - `OpenAI API Key`
    - `Modelo Realtime` (default: `gpt-realtime`)

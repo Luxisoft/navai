@@ -24,12 +24,14 @@ class Navai_Voice_Settings
 
     public function register_menu(): void
     {
-        add_options_page(
+        add_menu_page(
             __('NAVAI Voice', 'navai-voice'),
             __('NAVAI Voice', 'navai-voice'),
             'manage_options',
             self::PAGE_SLUG,
-            [$this, 'render_page']
+            [$this, 'render_page'],
+            'dashicons-format-audio',
+            58
         );
     }
 
@@ -482,7 +484,7 @@ class Navai_Voice_Settings
                 }
 
                 $url = esc_url_raw((string) $item->url);
-                if ($url === '') {
+                if (!$this->is_navigable_url($url)) {
                     continue;
                 }
 
@@ -509,6 +511,21 @@ class Navai_Voice_Settings
         }
 
         return $groups;
+    }
+
+    private function is_navigable_url(string $url): bool
+    {
+        $value = trim($url);
+        if ($value === '' || $value === '#') {
+            return false;
+        }
+
+        $normalized = strtolower($value);
+        if (str_starts_with($normalized, 'javascript:')) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
