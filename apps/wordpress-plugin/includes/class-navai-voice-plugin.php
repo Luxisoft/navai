@@ -4,6 +4,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (class_exists('Navai_Voice_Plugin', false)) {
+    return;
+}
+
 class Navai_Voice_Plugin
 {
     private Navai_Voice_Settings $settings;

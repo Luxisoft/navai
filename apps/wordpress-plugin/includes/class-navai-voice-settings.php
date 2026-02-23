@@ -4,6 +4,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (class_exists('Navai_Voice_Settings', false)) {
+    return;
+}
+
 class Navai_Voice_Settings
 {
     public const OPTION_KEY = 'navai_voice_settings';
