@@ -582,12 +582,17 @@ class Navai_Voice_Settings
                                                         ? array_values(array_filter(array_map('sanitize_key', $item['roles'])))
                                                         : [];
                                                     $routeRoleLabels = [];
+                                                    $routeRoleBadges = [];
                                                     foreach ($routeRoles as $routeRole) {
+                                                        $roleLabel = $routeRole;
                                                         if (isset($availableRoles[$routeRole])) {
-                                                            $routeRoleLabels[] = (string) $availableRoles[$routeRole];
-                                                        } else {
-                                                            $routeRoleLabels[] = $routeRole;
+                                                            $roleLabel = (string) $availableRoles[$routeRole];
                                                         }
+                                                        $routeRoleLabels[] = $roleLabel;
+                                                        $routeRoleBadges[] = [
+                                                            'label' => $roleLabel,
+                                                            'color' => $this->build_role_badge_color($routeRole),
+                                                        ];
                                                     }
                                                     $isChecked = in_array($routeKey, $allowedRouteKeys, true);
                                                     $searchText = trim(implode(' ', array_filter([
@@ -613,8 +618,17 @@ class Navai_Voice_Settings
                                                         />
                                                         <span class="navai-nav-route-main">
                                                             <strong><?php echo esc_html($routeTitle); ?></strong>
-                                                            <?php if (count($routeRoleLabels) > 0) : ?>
-                                                                <small class="navai-nav-route-roles"><?php echo esc_html(implode(', ', $routeRoleLabels)); ?></small>
+                                                            <?php if (count($routeRoleBadges) > 0) : ?>
+                                                                <small class="navai-nav-route-roles">
+                                                                    <?php foreach ($routeRoleBadges as $roleBadge) : ?>
+                                                                        <span
+                                                                            class="navai-nav-role-badge"
+                                                                            style="--navai-role-badge-color: <?php echo esc_attr((string) ($roleBadge['color'] ?? '#526077')); ?>;"
+                                                                        >
+                                                                            <?php echo esc_html((string) ($roleBadge['label'] ?? '')); ?>
+                                                                        </span>
+                                                                    <?php endforeach; ?>
+                                                                </small>
                                                             <?php endif; ?>
                                                         </span>
                                                         <button
@@ -2122,6 +2136,21 @@ class Navai_Voice_Settings
     private function build_url_dedupe_key(string $url): string
     {
         return strtolower(untrailingslashit(trim($url)));
+    }
+
+    private function build_role_badge_color(string $roleKey): string
+    {
+        $token = sanitize_key($roleKey);
+        if ($token === '') {
+            $token = 'role';
+        }
+
+        $seed = (int) hexdec(substr(md5($token), 0, 6));
+        $hue = $seed % 360;
+        $saturation = 62 + ($seed % 19);
+        $lightness = 38 + (((int) floor($seed / 19)) % 14);
+
+        return sprintf('hsl(%d %d%% %d%%)', $hue, $saturation, $lightness);
     }
 
     /**
