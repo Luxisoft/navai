@@ -121,6 +121,14 @@ class Navai_Voice_Settings
             $privateRoutePluginCatalog,
             $availableRoles
         );
+        $draftSettings = $previous;
+        $draftSettings['private_custom_routes'] = $privateCustomRoutes;
+        $draftCatalog = $this->get_navigation_catalog($draftSettings);
+        $draftIndex = is_array($draftCatalog['index'] ?? null) ? $draftCatalog['index'] : [];
+        $routeDescriptions = $this->sanitize_route_descriptions(
+            $source['route_descriptions'] ?? ($previous['route_descriptions'] ?? []),
+            array_keys($draftIndex)
+        );
 
         $allowedRouteKeys = $this->sanitize_route_keys($source['allowed_route_keys'] ?? []);
         if (count($allowedRouteKeys) === 0 && array_key_exists('allowed_menu_item_ids', $source)) {
@@ -152,6 +160,7 @@ class Navai_Voice_Settings
             'frontend_button_text_idle' => $frontendButtonTextIdle,
             'frontend_button_text_active' => $frontendButtonTextActive,
             'private_custom_routes' => $privateCustomRoutes,
+            'route_descriptions' => $routeDescriptions,
             'frontend_allowed_roles' => $this->sanitize_frontend_roles($source['frontend_allowed_roles'] ?? []),
             'active_tab' => $activeTab,
         ];
@@ -163,7 +172,7 @@ class Navai_Voice_Settings
     public function get_allowed_routes_for_current_user(): array
     {
         $settings = $this->get_settings();
-        $catalog = $this->get_navigation_catalog();
+        $catalog = $this->get_navigation_catalog($settings);
         $index = is_array($catalog['index'] ?? null) ? $catalog['index'] : [];
         $currentRoles = $this->get_current_user_roles();
         $isAdministrator = in_array('administrator', $currentRoles, true);
@@ -280,7 +289,8 @@ class Navai_Voice_Settings
         $availableRoles = $this->get_available_roles();
         $privateCustomRoutes = $this->get_private_custom_routes($settings);
         $privateRoutePluginCatalog = $this->get_private_route_plugin_catalog($privateCustomRoutes);
-        $navigationCatalog = $this->get_navigation_catalog();
+        $routeDescriptions = $this->sanitize_route_descriptions($settings['route_descriptions'] ?? []);
+        $navigationCatalog = $this->get_navigation_catalog($settings);
         $publicRoutes = is_array($navigationCatalog['public'] ?? null) ? $navigationCatalog['public'] : [];
         $privateRoutes = is_array($navigationCatalog['private'] ?? null) ? $navigationCatalog['private'] : [];
 
@@ -429,10 +439,14 @@ class Navai_Voice_Settings
                                                     $routeTitle = sanitize_text_field((string) ($item['title'] ?? ''));
                                                     $routeUrl = esc_url_raw((string) ($item['url'] ?? ''));
                                                     $routeSynonyms = is_array($item['synonyms'] ?? null) ? $item['synonyms'] : [];
+                                                    $routeDescription = isset($routeDescriptions[$routeKey])
+                                                        ? sanitize_text_field((string) $routeDescriptions[$routeKey])
+                                                        : sanitize_text_field((string) ($item['description'] ?? ''));
                                                     $isChecked = in_array($routeKey, $allowedRouteKeys, true);
                                                     $searchText = trim(implode(' ', array_filter([
                                                         $routeTitle,
                                                         $routeUrl,
+                                                        $routeDescription,
                                                         implode(' ', array_map('sanitize_text_field', $routeSynonyms)),
                                                     ])));
                                                     $urlBoxId = 'navai-route-url-' . md5('public|' . $routeKey);
@@ -451,6 +465,13 @@ class Navai_Voice_Settings
                                                         />
                                                         <span class="navai-nav-route-main">
                                                             <strong><?php echo esc_html($routeTitle); ?></strong>
+                                                            <input
+                                                                type="text"
+                                                                class="regular-text navai-nav-route-description"
+                                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[route_descriptions][<?php echo esc_attr($routeKey); ?>]"
+                                                                value="<?php echo esc_attr($routeDescription); ?>"
+                                                                placeholder="<?php echo esc_attr__('Descripcion para el agente IA', 'navai-voice'); ?>"
+                                                            />
                                                         </span>
                                                         <button
                                                             type="button"
@@ -490,6 +511,7 @@ class Navai_Voice_Settings
                                         }
                                         $rowRole = sanitize_key((string) ($privateRouteConfig['role'] ?? ''));
                                         $rowUrl = esc_url_raw((string) ($privateRouteConfig['url'] ?? ''));
+                                        $rowDescription = sanitize_text_field((string) ($privateRouteConfig['description'] ?? ''));
                                         ?>
                                         <div class="navai-private-route-row">
                                             <input
@@ -527,6 +549,16 @@ class Navai_Voice_Settings
                                                     name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][<?php echo esc_attr((string) $routeIndex); ?>][url]"
                                                     value="<?php echo esc_attr($rowUrl); ?>"
                                                     placeholder="<?php echo esc_attr('https://example.com/wp-admin/admin.php?page=slug'); ?>"
+                                                />
+                                            </label>
+
+                                            <label class="navai-private-route-description">
+                                                <span><?php echo esc_html__('Descripcion', 'navai-voice'); ?></span>
+                                                <input
+                                                    type="text"
+                                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][<?php echo esc_attr((string) $routeIndex); ?>][description]"
+                                                    value="<?php echo esc_attr($rowDescription); ?>"
+                                                    placeholder="<?php echo esc_attr__('Ayuda al agente a identificar esta ruta', 'navai-voice'); ?>"
                                                 />
                                             </label>
 
@@ -578,6 +610,16 @@ class Navai_Voice_Settings
                                                 name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][__INDEX__][url]"
                                                 value=""
                                                 placeholder="<?php echo esc_attr('https://example.com/wp-admin/admin.php?page=slug'); ?>"
+                                            />
+                                        </label>
+
+                                        <label class="navai-private-route-description">
+                                            <span><?php echo esc_html__('Descripcion', 'navai-voice'); ?></span>
+                                            <input
+                                                type="text"
+                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][__INDEX__][description]"
+                                                value=""
+                                                placeholder="<?php echo esc_attr__('Ayuda al agente a identificar esta ruta', 'navai-voice'); ?>"
                                             />
                                         </label>
 
@@ -705,6 +747,9 @@ class Navai_Voice_Settings
                                                     $routeRoles = is_array($item['roles'] ?? null)
                                                         ? array_values(array_filter(array_map('sanitize_key', $item['roles'])))
                                                         : [];
+                                                    $routeDescription = isset($routeDescriptions[$routeKey])
+                                                        ? sanitize_text_field((string) $routeDescriptions[$routeKey])
+                                                        : sanitize_text_field((string) ($item['description'] ?? ''));
                                                     $routeRoleLabels = [];
                                                     $routeRoleBadges = [];
                                                     foreach ($routeRoles as $routeRole) {
@@ -722,6 +767,7 @@ class Navai_Voice_Settings
                                                     $searchText = trim(implode(' ', array_filter([
                                                         $routeTitle,
                                                         $routeUrl,
+                                                        $routeDescription,
                                                         implode(' ', $routeRoleLabels),
                                                         implode(' ', array_map('sanitize_text_field', $routeSynonyms)),
                                                     ])));
@@ -742,6 +788,13 @@ class Navai_Voice_Settings
                                                         />
                                                         <span class="navai-nav-route-main">
                                                             <strong><?php echo esc_html($routeTitle); ?></strong>
+                                                            <input
+                                                                type="text"
+                                                                class="regular-text navai-nav-route-description"
+                                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[route_descriptions][<?php echo esc_attr($routeKey); ?>]"
+                                                                value="<?php echo esc_attr($routeDescription); ?>"
+                                                                placeholder="<?php echo esc_attr__('Descripcion para el agente IA', 'navai-voice'); ?>"
+                                                            />
                                                             <?php if (count($routeRoleBadges) > 0) : ?>
                                                                 <small class="navai-nav-route-roles">
                                                                     <?php foreach ($routeRoleBadges as $roleBadge) : ?>
@@ -1162,6 +1215,45 @@ class Navai_Voice_Settings
 
     /**
      * @param mixed $value
+     * @param array<int, string> $allowedRouteKeys
+     * @return array<string, string>
+     */
+    private function sanitize_route_descriptions($value, array $allowedRouteKeys = []): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $allowedLookup = [];
+        if (count($allowedRouteKeys) > 0) {
+            $allowedLookup = array_fill_keys(array_values(array_unique($allowedRouteKeys)), true);
+        }
+
+        $items = [];
+        foreach ($value as $rawKey => $rawDescription) {
+            $key = strtolower(trim((string) $rawKey));
+            $key = preg_replace('/[^a-z0-9:_-]/', '', $key);
+            if (!is_string($key) || $key === '') {
+                continue;
+            }
+
+            if (count($allowedLookup) > 0 && !isset($allowedLookup[$key])) {
+                continue;
+            }
+
+            $description = sanitize_text_field((string) $rawDescription);
+            if (trim($description) === '') {
+                continue;
+            }
+
+            $items[$key] = $description;
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param mixed $value
      * @return array<int, string>
      */
     private function sanitize_plugin_files($value): array
@@ -1372,13 +1464,20 @@ class Navai_Voice_Settings
     }
 
     /**
+     * @param array<string, mixed>|null $settingsOverride
      * @return array<string, mixed>
      */
-    private function get_navigation_catalog(): array
+    private function get_navigation_catalog(?array $settingsOverride = null): array
     {
-        $settings = $this->get_settings();
+        $settings = is_array($settingsOverride) ? $settingsOverride : $this->get_settings();
         $publicRoutes = $this->collect_public_menu_routes();
         $privateRoutes = $this->collect_private_routes($settings);
+        $routeDescriptions = $this->sanitize_route_descriptions($settings['route_descriptions'] ?? []);
+
+        if (count($routeDescriptions) > 0) {
+            $publicRoutes = $this->apply_route_descriptions_to_routes($publicRoutes, $routeDescriptions);
+            $privateRoutes = $this->apply_route_descriptions_to_routes($privateRoutes, $routeDescriptions);
+        }
 
         $index = [];
         $legacyMap = [];
@@ -1549,8 +1648,41 @@ class Navai_Voice_Settings
     }
 
     /**
+     * @param array<int, array<string, mixed>> $routes
+     * @param array<string, string> $routeDescriptions
+     * @return array<int, array<string, mixed>>
+     */
+    private function apply_route_descriptions_to_routes(array $routes, array $routeDescriptions): array
+    {
+        if (count($routes) === 0 || count($routeDescriptions) === 0) {
+            return $routes;
+        }
+
+        foreach ($routes as $index => $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $routeKey = isset($item['key']) ? strtolower(trim((string) $item['key'])) : '';
+            if ($routeKey === '' || !isset($routeDescriptions[$routeKey])) {
+                continue;
+            }
+
+            $description = sanitize_text_field((string) $routeDescriptions[$routeKey]);
+            if ($description === '') {
+                continue;
+            }
+
+            $item['description'] = $description;
+            $routes[$index] = $item;
+        }
+
+        return $routes;
+    }
+
+    /**
      * @param array<string, mixed> $settings
-     * @return array<int, array{id: string, plugin_key: string, plugin_label: string, role: string, url: string}>
+     * @return array<int, array{id: string, plugin_key: string, plugin_label: string, role: string, url: string, description: string}>
      */
     private function get_private_custom_routes(array $settings): array
     {
@@ -1620,7 +1752,7 @@ class Navai_Voice_Settings
      * @param mixed $value
      * @param array<string, string> $pluginCatalog
      * @param array<string, string> $availableRoles
-     * @return array<int, array{id: string, plugin_key: string, plugin_label: string, role: string, url: string}>
+     * @return array<int, array{id: string, plugin_key: string, plugin_label: string, role: string, url: string, description: string}>
      */
     private function sanitize_private_custom_routes($value, array $pluginCatalog, array $availableRoles): array
     {
@@ -1676,6 +1808,7 @@ class Navai_Voice_Settings
                 ),
                 'role' => $role,
                 'url' => $url,
+                'description' => sanitize_text_field((string) ($item['description'] ?? '')),
             ];
         }
 
@@ -1927,11 +2060,15 @@ class Navai_Voice_Settings
             $seen[$dedupeKey] = true;
 
             $title = $this->build_private_route_title_from_url($url);
+            $customDescription = sanitize_text_field((string) ($customRoute['description'] ?? ''));
+            if ($customDescription === '') {
+                $customDescription = sprintf(__('Ruta privada personalizada para el rol %s.', 'navai-voice'), (string) $roleLabel);
+            }
             $items[] = [
                 'key' => 'private_custom:' . $routeId,
                 'title' => $title,
                 'url' => $url,
-                'description' => sprintf(__('Ruta privada personalizada para el rol %s.', 'navai-voice'), (string) $roleLabel),
+                'description' => $customDescription,
                 'synonyms' => $this->build_route_synonyms($title, $url),
                 'visibility' => 'private',
                 'roles' => [$roleToken],
@@ -2659,6 +2796,7 @@ class Navai_Voice_Settings
             'frontend_button_text_idle' => 'Hablar con NAVAI',
             'frontend_button_text_active' => 'Detener NAVAI',
             'private_custom_routes' => [],
+            'route_descriptions' => [],
             'frontend_allowed_roles' => $this->get_default_frontend_roles(),
             'active_tab' => 'navigation',
         ];
