@@ -148,6 +148,12 @@
   font-weight: 600;
 }
 
+.navai-admin-field-title {
+  display: block;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
 .navai-admin-settings-grid .navai-admin-full-width {
   grid-column: 1 / -1;
 }
@@ -155,8 +161,24 @@
 .navai-admin-settings-grid input[type="text"],
 .navai-admin-settings-grid input[type="password"],
 .navai-admin-settings-grid input[type="number"],
+.navai-admin-settings-grid select,
 .navai-admin-settings-grid textarea {
   width: 100%;
+}
+
+.navai-admin-role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.navai-admin-description {
+  margin: 6px 0 0;
+  color: #526077;
+}
+
+.navai-admin-code {
+  max-width: 420px;
 }
 
 .navai-admin-footer {

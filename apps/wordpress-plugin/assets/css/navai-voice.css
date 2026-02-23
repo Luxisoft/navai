@@ -13,6 +13,10 @@
 }
 
 .navai-voice-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   cursor: pointer;
   border: 0;
   border-radius: 0.375rem;
@@ -20,11 +24,39 @@
   font-weight: 600;
   background: linear-gradient(135deg, #0762d8, #1f7dff);
   color: #ffffff;
+  transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.navai-voice-toggle-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.navai-voice-toggle-text {
+  line-height: 1.1;
 }
 
 .navai-voice-toggle:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.navai-voice-widget.is-idle .navai-voice-toggle {
+  background: linear-gradient(135deg, #1263dc, #1f80ff);
+}
+
+.navai-voice-widget.is-connecting .navai-voice-toggle {
+  background: linear-gradient(135deg, #db7f13, #f2a026);
+}
+
+.navai-voice-widget.is-connected .navai-voice-toggle {
+  background: linear-gradient(135deg, #10883f, #22af53);
+}
+
+.navai-voice-widget.is-error .navai-voice-toggle {
+  background: linear-gradient(135deg, #ba2e2e, #da4b4b);
 }
 
 .navai-voice-status {
@@ -52,4 +84,60 @@
 
 .navai-voice-remote-audio {
   display: none;
+}
+
+.navai-voice-widget--floating {
+  position: fixed;
+  bottom: 20px;
+  z-index: 999999;
+  max-width: none;
+  width: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.navai-voice-widget--floating.navai-voice-widget--side-left {
+  left: 20px;
+}
+
+.navai-voice-widget--floating.navai-voice-widget--side-right {
+  right: 20px;
+}
+
+.navai-voice-widget--floating .navai-voice-toggle {
+  min-height: 48px;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 8px 18px rgba(8, 29, 59, 0.22);
+}
+
+.navai-voice-widget--floating .navai-voice-status {
+  display: inline-block;
+  width: auto;
+  padding: 0.34rem 0.65rem;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #dde5f2;
+  font-size: 0.82rem;
+  box-shadow: 0 4px 10px rgba(11, 25, 43, 0.12);
+}
+
+.navai-voice-widget--floating .navai-voice-log {
+  width: min(80vw, 360px);
+}
+
+@media (max-width: 782px) {
+  .navai-voice-widget--floating {
+    bottom: 14px;
+  }
+
+  .navai-voice-widget--floating.navai-voice-widget--side-left {
+    left: 14px;
+  }
+
+  .navai-voice-widget--floating.navai-voice-widget--side-right {
+    right: 14px;
+  }
 }

@@ -9,6 +9,7 @@
   var DEFAULT_WEBRTC_URL = "https://api.openai.com/v1/realtime/calls";
   var DEFAULT_MODEL = "gpt-realtime";
   var MAX_LOG_LINES = 120;
+  var GLOBAL_ACTIVE_STORAGE_KEY = "navai_voice_global_active";
 
   function isRecord(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -24,6 +25,17 @@
   function parseJsonSafe(raw) {
     try {
       return JSON.parse(raw);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function getSafeStorage() {
+    try {
+      if (!window.localStorage) {
+        return null;
+      }
+      return window.localStorage;
     } catch (_error) {
       return null;
     }
@@ -726,6 +738,7 @@
   function NavaiVoiceWidget(container) {
     this.container = container;
     this.button = container.querySelector(".navai-voice-toggle");
+    this.buttonLabelEl = this.button ? this.button.querySelector(".navai-voice-toggle-text") : null;
     this.statusEl = container.querySelector(".navai-voice-status");
     this.logEl = container.querySelector(".navai-voice-log");
     this.globalConfig = getGlobalConfig();
@@ -744,6 +757,12 @@
     this.startLabel = asTrimmedString(container.dataset.startLabel) || "Start Voice";
     this.stopLabel = asTrimmedString(container.dataset.stopLabel) || "Stop Voice";
     this.debugEnabled = container.dataset.debug === "1";
+    this.widgetMode = asTrimmedString(container.dataset.widgetMode) || "shortcode";
+    this.isFloating = container.dataset.floating === "1";
+    this.persistActive = container.dataset.persistActive === "1";
+    this.buttonSide = asTrimmedString(container.dataset.buttonSide) === "right" ? "right" : "left";
+    this.navigationInProgress = false;
+    this.storage = getSafeStorage();
 
     this.modelOverride = asTrimmedString(container.dataset.model);
     this.voiceOverride = asTrimmedString(container.dataset.voice);
@@ -753,11 +772,34 @@
     this.voiceToneOverride = asTrimmedString(container.dataset.voiceTone);
 
     if (this.button) {
-      this.button.textContent = this.startLabel;
+      if (this.buttonLabelEl) {
+        this.buttonLabelEl.textContent = this.startLabel;
+      } else {
+        this.button.textContent = this.startLabel;
+      }
       this.button.addEventListener("click", this.handleToggle.bind(this));
     }
 
+    if (this.persistActive) {
+      var widget = this;
+      window.addEventListener("beforeunload", function () {
+        if (widget.state === "connected" || widget.state === "connecting" || widget.navigationInProgress) {
+          widget.storeActivePreference(true);
+        }
+      });
+    }
+
+    this.applyStateClass();
+    this.refreshButton();
     this.setStatus(getMessage(this.globalConfig, "idle", "Idle"));
+
+    if (this.persistActive && this.shouldAutoResume()) {
+      this.appendLog("Auto-resuming global voice widget from previous page.", "info");
+      var resumeWidget = this;
+      window.setTimeout(function () {
+        resumeWidget.start();
+      }, 350);
+    }
   }
 
   NavaiVoiceWidget.prototype.handleToggle = function () {
@@ -776,6 +818,55 @@
   NavaiVoiceWidget.prototype.setStatus = function (message) {
     if (this.statusEl) {
       this.statusEl.textContent = message;
+    }
+  };
+
+  NavaiVoiceWidget.prototype.applyStateClass = function () {
+    this.container.classList.remove("is-idle", "is-connecting", "is-connected", "is-error");
+
+    if (this.state === "connected") {
+      this.container.classList.add("is-connected");
+      return;
+    }
+
+    if (this.state === "connecting") {
+      this.container.classList.add("is-connecting");
+      return;
+    }
+
+    if (this.state === "error") {
+      this.container.classList.add("is-error");
+      return;
+    }
+
+    this.container.classList.add("is-idle");
+  };
+
+  NavaiVoiceWidget.prototype.storeActivePreference = function (enabled) {
+    if (!this.persistActive || !this.storage) {
+      return;
+    }
+
+    try {
+      if (enabled) {
+        this.storage.setItem(GLOBAL_ACTIVE_STORAGE_KEY, "1");
+      } else {
+        this.storage.removeItem(GLOBAL_ACTIVE_STORAGE_KEY);
+      }
+    } catch (_error) {
+      // noop
+    }
+  };
+
+  NavaiVoiceWidget.prototype.shouldAutoResume = function () {
+    if (!this.persistActive || !this.storage) {
+      return false;
+    }
+
+    try {
+      return this.storage.getItem(GLOBAL_ACTIVE_STORAGE_KEY) === "1";
+    } catch (_error) {
+      return false;
     }
   };
 
@@ -807,17 +898,24 @@
 
   NavaiVoiceWidget.prototype.refreshButton = function () {
     if (!this.button) {
+      this.applyStateClass();
       return;
     }
 
+    var textTarget = this.buttonLabelEl || this.button;
+
     if (this.state === "connecting") {
       this.button.disabled = true;
-      this.button.textContent = this.startLabel;
+      textTarget.textContent = this.startLabel;
+      this.button.setAttribute("aria-pressed", "false");
+      this.applyStateClass();
       return;
     }
 
     this.button.disabled = false;
-    this.button.textContent = this.state === "connected" ? this.stopLabel : this.startLabel;
+    textTarget.textContent = this.state === "connected" ? this.stopLabel : this.startLabel;
+    this.button.setAttribute("aria-pressed", this.state === "connected" ? "true" : "false");
+    this.applyStateClass();
   };
 
   NavaiVoiceWidget.prototype.start = async function () {
@@ -826,16 +924,20 @@
     }
 
     if (!window.RTCPeerConnection) {
+      this.storeActivePreference(false);
       this.setStatus("WebRTC is not supported in this browser.");
       return;
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.storeActivePreference(false);
       this.setStatus("Microphone capture is not supported in this browser.");
       return;
     }
 
     this.state = "connecting";
+    this.navigationInProgress = false;
+    this.storeActivePreference(true);
     this.refreshButton();
     this.handledCalls = {};
 
@@ -880,12 +982,14 @@
       await this.openRealtimeSession(secret.value, model);
 
       this.state = "connected";
+      this.storeActivePreference(true);
       this.refreshButton();
       this.setStatus(getMessage(this.globalConfig, "connected", "Connected"));
     } catch (error) {
       this.appendLog("Failed to start voice: " + String(error), "error");
       this.stopInternal();
       this.state = "error";
+      this.storeActivePreference(false);
       this.refreshButton();
       this.setStatus(getMessage(this.globalConfig, "failed", "Failed to start voice session."));
     }
@@ -897,8 +1001,11 @@
     }
 
     this.setStatus(getMessage(this.globalConfig, "stopping", "Stopping..."));
+    var keepActiveAcrossNavigation = this.navigationInProgress;
     this.stopInternal();
     this.state = "idle";
+    this.storeActivePreference(keepActiveAcrossNavigation);
+    this.navigationInProgress = false;
     this.refreshButton();
     this.setStatus(getMessage(this.globalConfig, "stopped", "Stopped"));
   };
@@ -1269,6 +1376,8 @@
     }
 
     this.appendLog('Navigating to "' + path + '".', "info");
+    this.navigationInProgress = true;
+    this.storeActivePreference(true);
     window.setTimeout(function () {
       window.location.assign(path);
     }, 450);

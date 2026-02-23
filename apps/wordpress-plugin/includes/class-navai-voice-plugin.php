@@ -22,6 +22,7 @@ class Navai_Voice_Plugin
         add_action('admin_init', [$this->settings, 'register_settings']);
         add_action('rest_api_init', [$this->api, 'register_routes']);
         add_action('wp_enqueue_scripts', [$this, 'register_assets']);
+        add_action('wp_footer', [$this, 'render_global_voice_widget']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
         add_action('admin_head', [$this, 'inject_admin_menu_icon_css']);
         add_action('admin_head-plugins.php', [$this, 'inject_plugins_page_logo_css']);
@@ -83,6 +84,7 @@ class Navai_Voice_Plugin
                 max-width: 23px !important;
                 max-height: 23px !important;
                 padding-top: 5px !important;
+                object-fit: contain !important;
             }
         </style>
         <?php
@@ -187,10 +189,16 @@ class Navai_Voice_Plugin
      */
     public function render_voice_shortcode(array $atts = []): string
     {
+        $settings = $this->settings->get_settings();
+        if (!$this->can_render_widget_for_current_user($settings)) {
+            return '';
+        }
+
         wp_enqueue_style('navai-voice');
+        wp_enqueue_style('dashicons');
         wp_enqueue_script('navai-voice');
 
-        $defaults = $this->settings->get_settings();
+        $defaults = $settings;
         $attributes = shortcode_atts(
             [
                 'label' => __('Start Voice', 'navai-voice'),
@@ -207,43 +215,57 @@ class Navai_Voice_Plugin
             $atts
         );
 
-        $startLabel = is_string($attributes['label']) ? $attributes['label'] : __('Start Voice', 'navai-voice');
-        $stopLabel = is_string($attributes['stop_label']) ? $attributes['stop_label'] : __('Stop Voice', 'navai-voice');
-        $debug = $this->to_bool($attributes['debug'] ?? '0');
+        return $this->render_widget_markup(
+            $attributes,
+            [
+                'floating' => false,
+                'persist_active' => false,
+                'button_side' => 'left',
+                'widget_mode' => 'shortcode',
+            ]
+        );
+    }
 
-        $widgetClass = 'navai-voice-widget';
-        if (is_string($attributes['class']) && trim($attributes['class']) !== '') {
-            $extra = array_filter(array_map('sanitize_html_class', preg_split('/\s+/', trim($attributes['class'])) ?: []));
-            if (!empty($extra)) {
-                $widgetClass .= ' ' . implode(' ', $extra);
-            }
+    public function render_global_voice_widget(): void
+    {
+        if (is_admin()) {
+            return;
         }
 
-        $data = [
-            'start-label' => $startLabel,
-            'stop-label' => $stopLabel,
-            'model' => is_string($attributes['model']) ? $attributes['model'] : '',
-            'voice' => is_string($attributes['voice']) ? $attributes['voice'] : '',
-            'instructions' => is_string($attributes['instructions']) ? $attributes['instructions'] : '',
-            'language' => is_string($attributes['language']) ? $attributes['language'] : '',
-            'voice-accent' => is_string($attributes['voice_accent']) ? $attributes['voice_accent'] : '',
-            'voice-tone' => is_string($attributes['voice_tone']) ? $attributes['voice_tone'] : '',
-            'debug' => $debug ? '1' : '0',
-        ];
+        $settings = $this->settings->get_settings();
+        if (!$this->can_render_widget_for_current_user($settings)) {
+            return;
+        }
 
-        ob_start();
-        ?>
-        <div class="<?php echo esc_attr($widgetClass); ?>"
-            <?php foreach ($data as $key => $value) : ?>
-                <?php printf(' data-%s="%s"', esc_attr($key), esc_attr($value)); ?>
-            <?php endforeach; ?>
-        >
-            <button type="button" class="navai-voice-toggle"><?php echo esc_html($startLabel); ?></button>
-            <p class="navai-voice-status" aria-live="polite"><?php echo esc_html__('Idle', 'navai-voice'); ?></p>
-            <pre class="navai-voice-log" <?php echo $debug ? '' : 'hidden'; ?>></pre>
-        </div>
-        <?php
-        return (string) ob_get_clean();
+        $displayMode = $this->resolve_frontend_display_mode($settings);
+        if (!in_array($displayMode, ['global', 'both'], true)) {
+            return;
+        }
+
+        wp_enqueue_style('navai-voice');
+        wp_enqueue_style('dashicons');
+        wp_enqueue_script('navai-voice');
+
+        echo $this->render_widget_markup(
+            [
+                'label' => __('Hablar con NAVAI', 'navai-voice'),
+                'stop_label' => __('Detener NAVAI', 'navai-voice'),
+                'model' => (string) ($settings['default_model'] ?? ''),
+                'voice' => (string) ($settings['default_voice'] ?? ''),
+                'instructions' => (string) ($settings['default_instructions'] ?? ''),
+                'language' => (string) ($settings['default_language'] ?? ''),
+                'voice_accent' => (string) ($settings['default_voice_accent'] ?? ''),
+                'voice_tone' => (string) ($settings['default_voice_tone'] ?? ''),
+                'debug' => '0',
+                'class' => '',
+            ],
+            [
+                'floating' => true,
+                'persist_active' => true,
+                'button_side' => $this->resolve_frontend_button_side($settings),
+                'widget_mode' => 'global',
+            ]
+        );
     }
 
     /**
@@ -503,6 +525,162 @@ class Navai_Voice_Plugin
 
         $normalized = strtolower(trim((string) $value));
         return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
+    private function resolve_frontend_display_mode(array $settings): string
+    {
+        $mode = isset($settings['frontend_display_mode']) ? sanitize_key((string) $settings['frontend_display_mode']) : '';
+        if (!in_array($mode, ['global', 'shortcode', 'both'], true)) {
+            return 'global';
+        }
+
+        return $mode;
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
+    private function resolve_frontend_button_side(array $settings): string
+    {
+        $side = isset($settings['frontend_button_side']) ? sanitize_key((string) $settings['frontend_button_side']) : '';
+        if (!in_array($side, ['left', 'right'], true)) {
+            return 'left';
+        }
+
+        return $side;
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
+    private function can_render_widget_for_current_user(array $settings): bool
+    {
+        $allowedRoles = $this->normalize_allowed_frontend_roles($settings['frontend_allowed_roles'] ?? []);
+        if (count($allowedRoles) === 0) {
+            return false;
+        }
+
+        if (!is_user_logged_in()) {
+            return in_array('guest', $allowedRoles, true);
+        }
+
+        $user = wp_get_current_user();
+        if (!($user instanceof WP_User)) {
+            return false;
+        }
+
+        if (!is_array($user->roles)) {
+            return false;
+        }
+
+        foreach ($user->roles as $role) {
+            $roleKey = sanitize_key((string) $role);
+            if ($roleKey !== '' && in_array($roleKey, $allowedRoles, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param mixed $value
+     * @return array<int, string>
+     */
+    private function normalize_allowed_frontend_roles($value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $roles = [];
+        foreach ($value as $item) {
+            $role = sanitize_key((string) $item);
+            if ($role !== '') {
+                $roles[] = $role;
+            }
+        }
+
+        return array_values(array_unique($roles));
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     * @param array<string, mixed> $options
+     */
+    private function render_widget_markup(array $attributes, array $options): string
+    {
+        $startLabel = is_string($attributes['label'] ?? null) ? (string) $attributes['label'] : __('Start Voice', 'navai-voice');
+        $stopLabel = is_string($attributes['stop_label'] ?? null) ? (string) $attributes['stop_label'] : __('Stop Voice', 'navai-voice');
+        $debug = $this->to_bool($attributes['debug'] ?? '0');
+
+        $floating = !empty($options['floating']);
+        $persistActive = !empty($options['persist_active']);
+        $widgetMode = isset($options['widget_mode']) ? sanitize_key((string) $options['widget_mode']) : 'shortcode';
+        if (!in_array($widgetMode, ['global', 'shortcode'], true)) {
+            $widgetMode = 'shortcode';
+        }
+        $buttonSide = isset($options['button_side']) ? sanitize_key((string) $options['button_side']) : 'left';
+        if (!in_array($buttonSide, ['left', 'right'], true)) {
+            $buttonSide = 'left';
+        }
+
+        $widgetClass = 'navai-voice-widget';
+        if ($floating) {
+            $widgetClass .= ' navai-voice-widget--floating';
+            $widgetClass .= $buttonSide === 'right'
+                ? ' navai-voice-widget--side-right'
+                : ' navai-voice-widget--side-left';
+        }
+
+        if (is_string($attributes['class'] ?? null) && trim((string) $attributes['class']) !== '') {
+            $extra = array_filter(
+                array_map(
+                    'sanitize_html_class',
+                    preg_split('/\s+/', trim((string) $attributes['class'])) ?: []
+                )
+            );
+            if (!empty($extra)) {
+                $widgetClass .= ' ' . implode(' ', $extra);
+            }
+        }
+
+        $data = [
+            'start-label' => $startLabel,
+            'stop-label' => $stopLabel,
+            'model' => is_string($attributes['model'] ?? null) ? (string) $attributes['model'] : '',
+            'voice' => is_string($attributes['voice'] ?? null) ? (string) $attributes['voice'] : '',
+            'instructions' => is_string($attributes['instructions'] ?? null) ? (string) $attributes['instructions'] : '',
+            'language' => is_string($attributes['language'] ?? null) ? (string) $attributes['language'] : '',
+            'voice-accent' => is_string($attributes['voice_accent'] ?? null) ? (string) $attributes['voice_accent'] : '',
+            'voice-tone' => is_string($attributes['voice_tone'] ?? null) ? (string) $attributes['voice_tone'] : '',
+            'debug' => $debug ? '1' : '0',
+            'widget-mode' => $widgetMode,
+            'floating' => $floating ? '1' : '0',
+            'button-side' => $buttonSide,
+            'persist-active' => $persistActive ? '1' : '0',
+        ];
+
+        ob_start();
+        ?>
+        <div class="<?php echo esc_attr($widgetClass); ?>"
+            <?php foreach ($data as $key => $value) : ?>
+                <?php printf(' data-%s="%s"', esc_attr($key), esc_attr($value)); ?>
+            <?php endforeach; ?>
+        >
+            <button type="button" class="navai-voice-toggle" aria-pressed="false">
+                <span class="navai-voice-toggle-icon dashicons dashicons-microphone" aria-hidden="true"></span>
+                <span class="navai-voice-toggle-text"><?php echo esc_html($startLabel); ?></span>
+            </button>
+            <p class="navai-voice-status" aria-live="polite"><?php echo esc_html__('Idle', 'navai-voice'); ?></p>
+            <pre class="navai-voice-log" <?php echo $debug ? '' : 'hidden'; ?>></pre>
+        </div>
+        <?php
+
+        return (string) ob_get_clean();
     }
 
     private function resolve_admin_icon_url(): string
