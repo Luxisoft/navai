@@ -126,18 +126,23 @@ class Navai_Voice_Settings
     public function get_allowed_routes_for_current_user(): array
     {
         $settings = $this->get_settings();
-        $selectedRouteKeys = $this->get_selected_route_keys($settings);
-        if (count($selectedRouteKeys) === 0) {
-            return [];
-        }
-
         $catalog = $this->get_navigation_catalog();
         $index = is_array($catalog['index'] ?? null) ? $catalog['index'] : [];
         $currentRoles = $this->get_current_user_roles();
+        $isAdministrator = in_array('administrator', $currentRoles, true);
+
+        $selectedRouteKeys = $this->get_selected_route_keys($settings);
+        if (!$isAdministrator && count($selectedRouteKeys) === 0) {
+            return [];
+        }
+
+        $routeKeys = $isAdministrator
+            ? array_values(array_filter(array_keys($index), static fn($key): bool => is_string($key) && trim((string) $key) !== ''))
+            : $selectedRouteKeys;
 
         $routes = [];
         $dedupe = [];
-        foreach ($selectedRouteKeys as $routeKey) {
+        foreach ($routeKeys as $routeKey) {
             if (!isset($index[$routeKey]) || !is_array($index[$routeKey])) {
                 continue;
             }
@@ -146,7 +151,7 @@ class Navai_Voice_Settings
             $visibility = isset($item['visibility']) ? (string) $item['visibility'] : 'public';
             $roles = is_array($item['roles'] ?? null) ? array_map('sanitize_key', $item['roles']) : [];
 
-            if ($visibility === 'private') {
+            if ($visibility === 'private' && !$isAdministrator) {
                 if (count($currentRoles) === 0 || count(array_intersect($currentRoles, $roles)) === 0) {
                     continue;
                 }
@@ -955,8 +960,22 @@ class Navai_Voice_Settings
 
         $mapped = [];
         foreach ($keys as $key) {
-            if (isset($legacyMap[$key]) && is_string($legacyMap[$key])) {
-                $mapped[] = $legacyMap[$key];
+            if (isset($legacyMap[$key])) {
+                $legacyTarget = $legacyMap[$key];
+                if (is_string($legacyTarget) && $legacyTarget !== '') {
+                    $mapped[] = $legacyTarget;
+                    continue;
+                }
+
+                if (is_array($legacyTarget)) {
+                    foreach ($legacyTarget as $mappedKey) {
+                        if (is_string($mappedKey) && trim($mappedKey) !== '') {
+                            $mapped[] = $mappedKey;
+                        }
+                    }
+                    continue;
+                }
+
                 continue;
             }
 
@@ -1046,7 +1065,13 @@ class Navai_Voice_Settings
             foreach ($legacyKeys as $legacyKey) {
                 $cleanLegacyKey = strtolower(trim((string) $legacyKey));
                 if ($cleanLegacyKey !== '' && $cleanLegacyKey !== $key) {
-                    $legacyRouteKeyMap[$cleanLegacyKey] = $key;
+                    if (!isset($legacyRouteKeyMap[$cleanLegacyKey])) {
+                        $legacyRouteKeyMap[$cleanLegacyKey] = [];
+                    }
+
+                    if (is_array($legacyRouteKeyMap[$cleanLegacyKey]) && !in_array($key, $legacyRouteKeyMap[$cleanLegacyKey], true)) {
+                        $legacyRouteKeyMap[$cleanLegacyKey][] = $key;
+                    }
                 }
             }
         }
@@ -1301,17 +1326,35 @@ class Navai_Voice_Settings
             return [];
         }
 
-        $privateByDedupeKey = [];
-        foreach ($adminRoutes as $route) {
-            $title = sanitize_text_field((string) ($route['title'] ?? ''));
-            $url = esc_url_raw((string) ($route['url'] ?? ''));
-            $capability = (string) ($route['capability'] ?? 'read');
-            if ($title === '' || !$this->is_navigable_url($url)) {
+        $items = [];
+        $seenByRole = [];
+        foreach ($roles as $roleKey => $roleLabel) {
+            $roleToken = sanitize_key((string) $roleKey);
+            if ($roleToken === '') {
                 continue;
             }
 
-            $baseDedupeKey = $this->build_route_dedupe_key($title, $url);
-            if (!isset($privateByDedupeKey[$baseDedupeKey])) {
+            $seenByRole[$roleToken] = [];
+
+            foreach ($adminRoutes as $route) {
+                $title = sanitize_text_field((string) ($route['title'] ?? ''));
+                $url = esc_url_raw((string) ($route['url'] ?? ''));
+                $capability = (string) ($route['capability'] ?? 'read');
+                if ($title === '' || !$this->is_navigable_url($url)) {
+                    continue;
+                }
+
+                $includeAllPanelRoutes = in_array($roleToken, ['administrator', 'editor'], true);
+                if (!$includeAllPanelRoutes && !$this->role_can_access_capability($roleToken, $capability)) {
+                    continue;
+                }
+
+                $baseDedupeKey = $this->build_route_dedupe_key($title, $url);
+                if (isset($seenByRole[$roleToken][$baseDedupeKey])) {
+                    continue;
+                }
+                $seenByRole[$roleToken][$baseDedupeKey] = true;
+
                 $pluginKey = sanitize_text_field((string) ($route['plugin_key'] ?? 'wp-core'));
                 if ($pluginKey === '') {
                     $pluginKey = 'wp-core';
@@ -1321,71 +1364,22 @@ class Navai_Voice_Settings
                     $pluginLabel = __('WordPress / Sitio', 'navai-voice');
                 }
 
-                $privateByDedupeKey[$baseDedupeKey] = [
-                    'key' => 'private:' . md5($baseDedupeKey),
+                $items[] = [
+                    'key' => 'private:' . $roleToken . ':' . md5($baseDedupeKey),
                     'title' => $title,
                     'url' => $url,
-                    'description' => __('Ruta privada del panel de WordPress.', 'navai-voice'),
+                    'description' => sprintf(__('Ruta privada del panel para el rol %s.', 'navai-voice'), (string) $roleLabel),
                     'synonyms' => is_array($route['synonyms'] ?? null)
                         ? array_values(array_unique(array_map('sanitize_text_field', $route['synonyms'])))
                         : $this->build_route_synonyms($title, $url),
                     'visibility' => 'private',
-                    'roles' => [],
+                    'roles' => [$roleToken],
                     'legacy_ids' => [],
-                    'legacy_keys' => [],
+                    'legacy_keys' => ['private:' . md5($baseDedupeKey)],
                     'plugin_key' => $pluginKey,
                     'plugin_label' => $pluginLabel,
                 ];
-            } elseif (
-                $this->is_core_plugin_key((string) ($privateByDedupeKey[$baseDedupeKey]['plugin_key'] ?? '')) &&
-                !$this->is_core_plugin_key((string) ($route['plugin_key'] ?? ''))
-            ) {
-                $privateByDedupeKey[$baseDedupeKey]['plugin_key'] = sanitize_text_field((string) ($route['plugin_key'] ?? 'wp-core'));
-                $privateByDedupeKey[$baseDedupeKey]['plugin_label'] = sanitize_text_field((string) ($route['plugin_label'] ?? __('WordPress / Sitio', 'navai-voice')));
             }
-
-            foreach ($roles as $roleKey => $roleLabel) {
-                $includeAllPanelRoutes = in_array($roleKey, ['administrator', 'editor'], true);
-                if (!$includeAllPanelRoutes && !$this->role_can_access_capability((string) $roleKey, $capability)) {
-                    continue;
-                }
-
-                $roleToken = sanitize_key((string) $roleKey);
-                if ($roleToken === '') {
-                    continue;
-                }
-
-                if (!in_array($roleToken, $privateByDedupeKey[$baseDedupeKey]['roles'], true)) {
-                    $privateByDedupeKey[$baseDedupeKey]['roles'][] = $roleToken;
-                }
-
-                $legacyKey = 'private:' . $roleToken . ':' . md5($baseDedupeKey);
-                if (!in_array($legacyKey, $privateByDedupeKey[$baseDedupeKey]['legacy_keys'], true)) {
-                    $privateByDedupeKey[$baseDedupeKey]['legacy_keys'][] = $legacyKey;
-                }
-            }
-        }
-
-        $items = [];
-        foreach ($privateByDedupeKey as $item) {
-            $itemRoles = is_array($item['roles'] ?? null)
-                ? array_values(array_unique(array_map('sanitize_key', $item['roles'])))
-                : [];
-            if (count($itemRoles) === 0) {
-                continue;
-            }
-
-            $roleLabels = [];
-            foreach ($itemRoles as $itemRole) {
-                $roleLabels[] = isset($roles[$itemRole]) ? (string) $roles[$itemRole] : $itemRole;
-            }
-
-            $item['roles'] = $itemRoles;
-            $item['description'] = sprintf(
-                __('Ruta privada del panel para roles: %s.', 'navai-voice'),
-                implode(', ', $roleLabels)
-            );
-            $items[] = $item;
         }
 
         usort(
