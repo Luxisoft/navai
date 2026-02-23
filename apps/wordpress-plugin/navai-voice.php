@@ -3,7 +3,7 @@
  * Plugin Name: NAVAI Voice
  * Plugin URI: https://navai.luxisoft.com/documentation/installation-wordpress
  * Description: Integracion de voz NAVAI para WordPress usando endpoints REST en PHP.
- * Version: 0.3.4
+ * Version: 0.3.5
  * Author: NAVAI
  * Text Domain: navai-voice
  * Requires at least: 6.2
@@ -67,10 +67,117 @@ if (!function_exists('navai_voice_is_candidate_plugin_id')) {
     }
 }
 
+if (!function_exists('navai_voice_collect_candidate_plugins')) {
+    /**
+     * @return array<string, array{basename: string, dir: string, file: string, mtime: int, priority: int}>
+     */
+    function navai_voice_collect_candidate_plugins(): array
+    {
+        if (!defined('WP_PLUGIN_DIR') || !is_dir(WP_PLUGIN_DIR)) {
+            return [];
+        }
+
+        $entries = @scandir(WP_PLUGIN_DIR);
+        if (!is_array($entries)) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($entries as $entry) {
+            if (!is_string($entry) || $entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            if (!navai_voice_is_candidate_plugin_id($entry)) {
+                continue;
+            }
+
+            $dirPath = WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $entry;
+            if (!is_dir($dirPath)) {
+                continue;
+            }
+
+            $mainFile = $dirPath . DIRECTORY_SEPARATOR . 'navai-voice.php';
+            if (!is_file($mainFile)) {
+                continue;
+            }
+
+            $priority = $entry === 'navai-voice' ? 100 : 10;
+            $items[$entry] = [
+                'basename' => $entry . '/navai-voice.php',
+                'dir' => $entry,
+                'file' => $mainFile,
+                'mtime' => (int) @filemtime($mainFile),
+                'priority' => $priority,
+            ];
+        }
+
+        return $items;
+    }
+}
+
+if (!function_exists('navai_voice_pick_preferred_plugin_basename')) {
+    function navai_voice_pick_preferred_plugin_basename(): string
+    {
+        $items = array_values(navai_voice_collect_candidate_plugins());
+        if (count($items) === 0) {
+            return '';
+        }
+
+        usort(
+            $items,
+            static function (array $a, array $b): int {
+                if ((int) $a['priority'] !== (int) $b['priority']) {
+                    return ((int) $b['priority'] <=> (int) $a['priority']);
+                }
+
+                if ((int) $a['mtime'] !== (int) $b['mtime']) {
+                    return ((int) $b['mtime'] <=> (int) $a['mtime']);
+                }
+
+                return strcmp((string) $a['basename'], (string) $b['basename']);
+            }
+        );
+
+        return (string) ($items[0]['basename'] ?? '');
+    }
+}
+
+if (!function_exists('navai_voice_find_dependency_source')) {
+    function navai_voice_find_dependency_source(string $relativePath, string $excludeBasePath): string
+    {
+        $normalizedRelative = ltrim(str_replace('\\', '/', $relativePath), '/');
+        if ($normalizedRelative === '') {
+            return '';
+        }
+
+        $candidates = navai_voice_collect_candidate_plugins();
+        if (count($candidates) === 0) {
+            return '';
+        }
+
+        foreach ($candidates as $item) {
+            $basePath = trailingslashit(WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . (string) $item['dir']);
+            if (wp_normalize_path($basePath) === wp_normalize_path($excludeBasePath)) {
+                continue;
+            }
+
+            $source = $basePath . str_replace('/', DIRECTORY_SEPARATOR, $normalizedRelative);
+            if (is_file($source)) {
+                return $source;
+            }
+        }
+
+        return '';
+    }
+}
+
 if (!function_exists('navai_voice_repair_registry')) {
     function navai_voice_repair_registry(bool $ensureCurrent = false): void
     {
         $current = navai_voice_current_basename();
+        $preferred = navai_voice_pick_preferred_plugin_basename();
+        $preferredExists = $preferred !== '' && file_exists(WP_PLUGIN_DIR . '/' . $preferred);
 
         $active = get_option('active_plugins', []);
         if (is_array($active)) {
@@ -90,13 +197,31 @@ if (!function_exists('navai_voice_repair_registry')) {
                     continue;
                 }
 
+                $isCandidate = navai_voice_is_candidate_plugin_id($plugin);
                 $exists = file_exists(WP_PLUGIN_DIR . '/' . $plugin);
                 if (!$exists) {
+                    if ($isCandidate && $preferredExists) {
+                        $filtered[] = $preferred;
+                        if ($preferred === $current) {
+                            $hasCurrent = true;
+                        }
+                    }
                     $changed = true;
                     continue;
                 }
 
-                if (navai_voice_is_candidate_plugin_id($plugin) && $plugin !== $current) {
+                if ($isCandidate && $preferredExists && $plugin !== $preferred) {
+                    $filtered[] = $preferred;
+                    if ($preferred === $current) {
+                        $hasCurrent = true;
+                    }
+                    $changed = true;
+                    continue;
+                }
+
+                if ($isCandidate && !$preferredExists && $plugin !== $current) {
+                    $filtered[] = $current;
+                    $hasCurrent = true;
                     $changed = true;
                     continue;
                 }
@@ -132,7 +257,13 @@ if (!function_exists('navai_voice_repair_registry')) {
                     continue;
                 }
 
-                if (navai_voice_is_candidate_plugin_id($plugin) && $plugin !== $current) {
+                if (navai_voice_is_candidate_plugin_id($plugin) && $preferredExists && $plugin !== $preferred) {
+                    unset($recentlyActivated[$plugin]);
+                    $recentChanged = true;
+                    continue;
+                }
+
+                if (navai_voice_is_candidate_plugin_id($plugin) && !$preferredExists && $plugin !== $current) {
                     unset($recentlyActivated[$plugin]);
                     $recentChanged = true;
                 }
@@ -159,20 +290,37 @@ if (!function_exists('navai_voice_repair_registry')) {
             }
 
             if (!file_exists(WP_PLUGIN_DIR . '/' . $plugin)) {
+                if (navai_voice_is_candidate_plugin_id($plugin) && $preferredExists) {
+                    $sitewide[$preferred] = isset($sitewide[$preferred]) ? (int) $sitewide[$preferred] : time();
+                }
                 unset($sitewide[$plugin]);
                 $sitewideChanged = true;
                 continue;
             }
 
-            if (navai_voice_is_candidate_plugin_id($plugin) && $plugin !== $current) {
+            if (navai_voice_is_candidate_plugin_id($plugin) && $preferredExists && $plugin !== $preferred) {
+                $sitewide[$preferred] = isset($sitewide[$preferred]) ? (int) $sitewide[$preferred] : time();
+                unset($sitewide[$plugin]);
+                $sitewideChanged = true;
+                continue;
+            }
+
+            if (navai_voice_is_candidate_plugin_id($plugin) && !$preferredExists && $plugin !== $current) {
                 unset($sitewide[$plugin]);
                 $sitewideChanged = true;
             }
         }
 
-        if ($ensureCurrent && !isset($sitewide[$current]) && file_exists(WP_PLUGIN_DIR . '/' . $current)) {
-            $sitewide[$current] = time();
-            $sitewideChanged = true;
+        if ($ensureCurrent) {
+            if ($preferredExists) {
+                if (!isset($sitewide[$preferred])) {
+                    $sitewide[$preferred] = time();
+                    $sitewideChanged = true;
+                }
+            } elseif (!isset($sitewide[$current]) && file_exists(WP_PLUGIN_DIR . '/' . $current)) {
+                $sitewide[$current] = time();
+                $sitewideChanged = true;
+            }
         }
 
         if ($sitewideChanged) {
@@ -199,6 +347,37 @@ if (!function_exists('navai_voice_safe_require')) {
             );
             return false;
         }
+    }
+}
+
+if (!function_exists('navai_voice_recover_dependency_from_other_copy')) {
+    function navai_voice_recover_dependency_from_other_copy(string $basePath, string $relativePath): bool
+    {
+        $normalizedRelative = ltrim(str_replace('\\', '/', $relativePath), '/');
+        if ($normalizedRelative === '') {
+            return false;
+        }
+
+        $target = trailingslashit($basePath) . str_replace('/', DIRECTORY_SEPARATOR, $normalizedRelative);
+        if (is_file($target)) {
+            return true;
+        }
+
+        $source = navai_voice_find_dependency_source($normalizedRelative, trailingslashit($basePath));
+        if ($source === '' || !is_file($source)) {
+            return false;
+        }
+
+        $targetDir = dirname($target);
+        if (!is_dir($targetDir) && !wp_mkdir_p($targetDir)) {
+            return false;
+        }
+
+        if (!@copy($source, $target)) {
+            return false;
+        }
+
+        return is_file($target);
     }
 }
 
@@ -262,13 +441,15 @@ if (!function_exists('navai_voice_repair_flattened_layout')) {
 if (!function_exists('navai_voice_load_dependencies')) {
     function navai_voice_load_dependencies(string $basePath): bool
     {
-        $files = [
-            $basePath . 'includes/class-navai-voice-settings.php',
-            $basePath . 'includes/class-navai-voice-api.php',
-            $basePath . 'includes/class-navai-voice-plugin.php',
+        $relativeFiles = [
+            'includes/class-navai-voice-settings.php',
+            'includes/class-navai-voice-api.php',
+            'includes/class-navai-voice-plugin.php',
         ];
 
-        foreach ($files as $file) {
+        foreach ($relativeFiles as $relativeFile) {
+            navai_voice_recover_dependency_from_other_copy($basePath, $relativeFile);
+            $file = trailingslashit($basePath) . str_replace('/', DIRECTORY_SEPARATOR, $relativeFile);
             if (!navai_voice_safe_require($file)) {
                 return false;
             }
@@ -307,7 +488,7 @@ if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $currentPath) {
 }
 
 if (!defined('NAVAI_VOICE_VERSION')) {
-    define('NAVAI_VOICE_VERSION', '0.3.4');
+    define('NAVAI_VOICE_VERSION', '0.3.5');
 }
 if (!defined('NAVAI_VOICE_PATH')) {
     define('NAVAI_VOICE_PATH', $currentPath);
