@@ -341,18 +341,18 @@ class Navai_Voice_Plugin
      */
     private function get_menu_routes_from_settings(array $settings): array
     {
-        if (!function_exists('wp_get_nav_menu_item')) {
+        if (!function_exists('wp_get_nav_menu_item') || !function_exists('wp_get_nav_menus') || !function_exists('wp_get_nav_menu_items')) {
             return [];
         }
 
         $idsRaw = is_array($settings['allowed_menu_item_ids'] ?? null)
             ? $settings['allowed_menu_item_ids']
             : [];
-        if (count($idsRaw) === 0) {
-            return [];
+        $ids = array_values(array_unique(array_map('absint', $idsRaw)));
+        if (count($ids) === 0) {
+            $ids = $this->get_all_menu_item_ids();
         }
 
-        $ids = array_values(array_unique(array_map('absint', $idsRaw)));
         $routes = [];
         foreach ($ids as $id) {
             if ($id <= 0) {
@@ -387,6 +387,40 @@ class Navai_Voice_Plugin
         }
 
         return $routes;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function get_all_menu_item_ids(): array
+    {
+        $menus = wp_get_nav_menus();
+        if (!is_array($menus) || count($menus) === 0) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($menus as $menu) {
+            if (!isset($menu->term_id)) {
+                continue;
+            }
+
+            $items = wp_get_nav_menu_items((int) $menu->term_id, ['update_post_term_cache' => false]);
+            if (!is_array($items)) {
+                continue;
+            }
+
+            foreach ($items as $item) {
+                if (isset($item->ID)) {
+                    $itemId = absint((int) $item->ID);
+                    if ($itemId > 0) {
+                        $ids[] = $itemId;
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     private function is_navigable_url(string $url): bool

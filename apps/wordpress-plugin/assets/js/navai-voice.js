@@ -616,6 +616,54 @@
     }
   }
 
+  async function requestRoutes(config) {
+    var restBase = asTrimmedString(config.restBaseUrl);
+    if (!restBase) {
+      return {
+        routes: [],
+        warnings: ["[navai] Missing restBaseUrl in NAVAI_VOICE_CONFIG."]
+      };
+    }
+
+    try {
+      var response = await fetch(joinUrl(restBase, "/routes"), {
+        method: "GET",
+        headers: buildWpHeaders(config)
+      });
+
+      if (!response.ok) {
+        return {
+          routes: [],
+          warnings: ['[navai] Failed to load routes: ' + (await readErrorMessage(response))]
+        };
+      }
+
+      var payload = null;
+      try {
+        payload = await response.json();
+      } catch (_error) {
+        payload = null;
+      }
+
+      if (!isRecord(payload) || !Array.isArray(payload.items)) {
+        return {
+          routes: [],
+          warnings: ["[navai] Invalid routes response."]
+        };
+      }
+
+      return {
+        routes: normalizeRoutes(payload.items),
+        warnings: []
+      };
+    } catch (error) {
+      return {
+        routes: [],
+        warnings: ["[navai] Failed to load routes: " + String(error)]
+      };
+    }
+  }
+
   async function executeBackendFunction(config, functionName, payload) {
     var restBase = asTrimmedString(config.restBaseUrl);
     if (!restBase) {
@@ -777,6 +825,25 @@
 
     try {
       this.setStatus(getMessage(this.globalConfig, "requestingSecret", "Requesting client secret..."));
+      var routesResult = await requestRoutes(this.globalConfig);
+      if (routesResult.routes.length > 0) {
+        this.routes = routesResult.routes;
+      }
+      for (var r = 0; r < routesResult.warnings.length; r += 1) {
+        this.appendLog(routesResult.warnings[r], "warn");
+      }
+      this.appendLog(
+        "Loaded routes (" +
+          this.routes.length +
+          "): " +
+          this.routes
+            .map(function (item) {
+              return item.name;
+            })
+            .join(", "),
+        "info"
+      );
+
       var functionResult = await requestBackendFunctions(this.globalConfig);
       this.backendFunctions = functionResult.functions;
       for (var i = 0; i < functionResult.warnings.length; i += 1) {

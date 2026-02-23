@@ -38,6 +38,16 @@ class Navai_Voice_API
 
         register_rest_route(
             'navai/v1',
+            '/routes',
+            [
+                'methods' => WP_REST_Server::READABLE,
+                'callback' => [$this, 'list_routes'],
+                'permission_callback' => '__return_true',
+            ]
+        );
+
+        register_rest_route(
+            'navai/v1',
             '/functions/execute',
             [
                 'methods' => WP_REST_Server::CREATABLE,
@@ -189,6 +199,17 @@ class Navai_Voice_API
             [
                 'items' => $items,
                 'warnings' => $registry['warnings'],
+            ]
+        );
+    }
+
+    public function list_routes(WP_REST_Request $request)
+    {
+        $routes = $this->build_allowed_routes_catalog();
+        return rest_ensure_response(
+            [
+                'items' => $routes,
+                'count' => count($routes),
             ]
         );
     }
@@ -745,6 +766,154 @@ class Navai_Voice_API
         }
 
         return $actions;
+    }
+
+    /**
+     * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
+     */
+    private function build_allowed_routes_catalog(): array
+    {
+        $routes = [
+            [
+                'name' => 'inicio',
+                'path' => home_url('/'),
+                'description' => 'Pagina principal del sitio.',
+                'synonyms' => ['home', 'home page', 'pagina principal', 'inicio'],
+            ],
+        ];
+
+        if (!function_exists('wp_get_nav_menu_item') || !function_exists('wp_get_nav_menus') || !function_exists('wp_get_nav_menu_items')) {
+            return $routes;
+        }
+
+        $settings = $this->settings->get_settings();
+        $selectedIds = is_array($settings['allowed_menu_item_ids'] ?? null)
+            ? array_values(array_unique(array_map('absint', $settings['allowed_menu_item_ids'])))
+            : [];
+
+        if (count($selectedIds) === 0) {
+            $selectedIds = $this->get_all_menu_item_ids();
+        }
+
+        $dedupe = [];
+        foreach ($routes as $baseRoute) {
+            $dedupe[strtolower((string) $baseRoute['name']) . '|' . strtolower(untrailingslashit((string) $baseRoute['path']))] = true;
+        }
+
+        foreach ($selectedIds as $menuItemId) {
+            if ($menuItemId <= 0) {
+                continue;
+            }
+
+            $item = wp_get_nav_menu_item($menuItemId);
+            if (!$item || !isset($item->url, $item->title)) {
+                continue;
+            }
+
+            $path = esc_url_raw((string) $item->url);
+            if (!$this->is_navigable_url($path)) {
+                continue;
+            }
+
+            if (str_starts_with($path, '/')) {
+                $path = home_url($path);
+            }
+
+            $name = trim(wp_strip_all_tags((string) $item->title));
+            if ($name === '') {
+                continue;
+            }
+
+            $synonyms = $this->build_route_synonyms($name, $path);
+            $dedupeKey = strtolower($name) . '|' . strtolower(untrailingslashit($path));
+            if (isset($dedupe[$dedupeKey])) {
+                continue;
+            }
+            $dedupe[$dedupeKey] = true;
+
+            $routes[] = [
+                'name' => $name,
+                'path' => $path,
+                'description' => 'Ruta de menu seleccionada en WordPress.',
+                'synonyms' => $synonyms,
+            ];
+        }
+
+        return $routes;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function get_all_menu_item_ids(): array
+    {
+        $menus = wp_get_nav_menus();
+        if (!is_array($menus) || count($menus) === 0) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($menus as $menu) {
+            if (!isset($menu->term_id)) {
+                continue;
+            }
+
+            $items = wp_get_nav_menu_items((int) $menu->term_id, ['update_post_term_cache' => false]);
+            if (!is_array($items)) {
+                continue;
+            }
+
+            foreach ($items as $item) {
+                if (isset($item->ID)) {
+                    $id = absint((int) $item->ID);
+                    if ($id > 0) {
+                        $ids[] = $id;
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private function is_navigable_url(string $url): bool
+    {
+        $value = trim($url);
+        if ($value === '' || $value === '#') {
+            return false;
+        }
+
+        $normalized = strtolower($value);
+        if (str_starts_with($normalized, 'javascript:')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function build_route_synonyms(string $name, string $path): array
+    {
+        $synonyms = [];
+        $cleanName = sanitize_text_field($name);
+        if ($cleanName !== '') {
+            $synonyms[] = strtolower($cleanName);
+        }
+
+        $pathPart = wp_parse_url($path, PHP_URL_PATH);
+        if (is_string($pathPart) && trim($pathPart) !== '') {
+            $parts = explode('/', trim($pathPart, '/'));
+            foreach ($parts as $part) {
+                $token = sanitize_title($part);
+                if ($token !== '') {
+                    $synonyms[] = str_replace('-', ' ', $token);
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($synonyms, static fn(string $value): bool => $value !== '')));
     }
 
     private function normalize_function_name(string $name): string
