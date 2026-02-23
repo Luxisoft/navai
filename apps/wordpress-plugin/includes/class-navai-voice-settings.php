@@ -292,6 +292,25 @@ class Navai_Voice_Settings
                         <div class="navai-nav-subpanel" data-navai-nav-panel="public">
                             <p class="navai-admin-description"><?php echo esc_html__('Disponibles para visitantes, usuarios e invitados.', 'navai-voice'); ?></p>
 
+                            <div class="navai-nav-actions">
+                                <button
+                                    type="button"
+                                    class="button button-secondary navai-nav-check-action"
+                                    data-navai-check-action="scope-select"
+                                    data-navai-nav-scope="public"
+                                >
+                                    <?php echo esc_html__('Seleccionar todo', 'navai-voice'); ?>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="button button-secondary navai-nav-check-action"
+                                    data-navai-check-action="scope-deselect"
+                                    data-navai-nav-scope="public"
+                                >
+                                    <?php echo esc_html__('Deseleccionar todo', 'navai-voice'); ?>
+                                </button>
+                            </div>
+
                             <div class="navai-nav-filters">
                                 <label>
                                     <span><?php echo esc_html__('Buscar', 'navai-voice'); ?></span>
@@ -329,7 +348,27 @@ class Navai_Voice_Settings
                                         }
                                         ?>
                                         <section class="navai-nav-route-group" data-nav-plugin="<?php echo esc_attr($groupKey); ?>">
-                                            <h4><?php echo esc_html($groupLabel); ?></h4>
+                                            <div class="navai-nav-group-head">
+                                                <h4><?php echo esc_html($groupLabel); ?></h4>
+                                                <div class="navai-nav-actions navai-nav-actions--inline">
+                                                    <button
+                                                        type="button"
+                                                        class="button button-secondary navai-nav-check-action"
+                                                        data-navai-check-action="group-select"
+                                                        data-navai-nav-scope="public"
+                                                    >
+                                                        <?php echo esc_html__('Seleccionar', 'navai-voice'); ?>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="button button-secondary navai-nav-check-action"
+                                                        data-navai-check-action="group-deselect"
+                                                        data-navai-nav-scope="public"
+                                                    >
+                                                        <?php echo esc_html__('Deseleccionar', 'navai-voice'); ?>
+                                                    </button>
+                                                </div>
+                                            </div>
                                             <div class="navai-admin-menu-grid">
                                                 <?php foreach ($groupRoutes as $item) : ?>
                                                     <?php
@@ -385,6 +424,41 @@ class Navai_Voice_Settings
                         <div class="navai-nav-subpanel" data-navai-nav-panel="private">
                             <p class="navai-admin-description"><?php echo esc_html__('Rutas privadas de panel accesibles por rol.', 'navai-voice'); ?></p>
 
+                            <div class="navai-nav-actions">
+                                <button
+                                    type="button"
+                                    class="button button-secondary navai-nav-check-action"
+                                    data-navai-check-action="scope-select"
+                                    data-navai-nav-scope="private"
+                                >
+                                    <?php echo esc_html__('Seleccionar todo', 'navai-voice'); ?>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="button button-secondary navai-nav-check-action"
+                                    data-navai-check-action="scope-deselect"
+                                    data-navai-nav-scope="private"
+                                >
+                                    <?php echo esc_html__('Deseleccionar todo', 'navai-voice'); ?>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="button button-secondary navai-nav-check-action"
+                                    data-navai-check-action="role-select"
+                                    data-navai-nav-scope="private"
+                                >
+                                    <?php echo esc_html__('Seleccionar rol', 'navai-voice'); ?>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="button button-secondary navai-nav-check-action"
+                                    data-navai-check-action="role-deselect"
+                                    data-navai-nav-scope="private"
+                                >
+                                    <?php echo esc_html__('Deseleccionar rol', 'navai-voice'); ?>
+                                </button>
+                            </div>
+
                             <div class="navai-nav-filters">
                                 <label>
                                     <span><?php echo esc_html__('Buscar', 'navai-voice'); ?></span>
@@ -433,7 +507,27 @@ class Navai_Voice_Settings
                                         }
                                         ?>
                                         <section class="navai-nav-route-group" data-nav-plugin="<?php echo esc_attr($groupKey); ?>">
-                                            <h4><?php echo esc_html($groupLabel); ?></h4>
+                                            <div class="navai-nav-group-head">
+                                                <h4><?php echo esc_html($groupLabel); ?></h4>
+                                                <div class="navai-nav-actions navai-nav-actions--inline">
+                                                    <button
+                                                        type="button"
+                                                        class="button button-secondary navai-nav-check-action"
+                                                        data-navai-check-action="group-select"
+                                                        data-navai-nav-scope="private"
+                                                    >
+                                                        <?php echo esc_html__('Seleccionar', 'navai-voice'); ?>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="button button-secondary navai-nav-check-action"
+                                                        data-navai-check-action="group-deselect"
+                                                        data-navai-nav-scope="private"
+                                                    >
+                                                        <?php echo esc_html__('Deseleccionar', 'navai-voice'); ?>
+                                                    </button>
+                                                </div>
+                                            </div>
                                             <div class="navai-admin-menu-grid">
                                                 <?php foreach ($groupRoutes as $item) : ?>
                                                     <?php

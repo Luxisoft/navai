@@ -164,6 +164,21 @@
   width: 100%;
 }
 
+.navai-nav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.navai-nav-actions .button {
+  min-height: 32px;
+}
+
+.navai-nav-actions--inline {
+  margin: 0;
+}
+
 .navai-nav-groups {
   display: grid;
   gap: 12px;
@@ -178,6 +193,19 @@
 
 .navai-nav-route-group > h4 {
   margin: 0 0 10px;
+  color: #243145;
+}
+
+.navai-nav-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.navai-nav-group-head > h4 {
+  margin: 0;
   color: #243145;
 }
 
@@ -370,6 +398,15 @@
 
   .navai-nav-tabs {
     flex-wrap: wrap;
+  }
+
+  .navai-nav-group-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .navai-nav-actions--inline {
+    width: 100%;
   }
 
   .navai-nav-route-item {

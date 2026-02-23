@@ -173,6 +173,108 @@
     }
   }
 
+  function isRouteItemVisible(item) {
+    if (!item || !item.classList || item.classList.contains("is-hidden")) {
+      return false;
+    }
+
+    var parentGroup = item.closest(".navai-nav-route-group");
+    if (parentGroup && parentGroup.classList.contains("is-hidden")) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function getRouteCheckbox(item) {
+    if (!item || !item.querySelector) {
+      return null;
+    }
+
+    return item.querySelector('input[type="checkbox"]');
+  }
+
+  function setSelectionForItems(routeItems, shouldSelect, roleNeedle) {
+    for (var i = 0; i < routeItems.length; i += 1) {
+      var item = routeItems[i];
+      if (!isRouteItemVisible(item)) {
+        continue;
+      }
+
+      if (typeof roleNeedle === "string" && roleNeedle !== "") {
+        var itemRoles = normalizeText(item.getAttribute("data-nav-roles") || "");
+        var roleTokens = itemRoles === "" ? [] : itemRoles.split("|");
+        if (roleTokens.indexOf(roleNeedle) === -1) {
+          continue;
+        }
+      }
+
+      var checkbox = getRouteCheckbox(item);
+      if (!checkbox || checkbox.disabled) {
+        continue;
+      }
+
+      checkbox.checked = !!shouldSelect;
+    }
+  }
+
+  function resolveScopePanel(navigationPanel, scope, fallbackTarget) {
+    var normalizedScope = normalizeText(scope || "");
+    if (normalizedScope !== "" && VALID_NAV_TABS[normalizedScope]) {
+      return navigationPanel.querySelector('.navai-nav-subpanel[data-navai-nav-panel="' + normalizedScope + '"]');
+    }
+
+    if (fallbackTarget && fallbackTarget.closest) {
+      return fallbackTarget.closest(".navai-nav-subpanel");
+    }
+
+    return null;
+  }
+
+  function handleCheckAction(actionButton, navigationPanel) {
+    if (!actionButton) {
+      return;
+    }
+
+    var action = normalizeText(actionButton.getAttribute("data-navai-check-action") || "");
+    if (action === "") {
+      return;
+    }
+
+    var scope = normalizeText(actionButton.getAttribute("data-navai-nav-scope") || "");
+    var scopePanel = resolveScopePanel(navigationPanel, scope, actionButton);
+    if (!scopePanel) {
+      return;
+    }
+
+    var shouldSelect = action.indexOf("deselect") === -1;
+
+    if (action === "scope-select" || action === "scope-deselect") {
+      setSelectionForItems(scopePanel.querySelectorAll(".navai-nav-route-item"), shouldSelect, "");
+      return;
+    }
+
+    if (action === "group-select" || action === "group-deselect") {
+      var routeGroup = actionButton.closest(".navai-nav-route-group");
+      if (!routeGroup) {
+        return;
+      }
+
+      setSelectionForItems(routeGroup.querySelectorAll(".navai-nav-route-item"), shouldSelect, "");
+      return;
+    }
+
+    if (action === "role-select" || action === "role-deselect") {
+      if (scope !== "private") {
+        return;
+      }
+
+      var roleSelect = scopePanel.querySelector('.navai-nav-filter-role[data-navai-nav-scope="private"]');
+      var roleNeedle = normalizeText(roleSelect ? roleSelect.value : "");
+      setSelectionForItems(scopePanel.querySelectorAll(".navai-nav-route-item"), shouldSelect, roleNeedle);
+    }
+  }
+
   function initNavigationControls() {
     var navigationPanel = document.querySelector('[data-navai-panel="navigation"]');
     if (!navigationPanel) {
@@ -227,14 +329,26 @@
 
     navigationPanel.addEventListener("click", function (event) {
       var target = event.target;
-      if (!target || !target.classList || !target.classList.contains("navai-nav-url-button")) {
+      if (!target || !target.closest) {
+        return;
+      }
+
+      var checkActionButton = target.closest(".navai-nav-check-action");
+      if (checkActionButton) {
+        event.preventDefault();
+        handleCheckAction(checkActionButton, navigationPanel);
+        return;
+      }
+
+      var urlButton = target.closest(".navai-nav-url-button");
+      if (!urlButton) {
         return;
       }
 
       event.preventDefault();
       event.stopPropagation();
 
-      var targetId = target.getAttribute("data-navai-url-target");
+      var targetId = urlButton.getAttribute("data-navai-url-target");
       if (!targetId) {
         return;
       }
@@ -249,7 +363,7 @@
 
       if (shouldShow) {
         targetBox.removeAttribute("hidden");
-        target.classList.add("is-active");
+        urlButton.classList.add("is-active");
       }
     });
   }
