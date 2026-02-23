@@ -108,6 +108,130 @@
   margin: 0 0 10px;
 }
 
+.navai-nav-card {
+  padding-top: 12px;
+}
+
+.navai-nav-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.navai-nav-tab-button.button {
+  border-radius: 9px;
+  border: 1px solid #c8d5e8;
+  padding: 6px 14px;
+}
+
+.navai-nav-tab-button.button.is-active {
+  color: #ffffff;
+  border-color: #0f62d6;
+  background: linear-gradient(135deg, #0b62d8, #237fff);
+}
+
+.navai-nav-subpanel {
+  display: none;
+}
+
+.navai-nav-subpanel.is-active {
+  display: block;
+}
+
+.navai-nav-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+
+.navai-nav-filters label {
+  display: block;
+}
+
+.navai-nav-filters label > span {
+  display: block;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.navai-nav-filters input[type="search"],
+.navai-nav-filters select {
+  width: 100%;
+}
+
+.navai-nav-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.navai-nav-route-group {
+  border: 1px solid #e3eaf5;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fdfefe;
+}
+
+.navai-nav-route-group > h4 {
+  margin: 0 0 10px;
+  color: #243145;
+}
+
+.navai-nav-route-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px 10px;
+  align-items: start;
+}
+
+.navai-nav-route-item input[type="checkbox"] {
+  margin-top: 4px;
+}
+
+.navai-nav-route-main {
+  display: block;
+}
+
+.navai-nav-route-main strong {
+  display: block;
+}
+
+.navai-nav-route-roles {
+  display: block;
+  margin-top: 4px;
+  color: #526077;
+  font-size: 12px;
+}
+
+.navai-nav-url-button {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.navai-nav-url-button.is-active {
+  color: #0f62d6;
+}
+
+.navai-nav-url-box {
+  grid-column: 2 / -1;
+  margin-top: 2px;
+  padding: 8px;
+  border: 1px dashed #cdd8e8;
+  border-radius: 8px;
+  background: #f4f8ff;
+}
+
+.navai-nav-url-box code {
+  display: block;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.navai-nav-route-item.is-hidden,
+.navai-nav-route-group.is-hidden {
+  display: none !important;
+}
+
 .navai-admin-role-section {
   padding-top: 12px;
   margin-top: 12px;
@@ -234,5 +358,18 @@
 
   .navai-admin-tab-buttons {
     flex-wrap: wrap;
+  }
+
+  .navai-nav-tabs {
+    flex-wrap: wrap;
+  }
+
+  .navai-nav-route-item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .navai-nav-url-button {
+    grid-column: 2 / 3;
+    justify-self: start;
   }
 }
