@@ -1349,7 +1349,7 @@ class Navai_Voice_Settings
                     continue;
                 }
 
-                $baseDedupeKey = $this->build_route_dedupe_key($title, $url);
+                $baseDedupeKey = $this->build_url_dedupe_key($url);
                 if (isset($seenByRole[$roleToken][$baseDedupeKey])) {
                     continue;
                 }
@@ -1409,7 +1409,7 @@ class Navai_Voice_Settings
 
         if (is_array($menu)) {
             foreach ($menu as $entry) {
-                $route = $this->build_admin_route_from_menu_entry($entry);
+                $route = $this->build_admin_route_from_menu_entry($entry, '', false);
                 if (is_array($route)) {
                     $this->append_admin_route_if_new($routes, $seen, $route);
                 }
@@ -1417,13 +1417,13 @@ class Navai_Voice_Settings
         }
 
         if (is_array($submenu)) {
-            foreach ($submenu as $entries) {
+            foreach ($submenu as $parentSlug => $entries) {
                 if (!is_array($entries)) {
                     continue;
                 }
 
                 foreach ($entries as $entry) {
-                    $route = $this->build_admin_route_from_menu_entry($entry);
+                    $route = $this->build_admin_route_from_menu_entry($entry, (string) $parentSlug, true);
                     if (is_array($route)) {
                         $this->append_admin_route_if_new($routes, $seen, $route);
                     }
@@ -1470,7 +1470,7 @@ class Navai_Voice_Settings
             return;
         }
 
-        $dedupeKey = $this->build_route_dedupe_key($title, $url);
+        $dedupeKey = $this->build_url_dedupe_key($url);
         if (isset($seen[$dedupeKey])) {
             return;
         }
@@ -1490,7 +1490,7 @@ class Navai_Voice_Settings
      *   plugin_label: string
      * }|null
      */
-    private function build_admin_route_from_menu_entry($entry): ?array
+    private function build_admin_route_from_menu_entry($entry, string $parentSlug = '', bool $isSubmenu = false): ?array
     {
         if (!is_array($entry) || !isset($entry[0], $entry[2])) {
             return null;
@@ -1505,6 +1505,9 @@ class Navai_Voice_Settings
         if ($slug === '' || str_starts_with(strtolower($slug), 'separator')) {
             return null;
         }
+        if ($this->is_non_clickable_admin_menu_slug($slug, $parentSlug, $isSubmenu)) {
+            return null;
+        }
 
         $url = $this->build_admin_menu_url($slug);
         if (!$this->is_navigable_url($url)) {
@@ -1515,7 +1518,7 @@ class Navai_Voice_Settings
         }
 
         $capability = isset($entry[1]) ? $this->normalize_capability((string) $entry[1]) : 'read';
-        $pluginMeta = $this->resolve_route_plugin_group($url, $slug);
+        $pluginMeta = $this->resolve_route_plugin_group($url, $this->sanitize_admin_menu_slug_for_plugin_hint($slug));
 
         return [
             'title' => $title,
@@ -1547,6 +1550,100 @@ class Navai_Voice_Settings
         }
 
         return esc_url_raw(add_query_arg('page', $cleanSlug, admin_url('admin.php')));
+    }
+
+    private function is_non_clickable_admin_menu_slug(string $slug, string $parentSlug, bool $isSubmenu): bool
+    {
+        $normalizedSlug = strtolower(trim($slug));
+        if ($normalizedSlug === '') {
+            return true;
+        }
+
+        if (preg_match('#^https?://#i', $normalizedSlug) === 1) {
+            return true;
+        }
+
+        if (str_starts_with($normalizedSlug, '#')) {
+            return true;
+        }
+
+        if (str_contains($normalizedSlug, '.php')) {
+            return false;
+        }
+
+        if (!$isSubmenu) {
+            global $submenu;
+            if (is_array($submenu) && isset($submenu[$slug]) && is_array($submenu[$slug]) && count($submenu[$slug]) > 0) {
+                return true;
+            }
+        }
+
+        return !$this->is_registered_plugin_menu_slug($slug, $parentSlug);
+    }
+
+    private function is_registered_plugin_menu_slug(string $slug, string $parentSlug): bool
+    {
+        if (!function_exists('get_plugin_page_hookname')) {
+            return true;
+        }
+
+        global $_registered_pages;
+        if (!is_array($_registered_pages)) {
+            return true;
+        }
+
+        $candidateParents = [];
+        if ($parentSlug !== '') {
+            $candidateParents[] = $parentSlug;
+        }
+        $candidateParents[] = '';
+
+        foreach ($candidateParents as $candidateParent) {
+            $hook = get_plugin_page_hookname($slug, $candidateParent);
+            if (is_string($hook) && isset($_registered_pages[$hook])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function sanitize_admin_menu_slug_for_plugin_hint(string $slug): string
+    {
+        $clean = trim($slug);
+        if ($clean === '') {
+            return '';
+        }
+
+        $parts = explode('?', $clean, 2);
+        $pathPart = trim((string) ($parts[0] ?? ''));
+        if ($pathPart === '') {
+            return '';
+        }
+
+        if (!isset($parts[1])) {
+            return $pathPart;
+        }
+
+        $query = trim((string) $parts[1]);
+        if ($query === '') {
+            return $pathPart;
+        }
+
+        $queryArgs = [];
+        parse_str($query, $queryArgs);
+        $hintArgs = [];
+        foreach (['page', 'post_type', 'taxonomy'] as $allowedKey) {
+            if (isset($queryArgs[$allowedKey]) && is_string($queryArgs[$allowedKey])) {
+                $hintArgs[$allowedKey] = $queryArgs[$allowedKey];
+            }
+        }
+
+        if (count($hintArgs) === 0) {
+            return $pathPart;
+        }
+
+        return $pathPart . '?' . http_build_query($hintArgs);
     }
 
     /**
@@ -1820,6 +1917,11 @@ class Navai_Voice_Settings
     private function build_route_dedupe_key(string $name, string $path): string
     {
         return strtolower(trim($name)) . '|' . strtolower(untrailingslashit($path));
+    }
+
+    private function build_url_dedupe_key(string $url): string
+    {
+        return strtolower(untrailingslashit(trim($url)));
     }
 
     /**
