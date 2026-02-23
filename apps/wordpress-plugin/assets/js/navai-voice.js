@@ -626,9 +626,14 @@
     }
 
     try {
-      var response = await fetch(joinUrl(restBase, "/routes"), {
+      var endpoint = joinUrl(restBase, "/routes");
+      var separator = endpoint.indexOf("?") === -1 ? "?" : "&";
+      endpoint = endpoint + separator + "_navai_t=" + Date.now();
+
+      var response = await fetch(endpoint, {
         method: "GET",
-        headers: buildWpHeaders(config)
+        headers: buildWpHeaders(config),
+        cache: "no-store"
       });
 
       if (!response.ok) {
@@ -826,8 +831,9 @@
     try {
       this.setStatus(getMessage(this.globalConfig, "requestingSecret", "Requesting client secret..."));
       var routesResult = await requestRoutes(this.globalConfig);
-      if (routesResult.routes.length > 0) {
-        this.routes = routesResult.routes;
+      var mergedRoutes = normalizeRoutes(this.routes.concat(routesResult.routes));
+      if (mergedRoutes.length > 0) {
+        this.routes = mergedRoutes;
       }
       for (var r = 0; r < routesResult.warnings.length; r += 1) {
         this.appendLog(routesResult.warnings[r], "warn");

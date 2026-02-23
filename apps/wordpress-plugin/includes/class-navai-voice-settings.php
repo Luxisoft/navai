@@ -113,7 +113,7 @@ class Navai_Voice_Settings
                 <div class="navai-admin-brand">
                     <img
                         class="navai-admin-icon"
-                        src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg'); ?>"
+                        src="<?php echo esc_url($this->resolve_admin_icon_url()); ?>"
                         alt="<?php echo esc_attr__('NAVAI icon', 'navai-voice'); ?>"
                     />
                     <div>
@@ -559,6 +559,16 @@ class Navai_Voice_Settings
         );
 
         return $items;
+    }
+
+    private function resolve_admin_icon_url(): string
+    {
+        $transparentPath = NAVAI_VOICE_PATH . 'assets/img/icon_navai_transparent.png';
+        if (file_exists($transparentPath)) {
+            return NAVAI_VOICE_URL . 'assets/img/icon_navai_transparent.png';
+        }
+
+        return NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg';
     }
 
     /**

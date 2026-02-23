@@ -53,7 +53,7 @@ class Navai_Voice_Plugin
             'tr[data-plugin="%s"] .plugin-title strong',
             esc_attr(NAVAI_VOICE_BASENAME)
         );
-        $logoUrl = esc_url(NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg');
+        $logoUrl = esc_url($this->resolve_admin_icon_url());
         ?>
         <style>
             <?php echo $pluginRowSelector; ?> {
@@ -76,7 +76,7 @@ class Navai_Voice_Plugin
     public function inject_admin_menu_icon_css(): void
     {
         $menuId = 'toplevel_page_' . Navai_Voice_Settings::PAGE_SLUG;
-        $iconUrl = esc_url(NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg');
+        $iconUrl = esc_url($this->resolve_admin_icon_url());
         ?>
         <style>
             #<?php echo esc_attr($menuId); ?> .wp-menu-image::before {
@@ -269,7 +269,12 @@ class Navai_Voice_Plugin
             ],
         ];
 
-        $baseRoutes = array_merge($baseRoutes, $this->get_menu_routes_from_settings($settings));
+        $menuRoutes = $this->get_menu_routes_from_settings($settings);
+        $baseRoutes = array_merge($baseRoutes, $menuRoutes);
+
+        if (count($baseRoutes) <= 1) {
+            $baseRoutes = array_merge($baseRoutes, $this->get_published_page_routes());
+        }
 
         /** @var mixed $raw */
         $raw = apply_filters('navai_voice_routes', $baseRoutes, $settings);
@@ -353,40 +358,84 @@ class Navai_Voice_Plugin
             $ids = $this->get_all_menu_item_ids();
         }
 
+        $routes = $this->get_routes_from_menu_item_ids($ids);
+        if (count($routes) === 0) {
+            // Recover if stored selected IDs are stale.
+            $routes = $this->get_routes_from_menu_item_ids($this->get_all_menu_item_ids());
+        }
+
+        return $routes;
+    }
+
+    /**
+     * @param array<int, int> $ids
+     * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
+     */
+    private function get_routes_from_menu_item_ids(array $ids): array
+    {
+        if (!function_exists('wp_get_nav_menu_item')) {
+            return [];
+        }
+
         $routes = [];
+        $dedupe = [];
         foreach ($ids as $id) {
             if ($id <= 0) {
                 continue;
             }
 
             $item = wp_get_nav_menu_item($id);
-            if (!$item || !isset($item->url, $item->title)) {
+            if (!$item) {
                 continue;
             }
 
-            $url = esc_url_raw((string) $item->url);
-            if (!$this->is_navigable_url($url)) {
+            $route = $this->build_route_from_menu_item($item);
+            if (!is_array($route)) {
                 continue;
             }
 
-            $title = trim(wp_strip_all_tags((string) $item->title));
-            if ($title === '') {
+            $key = $this->build_route_dedupe_key((string) $route['name'], (string) $route['path']);
+            if (isset($dedupe[$key])) {
                 continue;
             }
 
-            if (str_starts_with($url, '/')) {
-                $url = home_url($url);
-            }
-
-            $routes[] = [
-                'name' => $title,
-                'path' => $url,
-                'description' => __('Ruta de menu seleccionada en WordPress.', 'navai-voice'),
-                'synonyms' => $this->build_route_synonyms($title, $url),
-            ];
+            $dedupe[$key] = true;
+            $routes[] = $route;
         }
 
         return $routes;
+    }
+
+    /**
+     * @param mixed $item
+     * @return array{name: string, path: string, description: string, synonyms: array<int, string>}|null
+     */
+    private function build_route_from_menu_item($item): ?array
+    {
+        if (!is_object($item) || !isset($item->url, $item->title)) {
+            return null;
+        }
+
+        $url = esc_url_raw((string) $item->url);
+        if (!$this->is_navigable_url($url)) {
+            return null;
+        }
+
+        $title = trim(wp_strip_all_tags((string) $item->title));
+        if ($title === '') {
+            return null;
+        }
+
+        if (str_starts_with($url, '/')) {
+            $url = home_url($url);
+        }
+
+        return [
+            'name' => $title,
+            'path' => $url,
+            'description' => __('Ruta de menu seleccionada en WordPress.', 'navai-voice'),
+            'synonyms' => $this->build_route_synonyms($title, $url),
+        ];
     }
 
     /**
@@ -421,6 +470,65 @@ class Navai_Voice_Plugin
         }
 
         return array_values(array_unique($ids));
+    }
+
+    /**
+     * @return array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}>
+     */
+    private function get_published_page_routes(): array
+    {
+        if (!function_exists('get_pages') || !function_exists('get_permalink')) {
+            return [];
+        }
+
+        $pages = get_pages(
+            [
+                'post_status' => 'publish',
+                'sort_column' => 'menu_order,post_title',
+                'number' => 40,
+            ]
+        );
+        if (!is_array($pages)) {
+            return [];
+        }
+
+        $routes = [];
+        $dedupe = [];
+        foreach ($pages as $page) {
+            if (!is_object($page) || !isset($page->ID, $page->post_title)) {
+                continue;
+            }
+
+            $title = trim(wp_strip_all_tags((string) $page->post_title));
+            if ($title === '') {
+                continue;
+            }
+
+            $url = get_permalink((int) $page->ID);
+            if (!is_string($url) || !$this->is_navigable_url($url)) {
+                continue;
+            }
+
+            $key = $this->build_route_dedupe_key($title, $url);
+            if (isset($dedupe[$key])) {
+                continue;
+            }
+
+            $dedupe[$key] = true;
+            $routes[] = [
+                'name' => $title,
+                'path' => $url,
+                'description' => __('Pagina publicada en WordPress.', 'navai-voice'),
+                'synonyms' => $this->build_route_synonyms($title, $url),
+            ];
+        }
+
+        return $routes;
+    }
+
+    private function build_route_dedupe_key(string $name, string $path): string
+    {
+        return strtolower(trim($name)) . '|' . strtolower(untrailingslashit($path));
     }
 
     private function is_navigable_url(string $url): bool
@@ -491,5 +599,15 @@ class Navai_Voice_Plugin
 
         $normalized = strtolower(trim((string) $value));
         return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function resolve_admin_icon_url(): string
+    {
+        $transparentPath = NAVAI_VOICE_PATH . 'assets/img/icon_navai_transparent.png';
+        if (file_exists($transparentPath)) {
+            return NAVAI_VOICE_URL . 'assets/img/icon_navai_transparent.png';
+        }
+
+        return NAVAI_VOICE_URL . 'assets/img/icon_navai.jpg';
     }
 }

@@ -206,12 +206,18 @@ class Navai_Voice_API
     public function list_routes(WP_REST_Request $request)
     {
         $routes = $this->build_allowed_routes_catalog();
-        return rest_ensure_response(
+        $response = new WP_REST_Response(
             [
                 'items' => $routes,
                 'count' => count($routes),
-            ]
+            ],
+            200
         );
+        $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->header('Pragma', 'no-cache');
+        $response->header('X-NAVAI-Routes-Count', (string) count($routes));
+
+        return $response;
     }
 
     public function execute_function(WP_REST_Request $request)
@@ -782,64 +788,158 @@ class Navai_Voice_API
             ],
         ];
 
-        if (!function_exists('wp_get_nav_menu_item') || !function_exists('wp_get_nav_menus') || !function_exists('wp_get_nav_menu_items')) {
-            return $routes;
-        }
-
-        $settings = $this->settings->get_settings();
-        $selectedIds = is_array($settings['allowed_menu_item_ids'] ?? null)
-            ? array_values(array_unique(array_map('absint', $settings['allowed_menu_item_ids'])))
-            : [];
-
-        if (count($selectedIds) === 0) {
-            $selectedIds = $this->get_all_menu_item_ids();
-        }
-
         $dedupe = [];
         foreach ($routes as $baseRoute) {
-            $dedupe[strtolower((string) $baseRoute['name']) . '|' . strtolower(untrailingslashit((string) $baseRoute['path']))] = true;
+            $dedupe[$this->build_route_dedupe_key((string) $baseRoute['name'], (string) $baseRoute['path'])] = true;
         }
 
-        foreach ($selectedIds as $menuItemId) {
+        if (function_exists('wp_get_nav_menu_item') && function_exists('wp_get_nav_menus') && function_exists('wp_get_nav_menu_items')) {
+            $settings = $this->settings->get_settings();
+            $selectedIds = is_array($settings['allowed_menu_item_ids'] ?? null)
+                ? array_values(array_unique(array_map('absint', $settings['allowed_menu_item_ids'])))
+                : [];
+
+            if (count($selectedIds) === 0) {
+                $selectedIds = $this->get_all_menu_item_ids();
+            }
+
+            $this->append_menu_routes_by_ids($routes, $dedupe, $selectedIds);
+
+            // Recover gracefully if selected IDs became stale or unavailable.
+            if (count($routes) <= 1) {
+                $this->append_menu_routes_by_ids($routes, $dedupe, $this->get_all_menu_item_ids());
+            }
+        }
+
+        if (count($routes) <= 1) {
+            $this->append_published_page_routes($routes, $dedupe);
+        }
+
+        return $routes;
+    }
+
+    /**
+     * @param array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}> $routes
+     * @param array<string, bool> $dedupe
+     * @param array<int, int> $menuItemIds
+     */
+    private function append_menu_routes_by_ids(array &$routes, array &$dedupe, array $menuItemIds): void
+    {
+        if (!function_exists('wp_get_nav_menu_item')) {
+            return;
+        }
+
+        foreach ($menuItemIds as $menuItemId) {
             if ($menuItemId <= 0) {
                 continue;
             }
 
             $item = wp_get_nav_menu_item($menuItemId);
-            if (!$item || !isset($item->url, $item->title)) {
+            if (!$item) {
                 continue;
             }
 
-            $path = esc_url_raw((string) $item->url);
-            if (!$this->is_navigable_url($path)) {
+            $route = $this->build_route_from_menu_item($item);
+            if (!is_array($route)) {
                 continue;
             }
 
-            if (str_starts_with($path, '/')) {
-                $path = home_url($path);
+            $dedupeKey = $this->build_route_dedupe_key((string) $route['name'], (string) $route['path']);
+            if (isset($dedupe[$dedupeKey])) {
+                continue;
             }
 
-            $name = trim(wp_strip_all_tags((string) $item->title));
+            $dedupe[$dedupeKey] = true;
+            $routes[] = $route;
+        }
+    }
+
+    /**
+     * @param mixed $item
+     * @return array{name: string, path: string, description: string, synonyms: array<int, string>}|null
+     */
+    private function build_route_from_menu_item($item): ?array
+    {
+        if (!is_object($item) || !isset($item->url, $item->title)) {
+            return null;
+        }
+
+        $path = esc_url_raw((string) $item->url);
+        if (!$this->is_navigable_url($path)) {
+            return null;
+        }
+
+        if (str_starts_with($path, '/')) {
+            $path = home_url($path);
+        }
+
+        $name = trim(wp_strip_all_tags((string) $item->title));
+        if ($name === '') {
+            return null;
+        }
+
+        return [
+            'name' => $name,
+            'path' => $path,
+            'description' => 'Ruta de menu seleccionada en WordPress.',
+            'synonyms' => $this->build_route_synonyms($name, $path),
+        ];
+    }
+
+    /**
+     * @param array<int, array{name: string, path: string, description: string, synonyms: array<int, string>}> $routes
+     * @param array<string, bool> $dedupe
+     */
+    private function append_published_page_routes(array &$routes, array &$dedupe): void
+    {
+        if (!function_exists('get_pages') || !function_exists('get_permalink')) {
+            return;
+        }
+
+        $pages = get_pages(
+            [
+                'post_status' => 'publish',
+                'sort_column' => 'menu_order,post_title',
+                'number' => 40,
+            ]
+        );
+        if (!is_array($pages)) {
+            return;
+        }
+
+        foreach ($pages as $page) {
+            if (!is_object($page) || !isset($page->ID, $page->post_title)) {
+                continue;
+            }
+
+            $name = trim(wp_strip_all_tags((string) $page->post_title));
             if ($name === '') {
                 continue;
             }
 
-            $synonyms = $this->build_route_synonyms($name, $path);
-            $dedupeKey = strtolower($name) . '|' . strtolower(untrailingslashit($path));
+            $path = get_permalink((int) $page->ID);
+            if (!is_string($path) || !$this->is_navigable_url($path)) {
+                continue;
+            }
+
+            $dedupeKey = $this->build_route_dedupe_key($name, $path);
             if (isset($dedupe[$dedupeKey])) {
                 continue;
             }
-            $dedupe[$dedupeKey] = true;
 
+            $dedupe[$dedupeKey] = true;
             $routes[] = [
                 'name' => $name,
                 'path' => $path,
-                'description' => 'Ruta de menu seleccionada en WordPress.',
-                'synonyms' => $synonyms,
+                'description' => 'Pagina publicada en WordPress.',
+                'synonyms' => $this->build_route_synonyms($name, $path),
             ];
         }
+    }
 
-        return $routes;
+    private function build_route_dedupe_key(string $name, string $path): string
+    {
+        return strtolower(trim($name)) . '|' . strtolower(untrailingslashit($path));
     }
 
     /**
