@@ -26,7 +26,7 @@ This plugin is implemented in PHP (server side) and vanilla JS (browser side) fo
 - `Install`: [WordPress admin install](#installation-wordpress-admin) | [Manual install](#installation-manual--filesystem)
 - `Configure`: [Quick configuration](#quick-configuration-recommended)
 - `Use`: [Global floating button](#option-a-global-floating-button) | [Shortcode](#option-b-shortcode)
-- `Admin tabs`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Functions](#functions-tab-custom-functions) | [Safety](#safety-tab-guardrails-phase-1) | [Settings](#admin-dashboard-overview)
+- `Admin tabs`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Functions](#functions-tab-custom-functions) | [Safety](#safety-tab-guardrails-phase-1) | [Approvals](#integrated-phases-phase-2-to-phase-7) | [Traces](#integrated-phases-phase-2-to-phase-7) | [History](#integrated-phases-phase-2-to-phase-7) | [Agents](#integrated-phases-phase-2-to-phase-7) | [MCP](#integrated-phases-phase-2-to-phase-7)
 - `Developer`: [REST endpoints](#rest-endpoints-current) | [Backend extensibility](#backend-extensibility-filters)
 - `Ops`: [Build ZIP](#build-installable-zip-powershell) | [Troubleshooting](#troubleshooting)
 
@@ -117,6 +117,11 @@ This helps prevent NAVAI from executing destructive backend actions.
 - Block function calls (`/functions/execute`) when a guardrail rule matches.
 - Test guardrail rules from the admin panel (`Safety > Test rules`).
 - Store minimal guardrail block events (`guardrail_blocked`) in the database for basic traceability.
+- Manage human approvals (HITL) for sensitive functions (`pending`, `approved`, `rejected`) and execute pending actions from the admin panel.
+- Inspect runtime traces (tools, guardrails, approvals, handoffs, MCP policy blocks) for debugging.
+- Persist sessions, transcripts, and tool calls with retention/cleanup controls.
+- Configure specialist agents with tool/route allowlists and handoff rules.
+- Integrate MCP servers (HTTP JSON-RPC), sync remote tools, and restrict them by role and/or agent.
 - Use built-in REST endpoints for client secret, routes, function listing, and execution.
 
 ## Requirements
@@ -131,7 +136,7 @@ The plugin adds a left menu item:
 
 - `NAVAI Voice`
 
-The dashboard has four main tabs plus utility controls:
+The dashboard has operational tabs by phase plus utility controls:
 
 - `Navigation`
   - Public menu routes
@@ -149,6 +154,26 @@ The dashboard has four main tabs plus utility controls:
   - `input`, `tool`, `output` scopes
   - Role and plugin/function scope filters
   - Rule tester (`Test rules`) with text and JSON payload
+- `Approvals` (Phase 2)
+  - Pending request queue
+  - Approve/reject sensitive function calls
+  - Request detail + execution result
+- `Traces` (Phase 2)
+  - Trace timeline by `trace_id`
+  - Tool/guardrail/approval/handoff events
+  - Filters for event type and severity
+- `History` (Phase 3)
+  - Persisted sessions and transcripts
+  - Session clear action
+  - Retention/compaction controls
+- `Agents` (Phase 6)
+  - Specialist agent CRUD
+  - Tool/route allowlists
+  - Handoff rules by intent/context
+- `MCP` (Phase 7)
+  - MCP server CRUD (URL, auth, timeouts)
+  - Health check + sync/list remote tools
+  - Allow/Deny policies by tool, role, and `agent_key`
 - `Settings`
   - Connection/runtime settings (API key, model, voice, instructions, searchable language selector, accent, tone, TTL)
   - Global widget settings (mode, side, colors, labels)
@@ -397,6 +422,171 @@ In `Safety > Test rules`, you can send:
 
 This calls the test endpoint and returns whether a rule would match (`blocked`, `matched_count`, `matches`).
 
+## Integrated phases (Phase 2 to Phase 7)
+
+This release already includes the advanced roadmap phases. The summary below explains what each one is for, how to use it, and WordPress use cases.
+
+### Phase 2: Approvals (HITL) + Traces
+
+#### Approvals: what it is for
+
+- Prevents automatic execution of sensitive functions.
+- Lets an admin review payloads before allowing execution.
+- Stores decision status and execution result for auditing.
+
+#### Approvals: how to use
+
+1. In `Functions`, mark the function as `Requires approval`.
+2. In `Approvals`, enable `Enable approvals for sensitive functions`.
+3. When NAVAI tries to run it, a `pending` request is created.
+4. Open `Approvals > View details`.
+5. Review function, payload, and trace.
+6. Click `Approve` or `Reject`.
+
+By default, approving can execute the pending function immediately.
+
+#### Approvals: WordPress use cases
+
+- WooCommerce order cancellation/refund flows
+- Membership upgrades/downgrades
+- CRM sync or external write actions
+- Admin-only automation with business impact
+
+#### Traces: what it is for
+
+- Understand the sequence of runtime events.
+- Debug tool failures, guardrail blocks, and approvals.
+- Inspect agent handoffs and MCP policy blocks.
+
+#### Traces: how to use
+
+1. Enable tracing in `Traces`.
+2. Run a test via widget/admin.
+3. Open `Traces`.
+4. Filter by event/severity.
+5. Open a `trace_id` timeline.
+
+#### Traces: WordPress use cases
+
+- Debug failed WooCommerce helper functions
+- Explain why a route/tool was blocked
+- Validate handoff behavior between specialist agents
+
+### Phase 3: Sessions + memory + transcript
+
+#### What it is for
+
+- Maintains conversation context between requests.
+- Stores transcripts and tool calls for support/ops.
+- Adds retention and cleanup controls.
+
+#### How to use
+
+1. Enable session persistence/memory in `History`.
+2. Configure TTL/retention/compaction.
+3. Use the widget normally.
+4. Review sessions and transcripts in `History`.
+5. Clear sessions or run retention cleanup when needed.
+
+#### WordPress use cases
+
+- Support review before human escalation
+- Ecommerce troubleshooting for failed checkout journeys
+- Audit of tools used in admin workflows
+
+### Phase 4: Advanced voice UX + text/voice hybrid
+
+#### What it is for
+
+- Improves realtime voice control (VAD, interruption behavior).
+- Adds text fallback while preserving the same session.
+
+#### How to use
+
+1. Configure turn detection / VAD settings in `Settings`.
+2. Enable/disable interruptions.
+3. Enable text input fallback.
+4. Test continuity between text and voice.
+
+#### WordPress use cases
+
+- Public site assistant with voice + text accessibility
+- Backoffice environments where text is preferred
+- Faster voice interactions for internal teams
+
+### Phase 5: Robust JS/PHP functions (schema, timeout, retries, test)
+
+#### What it is for
+
+- Validates payload shape before execution.
+- Controls runtime behavior (timeout/retries).
+- Adds a safe test workflow before production use.
+
+#### How to use
+
+1. In `Functions`, define an optional `JSON Schema`.
+2. Configure `Timeout`, `Retries`, `Scope`, and `Requires approval`.
+3. Use `Test function` with a payload.
+4. Save only after validation passes.
+
+#### WordPress use cases
+
+- WooCommerce functions requiring a valid `order_id`
+- External API helpers with retry logic
+- Form-processing helpers validated before enabling
+
+### Phase 6: Multi-agent + handoffs
+
+#### What it is for
+
+- Splits responsibilities across specialist agents.
+- Restricts tools/routes per agent.
+- Delegates automatically using handoff rules.
+
+#### How to use
+
+1. Create agents in `Agents`.
+2. Define `allowed_tools` and `allowed_routes`.
+3. Add handoff rules by intent/tool/payload/roles/context.
+4. Validate behavior in `Traces`.
+
+#### WordPress use cases
+
+- `support` agent for help pages and support tools
+- `ecommerce` agent for cart/checkout/orders
+- `content` agent for posts/pages/media
+- Handoff rules that route order-related requests to ecommerce
+
+### Phase 7: MCP + standard integrations
+
+#### What it is for
+
+- Connect NAVAI to standardized remote tools outside WordPress.
+- Centralize ERP/CRM/BI/internal service integrations.
+- Restrict remote tools by role and `agent_key`.
+
+#### How to use
+
+1. Open `MCP`.
+2. Create an `MCP Server` with URL/auth/timeouts.
+3. Run `Health` or `Sync tools`.
+4. Review cached remote tools and their runtime function names.
+5. Create `allow`/`deny` policies by `tool_name` (or `*`), role, and `agent_key`.
+6. Test and inspect `Traces` if a call is blocked.
+
+Current MCP compatibility implemented in the plugin:
+
+- HTTP JSON-RPC transport
+- `tools/list`
+- `tools/call`
+
+#### WordPress use cases
+
+- WooCommerce + ERP stock/price queries
+- Support knowledge-base search in an external system
+- Backoffice reporting tools hosted outside WordPress
+- Multi-agent setups where only `support` can use support MCP tools
+
 ## REST endpoints (current)
 
 The plugin registers these REST routes:
@@ -405,17 +595,48 @@ The plugin registers these REST routes:
 - `GET /wp-json/navai/v1/functions`
 - `GET /wp-json/navai/v1/routes`
 - `POST /wp-json/navai/v1/functions/execute`
+- `POST /wp-json/navai/v1/functions/test` (admin)
 - `GET /wp-json/navai/v1/guardrails` (admin)
 - `POST /wp-json/navai/v1/guardrails` (admin)
 - `PUT /wp-json/navai/v1/guardrails/{id}` (admin)
 - `DELETE /wp-json/navai/v1/guardrails/{id}` (admin)
 - `POST /wp-json/navai/v1/guardrails/test` (admin)
+- `GET /wp-json/navai/v1/approvals` (admin)
+- `POST /wp-json/navai/v1/approvals/{id}/approve` (admin)
+- `POST /wp-json/navai/v1/approvals/{id}/reject` (admin)
+- `GET /wp-json/navai/v1/traces` (admin)
+- `GET /wp-json/navai/v1/traces/{trace_id}` (admin)
+- `GET /wp-json/navai/v1/sessions` (admin)
+- `POST /wp-json/navai/v1/sessions` (public/admin depending on config)
+- `POST /wp-json/navai/v1/sessions/cleanup` (admin)
+- `GET /wp-json/navai/v1/sessions/{id}` (admin)
+- `GET /wp-json/navai/v1/sessions/{id}/messages` (admin)
+- `POST /wp-json/navai/v1/sessions/{id}/clear` (admin)
+- `GET /wp-json/navai/v1/agents` (admin)
+- `POST /wp-json/navai/v1/agents` (admin)
+- `PUT /wp-json/navai/v1/agents/{id}` (admin)
+- `DELETE /wp-json/navai/v1/agents/{id}` (admin)
+- `GET /wp-json/navai/v1/agents/handoffs` (admin)
+- `POST /wp-json/navai/v1/agents/handoffs` (admin)
+- `PUT /wp-json/navai/v1/agents/handoffs/{id}` (admin)
+- `DELETE /wp-json/navai/v1/agents/handoffs/{id}` (admin)
+- `GET /wp-json/navai/v1/mcp/servers` (admin)
+- `POST /wp-json/navai/v1/mcp/servers` (admin)
+- `PUT /wp-json/navai/v1/mcp/servers/{id}` (admin)
+- `DELETE /wp-json/navai/v1/mcp/servers/{id}` (admin)
+- `POST /wp-json/navai/v1/mcp/servers/{id}/health` (admin)
+- `GET /wp-json/navai/v1/mcp/servers/{id}/tools` (admin)
+- `GET /wp-json/navai/v1/mcp/policies` (admin)
+- `POST /wp-json/navai/v1/mcp/policies` (admin)
+- `PUT /wp-json/navai/v1/mcp/policies/{id}` (admin)
+- `DELETE /wp-json/navai/v1/mcp/policies/{id}` (admin)
 
 Notes:
 
 - `client-secret` has a basic rate limit (per IP, short time window).
 - Public access to `client-secret` and backend functions can be toggled in Settings.
 - `guardrails` endpoints require administrator permissions (`manage_options`).
+- `approvals`, `traces`, `sessions`, `agents`, and `mcp` endpoints require administrator permissions (`manage_options`).
 
 ## Backend extensibility (filters)
 

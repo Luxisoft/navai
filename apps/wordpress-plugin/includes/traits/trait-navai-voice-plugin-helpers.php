@@ -262,6 +262,58 @@ trait Navai_Voice_Plugin_Helpers_Trait
     }
 
     /**
+     * @param mixed $value
+     */
+    private function sanitize_frontend_voice_input_mode($value): string
+    {
+        $mode = sanitize_key((string) $value);
+        if (!in_array($mode, ['vad', 'ptt'], true)) {
+            return 'vad';
+        }
+
+        return $mode;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_realtime_turn_detection_mode($value): string
+    {
+        $mode = sanitize_key((string) $value);
+        if (!in_array($mode, ['server_vad', 'semantic_vad', 'none'], true)) {
+            return 'server_vad';
+        }
+
+        return $mode;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_int_range_value($value, int $fallback, int $min, int $max): int
+    {
+        $number = is_numeric($value) ? (int) $value : $fallback;
+        if ($number < $min || $number > $max) {
+            return $fallback;
+        }
+
+        return $number;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_float_range_value($value, float $fallback, float $min, float $max, int $precision = 2): float
+    {
+        $number = is_numeric($value) ? (float) $value : $fallback;
+        if (!is_finite($number) || $number < $min || $number > $max) {
+            $number = $fallback;
+        }
+
+        return round($number, $precision);
+    }
+
+    /**
      * @param array<string, mixed> $settings
      */
     private function resolve_frontend_display_mode(array $settings): string
@@ -434,6 +486,16 @@ trait Navai_Voice_Plugin_Helpers_Trait
             $buttonColorActive = '#10883f';
         }
         $showButtonText = array_key_exists('show_button_text', $options) ? !empty($options['show_button_text']) : true;
+        $voiceInputMode = isset($options['voice_input_mode'])
+            ? $this->sanitize_frontend_voice_input_mode((string) $options['voice_input_mode'])
+            : 'vad';
+        $textInputEnabled = array_key_exists('text_input_enabled', $options) ? !empty($options['text_input_enabled']) : true;
+        $textPlaceholder = isset($options['text_placeholder'])
+            ? sanitize_text_field((string) $options['text_placeholder'])
+            : __('Escribe un mensaje...', 'navai-voice');
+        if (trim($textPlaceholder) === '') {
+            $textPlaceholder = __('Escribe un mensaje...', 'navai-voice');
+        }
         $widgetInlineStyle = '--navai-btn-idle-color:' . $buttonColorIdle . ';--navai-btn-connected-color:' . $buttonColorActive . ';';
 
         $widgetClass = 'navai-voice-widget';
@@ -471,6 +533,9 @@ trait Navai_Voice_Plugin_Helpers_Trait
             'button-side' => $buttonSide,
             'persist-active' => $persistActive ? '1' : '0',
             'show-text' => $showButtonText ? '1' : '0',
+            'voice-input-mode' => $voiceInputMode,
+            'text-enabled' => $textInputEnabled ? '1' : '0',
+            'text-placeholder' => $textPlaceholder,
         ];
 
         ob_start();
@@ -484,6 +549,35 @@ trait Navai_Voice_Plugin_Helpers_Trait
                 <span class="navai-voice-toggle-icon dashicons dashicons-microphone" aria-hidden="true"></span>
                 <span class="navai-voice-toggle-text"><?php echo esc_html($startLabel); ?></span>
             </button>
+            <?php if ($voiceInputMode === 'ptt') : ?>
+                <button
+                    type="button"
+                    class="navai-voice-ptt"
+                    aria-label="<?php echo esc_attr__('Push to talk', 'navai-voice'); ?>"
+                    disabled
+                >
+                    <span class="dashicons dashicons-controls-volumeon" aria-hidden="true"></span>
+                    <span class="navai-voice-ptt-text"><?php echo esc_html__('Mantener para hablar', 'navai-voice'); ?></span>
+                </button>
+            <?php endif; ?>
+            <?php if ($textInputEnabled) : ?>
+                <?php $textInputId = 'navai-voice-text-' . wp_generate_uuid4(); ?>
+                <form class="navai-voice-text-form" novalidate>
+                    <label class="screen-reader-text" for="<?php echo esc_attr($textInputId); ?>">
+                        <?php echo esc_html__('Mensaje de texto', 'navai-voice'); ?>
+                    </label>
+                    <input
+                        id="<?php echo esc_attr($textInputId); ?>"
+                        type="text"
+                        class="navai-voice-text-input"
+                        placeholder="<?php echo esc_attr($textPlaceholder); ?>"
+                        autocomplete="off"
+                    />
+                    <button type="submit" class="navai-voice-text-send">
+                        <?php echo esc_html__('Enviar', 'navai-voice'); ?>
+                    </button>
+                </form>
+            <?php endif; ?>
             <?php if ($showStatus) : ?>
                 <p class="navai-voice-status" aria-live="polite"><?php echo esc_html__('Idle', 'navai-voice'); ?></p>
             <?php endif; ?>

@@ -44,4 +44,81 @@ class Navai_Voice_DB
 
         return (string) $wpdb->prefix . 'navai_trace_events';
     }
+
+    public static function table_approvals(): string
+    {
+        global $wpdb;
+
+        if (!is_object($wpdb) || !isset($wpdb->prefix)) {
+            return 'wp_navai_approvals';
+        }
+
+        return (string) $wpdb->prefix . 'navai_approvals';
+    }
+
+    public static function table_sessions(): string
+    {
+        global $wpdb;
+
+        if (!is_object($wpdb) || !isset($wpdb->prefix)) {
+            return 'wp_navai_sessions';
+        }
+
+        return (string) $wpdb->prefix . 'navai_sessions';
+    }
+
+    public static function table_session_messages(): string
+    {
+        global $wpdb;
+
+        if (!is_object($wpdb) || !isset($wpdb->prefix)) {
+            return 'wp_navai_session_messages';
+        }
+
+        return (string) $wpdb->prefix . 'navai_session_messages';
+    }
+
+    public static function table_agents(): string
+    {
+        global $wpdb;
+
+        if (!is_object($wpdb) || !isset($wpdb->prefix)) {
+            return 'wp_navai_agents';
+        }
+
+        return (string) $wpdb->prefix . 'navai_agents';
+    }
+
+    public static function table_agent_handoffs(): string
+    {
+        global $wpdb;
+
+        if (!is_object($wpdb) || !isset($wpdb->prefix)) {
+            return 'wp_navai_agent_handoffs';
+        }
+
+        return (string) $wpdb->prefix . 'navai_agent_handoffs';
+    }
+
+    public static function table_mcp_servers(): string
+    {
+        global $wpdb;
+
+        if (!is_object($wpdb) || !isset($wpdb->prefix)) {
+            return 'wp_navai_mcp_servers';
+        }
+
+        return (string) $wpdb->prefix . 'navai_mcp_servers';
+    }
+
+    public static function table_mcp_tool_policies(): string
+    {
+        global $wpdb;
+
+        if (!is_object($wpdb) || !isset($wpdb->prefix)) {
+            return 'wp_navai_mcp_tool_policies';
+        }
+
+        return (string) $wpdb->prefix . 'navai_mcp_tool_policies';
+    }
 }

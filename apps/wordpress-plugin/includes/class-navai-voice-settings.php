@@ -55,6 +55,11 @@ class Navai_Voice_Settings
             [__('Navegacion', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#navigation'],
             [__('Funciones', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#plugins'],
             [__('Seguridad', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#safety'],
+            [__('Aprobaciones', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#approvals'],
+            [__('Trazas', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#traces'],
+            [__('Historial', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#history'],
+            [__('Agentes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#agents'],
+            [__('MCP', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#mcp'],
             [__('Ajustes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#settings'],
             [__('Documentacion', 'navai-voice'), 'manage_options', $documentationUrl],
         ];
@@ -94,12 +99,43 @@ class Navai_Voice_Settings
         $ttl = ($ttlInput >= 10 && $ttlInput <= 7200) ? $ttlInput : (int) $defaults['client_secret_ttl'];
 
         $activeTab = isset($source['active_tab']) ? sanitize_key((string) $source['active_tab']) : 'navigation';
-        if (!in_array($activeTab, ['navigation', 'plugins', 'safety', 'settings'], true)) {
+        if (!in_array($activeTab, ['navigation', 'plugins', 'safety', 'approvals', 'traces', 'history', 'agents', 'mcp', 'settings'], true)) {
             $activeTab = 'navigation';
         }
         $dashboardLanguage = $this->sanitize_dashboard_language(
             $source['dashboard_language'] ?? ($previous['dashboard_language'] ?? $defaults['dashboard_language'])
         );
+
+        $sessionTtlMinutes = isset($source['session_ttl_minutes'])
+            ? (int) $source['session_ttl_minutes']
+            : (int) ($previous['session_ttl_minutes'] ?? $defaults['session_ttl_minutes']);
+        if ($sessionTtlMinutes < 5 || $sessionTtlMinutes > 43200) {
+            $sessionTtlMinutes = (int) $defaults['session_ttl_minutes'];
+        }
+
+        $sessionRetentionDays = isset($source['session_retention_days'])
+            ? (int) $source['session_retention_days']
+            : (int) ($previous['session_retention_days'] ?? $defaults['session_retention_days']);
+        if ($sessionRetentionDays < 1 || $sessionRetentionDays > 3650) {
+            $sessionRetentionDays = (int) $defaults['session_retention_days'];
+        }
+
+        $sessionCompactionThreshold = isset($source['session_compaction_threshold'])
+            ? (int) $source['session_compaction_threshold']
+            : (int) ($previous['session_compaction_threshold'] ?? $defaults['session_compaction_threshold']);
+        if ($sessionCompactionThreshold < 20 || $sessionCompactionThreshold > 2000) {
+            $sessionCompactionThreshold = (int) $defaults['session_compaction_threshold'];
+        }
+
+        $sessionCompactionKeepRecent = isset($source['session_compaction_keep_recent'])
+            ? (int) $source['session_compaction_keep_recent']
+            : (int) ($previous['session_compaction_keep_recent'] ?? $defaults['session_compaction_keep_recent']);
+        if ($sessionCompactionKeepRecent < 10) {
+            $sessionCompactionKeepRecent = (int) $defaults['session_compaction_keep_recent'];
+        }
+        if ($sessionCompactionKeepRecent >= $sessionCompactionThreshold) {
+            $sessionCompactionKeepRecent = max(10, $sessionCompactionThreshold - 10);
+        }
 
         $frontendDisplayMode = isset($source['frontend_display_mode'])
             ? sanitize_key((string) $source['frontend_display_mode'])
@@ -137,6 +173,40 @@ class Navai_Voice_Settings
             $defaults,
             'frontend_button_text_active',
             true
+        );
+        $frontendVoiceInputMode = $this->sanitize_frontend_voice_input_mode(
+            $source['frontend_voice_input_mode'] ?? ($previous['frontend_voice_input_mode'] ?? $defaults['frontend_voice_input_mode'])
+        );
+        $frontendTextInputEnabled = !empty($source['frontend_text_input_enabled']);
+        $frontendTextPlaceholder = $this->read_text_value(
+            $source,
+            $previous,
+            $defaults,
+            'frontend_text_placeholder',
+            true
+        );
+        $realtimeTurnDetectionMode = $this->sanitize_realtime_turn_detection_mode(
+            $source['realtime_turn_detection_mode'] ?? ($previous['realtime_turn_detection_mode'] ?? $defaults['realtime_turn_detection_mode'])
+        );
+        $realtimeInterruptResponse = !empty($source['realtime_interrupt_response']);
+        $realtimeVadThreshold = $this->sanitize_float_range_value(
+            $source['realtime_vad_threshold'] ?? ($previous['realtime_vad_threshold'] ?? $defaults['realtime_vad_threshold']),
+            (float) ($defaults['realtime_vad_threshold'] ?? 0.5),
+            0.1,
+            0.99,
+            2
+        );
+        $realtimeVadSilenceDurationMs = $this->sanitize_int_range_value(
+            $source['realtime_vad_silence_duration_ms'] ?? ($previous['realtime_vad_silence_duration_ms'] ?? $defaults['realtime_vad_silence_duration_ms']),
+            (int) ($defaults['realtime_vad_silence_duration_ms'] ?? 800),
+            100,
+            5000
+        );
+        $realtimeVadPrefixPaddingMs = $this->sanitize_int_range_value(
+            $source['realtime_vad_prefix_padding_ms'] ?? ($previous['realtime_vad_prefix_padding_ms'] ?? $defaults['realtime_vad_prefix_padding_ms']),
+            (int) ($defaults['realtime_vad_prefix_padding_ms'] ?? 300),
+            0,
+            2000
         );
         $privateRoutePluginCatalog = $this->get_private_route_plugin_catalog($previous['private_custom_routes'] ?? []);
         $availableRoles = $this->get_available_roles();
@@ -189,10 +259,24 @@ class Navai_Voice_Settings
             'default_language' => $this->read_text_value($source, $previous, $defaults, 'default_language', false),
             'default_voice_accent' => $this->read_text_value($source, $previous, $defaults, 'default_voice_accent', false),
             'default_voice_tone' => $this->read_text_value($source, $previous, $defaults, 'default_voice_tone', false),
+            'realtime_turn_detection_mode' => $realtimeTurnDetectionMode,
+            'realtime_interrupt_response' => $realtimeInterruptResponse,
+            'realtime_vad_threshold' => $realtimeVadThreshold,
+            'realtime_vad_silence_duration_ms' => $realtimeVadSilenceDurationMs,
+            'realtime_vad_prefix_padding_ms' => $realtimeVadPrefixPaddingMs,
             'client_secret_ttl' => $ttl,
             'allow_public_client_secret' => !empty($source['allow_public_client_secret']),
             'allow_public_functions' => !empty($source['allow_public_functions']),
             'enable_guardrails' => !empty($source['enable_guardrails']),
+            'enable_approvals' => !empty($source['enable_approvals']),
+            'enable_tracing' => !empty($source['enable_tracing']),
+            'enable_session_memory' => !empty($source['enable_session_memory']),
+            'enable_agents' => !empty($source['enable_agents']),
+            'enable_mcp' => !empty($source['enable_mcp']),
+            'session_ttl_minutes' => $sessionTtlMinutes,
+            'session_retention_days' => $sessionRetentionDays,
+            'session_compaction_threshold' => $sessionCompactionThreshold,
+            'session_compaction_keep_recent' => $sessionCompactionKeepRecent,
             'allowed_menu_item_ids' => $this->sanitize_menu_item_ids($source['allowed_menu_item_ids'] ?? []),
             'allowed_route_keys' => $allowedRouteKeys,
             'allowed_plugin_files' => $this->sanitize_plugin_files($allowedPluginFilesInput),
@@ -206,6 +290,9 @@ class Navai_Voice_Settings
             'frontend_show_button_text' => $frontendShowButtonText,
             'frontend_button_text_idle' => $frontendButtonTextIdle,
             'frontend_button_text_active' => $frontendButtonTextActive,
+            'frontend_voice_input_mode' => $frontendVoiceInputMode,
+            'frontend_text_input_enabled' => $frontendTextInputEnabled,
+            'frontend_text_placeholder' => $frontendTextPlaceholder,
             'private_custom_routes' => $privateCustomRoutes,
             'route_descriptions' => $routeDescriptions,
             'frontend_allowed_roles' => $this->sanitize_frontend_roles($source['frontend_allowed_roles'] ?? []),
@@ -308,7 +395,13 @@ class Navai_Voice_Settings
      *   plugin_key: string,
      *   plugin_label: string,
      *   role: string,
-     *   description: string
+     *   description: string,
+     *   requires_approval: bool,
+     *   timeout_seconds: int,
+     *   execution_scope: string,
+     *   retries: int,
+     *   argument_schema_json: string,
+     *   argument_schema: array<string, mixed>|null
      * }>
      */
     public function get_allowed_plugin_functions_for_current_user(): array
@@ -355,6 +448,33 @@ class Navai_Voice_Settings
             $pluginKey = $this->sanitize_private_plugin_key((string) ($item['plugin_key'] ?? 'wp-core'));
             $pluginLabel = sanitize_text_field((string) ($item['plugin_label'] ?? ''));
             $description = sanitize_text_field((string) ($item['description'] ?? ''));
+            $requiresApproval = !empty($item['requires_approval']);
+            $timeoutSeconds = is_numeric($item['timeout_seconds'] ?? null) ? (int) $item['timeout_seconds'] : 0;
+            if ($timeoutSeconds < 0) {
+                $timeoutSeconds = 0;
+            }
+            if ($timeoutSeconds > 600) {
+                $timeoutSeconds = 600;
+            }
+            $executionScope = sanitize_key((string) ($item['execution_scope'] ?? 'both'));
+            if (!in_array($executionScope, ['frontend', 'admin', 'both'], true)) {
+                $executionScope = 'both';
+            }
+            $retries = is_numeric($item['retries'] ?? null) ? (int) $item['retries'] : 0;
+            if ($retries < 0) {
+                $retries = 0;
+            }
+            if ($retries > 5) {
+                $retries = 5;
+            }
+            $argumentSchemaJson = $this->sanitize_plugin_function_argument_schema_json($item['argument_schema_json'] ?? '');
+            $argumentSchema = null;
+            if ($argumentSchemaJson !== '') {
+                $decodedSchema = json_decode($argumentSchemaJson, true);
+                if (is_array($decodedSchema)) {
+                    $argumentSchema = $decodedSchema;
+                }
+            }
             if ($functionName === '' || $functionCode === '' || $pluginKey === '') {
                 continue;
             }
@@ -373,6 +493,12 @@ class Navai_Voice_Settings
                 'plugin_label' => $pluginLabel,
                 'role' => $role,
                 'description' => $description,
+                'requires_approval' => $requiresApproval,
+                'timeout_seconds' => $timeoutSeconds,
+                'execution_scope' => $executionScope,
+                'retries' => $retries,
+                'argument_schema_json' => $argumentSchemaJson,
+                'argument_schema' => $argumentSchema,
             ];
         }
 

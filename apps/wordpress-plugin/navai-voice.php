@@ -3,7 +3,7 @@
  * Plugin Name: NAVAI Voice
  * Plugin URI: https://navai.luxisoft.com/documentation/installation-wordpress
  * Description: Integracion de voz NAVAI para WordPress usando endpoints REST en PHP.
- * Version: 0.3.38
+ * Version: 0.3.43
  * Author: NAVAI
  * Text Domain: navai-voice
  * Requires at least: 6.2
@@ -408,9 +408,17 @@ if (!function_exists('navai_voice_load_dependencies')) {
             'includes/class-navai-voice-db.php',
             'includes/class-navai-voice-migrator.php',
             'includes/repositories/class-navai-voice-guardrail-repository.php',
+            'includes/repositories/class-navai-voice-approval-repository.php',
             'includes/repositories/class-navai-voice-trace-repository.php',
+            'includes/repositories/class-navai-voice-session-repository.php',
+            'includes/repositories/class-navai-voice-agent-repository.php',
+            'includes/repositories/class-navai-voice-mcp-repository.php',
+            'includes/services/class-navai-voice-approval-service.php',
             'includes/services/class-navai-voice-trace-service.php',
             'includes/services/class-navai-voice-guardrail-service.php',
+            'includes/services/class-navai-voice-session-service.php',
+            'includes/services/class-navai-voice-agent-service.php',
+            'includes/services/class-navai-voice-mcp-service.php',
             'includes/traits/trait-navai-voice-settings-internals-values.php',
             'includes/traits/trait-navai-voice-settings-internals-navigation.php',
             'includes/traits/trait-navai-voice-settings-internals-custom.php',
@@ -476,10 +484,10 @@ if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $currentPath) {
 }
 
 if (!defined('NAVAI_VOICE_VERSION')) {
-    define('NAVAI_VOICE_VERSION', '0.3.38');
+    define('NAVAI_VOICE_VERSION', '0.3.43');
 }
 if (!defined('NAVAI_VOICE_DB_VERSION')) {
-    define('NAVAI_VOICE_DB_VERSION', '1');
+    define('NAVAI_VOICE_DB_VERSION', '5');
 }
 if (!defined('NAVAI_VOICE_PATH')) {
     define('NAVAI_VOICE_PATH', $currentPath);

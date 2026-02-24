@@ -65,6 +65,12 @@ trait Navai_Voice_Settings_Internals_Custom_Trait
                 $description = __('Funcion personalizada de plugin.', 'navai-voice');
             }
 
+            $requiresApproval = !empty($item['requires_approval']);
+            $timeoutSeconds = $this->sanitize_plugin_function_timeout_seconds($item['timeout_seconds'] ?? 0);
+            $executionScope = $this->sanitize_plugin_function_execution_scope((string) ($item['execution_scope'] ?? 'both'));
+            $retries = $this->sanitize_plugin_function_retries($item['retries'] ?? 0);
+            $argumentSchemaJson = $this->sanitize_plugin_function_argument_schema_json($item['argument_schema_json'] ?? '');
+
             $rows[] = [
                 'id' => $rowId,
                 'plugin_key' => $pluginKey,
@@ -77,6 +83,11 @@ trait Navai_Voice_Settings_Internals_Custom_Trait
                 'function_name' => $functionName,
                 'function_code' => $functionCode,
                 'description' => $description,
+                'requires_approval' => $requiresApproval,
+                'timeout_seconds' => $timeoutSeconds,
+                'execution_scope' => $executionScope,
+                'retries' => $retries,
+                'argument_schema_json' => $argumentSchemaJson,
             ];
         }
 
@@ -198,6 +209,99 @@ trait Navai_Voice_Settings_Internals_Custom_Trait
         }
 
         return $normalized;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_plugin_function_timeout_seconds($value): int
+    {
+        $timeout = is_numeric($value) ? (int) $value : 0;
+        if ($timeout < 0) {
+            $timeout = 0;
+        }
+        if ($timeout > 600) {
+            $timeout = 600;
+        }
+
+        return $timeout;
+    }
+
+    private function sanitize_plugin_function_execution_scope(string $value): string
+    {
+        $scope = sanitize_key($value);
+        if (!in_array($scope, ['frontend', 'admin', 'both'], true)) {
+            $scope = 'both';
+        }
+
+        return $scope;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_plugin_function_retries($value): int
+    {
+        $retries = is_numeric($value) ? (int) $value : 0;
+        if ($retries < 0) {
+            $retries = 0;
+        }
+        if ($retries > 5) {
+            $retries = 5;
+        }
+
+        return $retries;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_plugin_function_argument_schema_json($value): string
+    {
+        $schema = null;
+
+        if (is_array($value)) {
+            $schema = $value;
+        } elseif (is_string($value)) {
+            $raw = function_exists('wp_unslash') ? (string) wp_unslash($value) : $value;
+            $raw = trim(str_replace(["\r\n", "\r"], "\n", $raw));
+            if ($raw === '') {
+                return '';
+            }
+
+            $decoded = json_decode($raw, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+                return '';
+            }
+            $schema = $decoded;
+        }
+
+        if (!is_array($schema) || $this->is_sequential_array($schema)) {
+            return '';
+        }
+
+        $encoded = wp_json_encode($schema);
+        return is_string($encoded) ? $encoded : '';
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    private function is_sequential_array(array $value): bool
+    {
+        if (function_exists('array_is_list')) {
+            return array_is_list($value);
+        }
+
+        $expectedKey = 0;
+        foreach (array_keys($value) as $key) {
+            if ($key !== $expectedKey) {
+                return false;
+            }
+            $expectedKey++;
+        }
+
+        return true;
     }
 
     private function build_plugin_custom_function_name(string $rowId): string

@@ -7,11 +7,14 @@
   var DEFAULT_MODEL = runtime.DEFAULT_MODEL || "gpt-realtime";
   var MAX_LOG_LINES = typeof runtime.MAX_LOG_LINES === "number" ? runtime.MAX_LOG_LINES : 120;
   var GLOBAL_ACTIVE_STORAGE_KEY = runtime.GLOBAL_ACTIVE_STORAGE_KEY || "navai_voice_global_active";
+  var GLOBAL_SESSION_KEY_STORAGE_KEY = runtime.GLOBAL_SESSION_KEY_STORAGE_KEY || "navai_voice_session_key";
   var isRecord = runtime.isRecord;
   var asTrimmedString = runtime.asTrimmedString;
   var parseJsonSafe = runtime.parseJsonSafe;
   var getSafeStorage = runtime.getSafeStorage;
   var safeJsonStringify = runtime.safeJsonStringify;
+  var sanitizeSessionKey = runtime.sanitizeSessionKey;
+  var generateSessionKey = runtime.generateSessionKey;
   var normalizeMatchValue = runtime.normalizeMatchValue;
   var getGlobalConfig = runtime.getGlobalConfig;
   var getMessage = runtime.getMessage;
@@ -24,11 +27,64 @@
   var requestBackendFunctions = runtime.requestBackendFunctions;
   var requestRoutes = runtime.requestRoutes;
   var executeBackendFunction = runtime.executeBackendFunction;
+  var sendSessionMessages = runtime.sendSessionMessages;
+  var INTERRUPTED_STATE_RESET_MS = 900;
+
+  function toConfigBool(value, fallback) {
+    if (typeof value === "boolean") {
+      return value;
+    }
+    if (typeof value === "string") {
+      var normalized = value.trim().toLowerCase();
+      if (normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on") {
+        return true;
+      }
+      if (normalized === "0" || normalized === "false" || normalized === "no" || normalized === "off") {
+        return false;
+      }
+    }
+    return !!fallback;
+  }
+
+  function clampNumber(value, fallback, min, max) {
+    var number = typeof value === "number" ? value : Number(value);
+    if (!isFinite(number)) {
+      number = fallback;
+    }
+    if (typeof min === "number" && number < min) {
+      number = min;
+    }
+    if (typeof max === "number" && number > max) {
+      number = max;
+    }
+    return number;
+  }
+
+  function normalizeVoiceInputMode(value) {
+    var mode = asTrimmedString(value).toLowerCase();
+    return mode === "ptt" ? "ptt" : "vad";
+  }
+
+  function normalizeTurnDetectionMode(value) {
+    var mode = asTrimmedString(value).toLowerCase();
+    if (mode === "semantic_vad") {
+      return "semantic_vad";
+    }
+    if (mode === "none" || mode === "disabled") {
+      return "none";
+    }
+    return "server_vad";
+  }
 
   function NavaiVoiceWidget(container) {
     this.container = container;
     this.button = container.querySelector(".navai-voice-toggle");
     this.buttonLabelEl = this.button ? this.button.querySelector(".navai-voice-toggle-text") : null;
+    this.pttButton = container.querySelector(".navai-voice-ptt");
+    this.pttButtonTextEl = this.pttButton ? this.pttButton.querySelector(".navai-voice-ptt-text") : null;
+    this.textForm = container.querySelector(".navai-voice-text-form");
+    this.textInput = container.querySelector(".navai-voice-text-input");
+    this.textSendButton = container.querySelector(".navai-voice-text-send");
     this.statusEl = container.querySelector(".navai-voice-status");
     this.logEl = container.querySelector(".navai-voice-log");
     this.globalConfig = getGlobalConfig();
@@ -39,10 +95,15 @@
     this.handledCalls = {};
 
     this.state = "idle";
+    this.activityState = "idle";
     this.localStream = null;
     this.peerConnection = null;
     this.eventsChannel = null;
     this.remoteAudioEl = null;
+    this.connectionMode = "voice";
+    this.pendingTextMessages = [];
+    this.interruptedResetTimer = 0;
+    this.pttPressed = false;
 
     this.startLabel = asTrimmedString(container.dataset.startLabel) || "Start Voice";
     this.stopLabel = asTrimmedString(container.dataset.stopLabel) || "Stop Voice";
@@ -51,8 +112,22 @@
     this.isFloating = container.dataset.floating === "1";
     this.persistActive = container.dataset.persistActive === "1";
     this.buttonSide = asTrimmedString(container.dataset.buttonSide) === "right" ? "right" : "left";
+    this.voiceInputMode = normalizeVoiceInputMode(
+      container.dataset.voiceInputMode ||
+        (isRecord(this.globalConfig.realtime) ? this.globalConfig.realtime.voiceInputMode : "")
+    );
+    this.textInputEnabled = container.dataset.textEnabled === "1";
+    this.textPlaceholder =
+      asTrimmedString(container.dataset.textPlaceholder) ||
+      (isRecord(this.globalConfig.realtime) ? asTrimmedString(this.globalConfig.realtime.textPlaceholder) : "") ||
+      "Write a message...";
     this.navigationInProgress = false;
     this.storage = getSafeStorage();
+    this.sessionKey = "";
+    this.sessionMessageQueue = [];
+    this.sessionFlushTimer = 0;
+    this.sessionFlushInFlight = false;
+    this.realtimeSettings = this.resolveRealtimeSettings();
 
     this.modelOverride = asTrimmedString(container.dataset.model);
     this.voiceOverride = asTrimmedString(container.dataset.voice);
@@ -70,18 +145,35 @@
       this.button.addEventListener("click", this.handleToggle.bind(this));
     }
 
+    if (this.textInput) {
+      this.textInput.placeholder = this.textPlaceholder;
+    }
+
+    if (this.textForm) {
+      this.textForm.addEventListener("submit", this.handleTextSubmit.bind(this));
+    }
+
+    if (this.pttButton) {
+      this.bindPushToTalkEvents();
+    }
+
     if (this.persistActive) {
       var widget = this;
       window.addEventListener("beforeunload", function () {
+        widget.flushSessionMessages(true);
         if (widget.state === "connected" || widget.state === "connecting" || widget.navigationInProgress) {
           widget.storeActivePreference(true);
         }
       });
     }
 
+    this.sessionKey = this.loadSessionKey();
+
     this.applyStateClass();
     this.refreshButton();
-    this.setStatus(getMessage(this.globalConfig, "idle", "Idle"));
+    this.updatePttButton();
+    this.updateTextControlsDisabledState(false);
+    this.updateStatusIndicator();
 
     if (this.persistActive && this.shouldAutoResume()) {
       this.appendLog("Auto-resuming global voice widget from previous page.", "info");
@@ -111,25 +203,423 @@
     }
   };
 
-  NavaiVoiceWidget.prototype.applyStateClass = function () {
-    this.container.classList.remove("is-idle", "is-connecting", "is-connected", "is-error");
+  NavaiVoiceWidget.prototype.resolveRealtimeSettings = function () {
+    var config = isRecord(this.globalConfig.realtime) ? this.globalConfig.realtime : {};
+    var vadConfig = isRecord(config.vad) ? config.vad : {};
 
-    if (this.state === "connected") {
-      this.container.classList.add("is-connected");
+    return {
+      turnDetectionMode: normalizeTurnDetectionMode(config.turnDetectionMode),
+      interruptResponse: toConfigBool(config.interruptResponse, true),
+      vadThreshold: clampNumber(vadConfig.threshold, 0.5, 0.1, 0.99),
+      vadSilenceDurationMs: Math.round(clampNumber(vadConfig.silenceDurationMs, 800, 100, 5000)),
+      vadPrefixPaddingMs: Math.round(clampNumber(vadConfig.prefixPaddingMs, 300, 0, 2000))
+    };
+  };
+
+  NavaiVoiceWidget.prototype.isPushToTalkMode = function () {
+    return this.voiceInputMode === "ptt";
+  };
+
+  NavaiVoiceWidget.prototype.getEffectiveTurnDetectionMode = function () {
+    if (this.isPushToTalkMode()) {
+      return "none";
+    }
+    return normalizeTurnDetectionMode(this.realtimeSettings.turnDetectionMode);
+  };
+
+  NavaiVoiceWidget.prototype.buildTurnDetectionConfig = function () {
+    var mode = this.getEffectiveTurnDetectionMode();
+    if (mode === "none") {
+      return null;
+    }
+
+    var config = {
+      type: mode,
+      interrupt_response: !!this.realtimeSettings.interruptResponse
+    };
+
+    if (mode === "server_vad") {
+      config.threshold = this.realtimeSettings.vadThreshold;
+      config.silence_duration_ms = this.realtimeSettings.vadSilenceDurationMs;
+      config.prefix_padding_ms = this.realtimeSettings.vadPrefixPaddingMs;
+    }
+
+    return config;
+  };
+
+  NavaiVoiceWidget.prototype.clearInterruptedStateTimer = function () {
+    if (this.interruptedResetTimer) {
+      window.clearTimeout(this.interruptedResetTimer);
+      this.interruptedResetTimer = 0;
+    }
+  };
+
+  NavaiVoiceWidget.prototype.setActivityState = function (activity, options) {
+    var next = asTrimmedString(activity).toLowerCase();
+    if (!next || ["idle", "listening", "speaking", "interrupted"].indexOf(next) === -1) {
+      next = "idle";
+    }
+
+    var opts = isRecord(options) ? options : {};
+    this.clearInterruptedStateTimer();
+    this.activityState = next;
+    this.applyStateClass();
+    this.updatePttButton();
+    this.updateStatusIndicator();
+
+    if (next === "interrupted") {
+      var widget = this;
+      this.interruptedResetTimer = window.setTimeout(function () {
+        widget.interruptedResetTimer = 0;
+        if (widget.state === "connected") {
+          widget.activityState = widget.pttPressed ? "listening" : "idle";
+          widget.applyStateClass();
+          widget.updatePttButton();
+          widget.updateStatusIndicator();
+        }
+      }, typeof opts.resetAfterMs === "number" ? opts.resetAfterMs : INTERRUPTED_STATE_RESET_MS);
+    }
+  };
+
+  NavaiVoiceWidget.prototype.updateStatusIndicator = function (overrideMessage) {
+    if (!this.statusEl) {
+      return;
+    }
+
+    if (typeof overrideMessage === "string" && overrideMessage.trim() !== "") {
+      this.setStatus(overrideMessage);
       return;
     }
 
     if (this.state === "connecting") {
-      this.container.classList.add("is-connecting");
       return;
     }
 
     if (this.state === "error") {
-      this.container.classList.add("is-error");
       return;
     }
 
-    this.container.classList.add("is-idle");
+    if (this.state === "idle") {
+      this.setStatus(getMessage(this.globalConfig, "idle", "Idle"));
+      return;
+    }
+
+    if (this.activityState === "interrupted") {
+      this.setStatus(getMessage(this.globalConfig, "interrupted", "Interrupted"));
+      return;
+    }
+
+    if (this.activityState === "speaking") {
+      this.setStatus(getMessage(this.globalConfig, "speaking", "Speaking..."));
+      return;
+    }
+
+    if (this.activityState === "listening") {
+      if (this.isPushToTalkMode() && this.pttPressed) {
+        this.setStatus(getMessage(this.globalConfig, "pttRelease", "Release to send"));
+      } else {
+        this.setStatus(getMessage(this.globalConfig, "listening", "Listening..."));
+      }
+      return;
+    }
+
+    if (this.connectionMode === "text") {
+      this.setStatus(getMessage(this.globalConfig, "connectedText", "Connected (text mode)"));
+      return;
+    }
+
+    if (this.isPushToTalkMode()) {
+      this.setStatus(getMessage(this.globalConfig, "pttHold", "Hold to talk"));
+      return;
+    }
+
+    this.setStatus(getMessage(this.globalConfig, "connected", "Connected"));
+  };
+
+  NavaiVoiceWidget.prototype.updatePttButton = function () {
+    if (!this.pttButton) {
+      return;
+    }
+
+    var enabled = this.isPushToTalkMode() && this.state === "connected" && this.connectionMode !== "text";
+    this.pttButton.disabled = !enabled;
+    this.pttButton.setAttribute("aria-pressed", this.pttPressed ? "true" : "false");
+    this.pttButton.classList.toggle("is-active", this.pttPressed);
+
+    if (this.pttButtonTextEl) {
+      if (!enabled) {
+        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttHold", "Hold to talk");
+      } else if (this.pttPressed) {
+        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttRelease", "Release to send");
+      } else {
+        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttHold", "Hold to talk");
+      }
+    }
+  };
+
+  NavaiVoiceWidget.prototype.updateTextControlsDisabledState = function (busy) {
+    if (!this.textInputEnabled) {
+      return;
+    }
+    var disableInput = !!busy || this.state === "connecting";
+    if (this.textInput) {
+      this.textInput.disabled = disableInput;
+    }
+    if (this.textSendButton) {
+      this.textSendButton.disabled = disableInput;
+    }
+  };
+
+  NavaiVoiceWidget.prototype.bindPushToTalkEvents = function () {
+    if (!this.pttButton) {
+      return;
+    }
+
+    var widget = this;
+    function onPress(event) {
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      widget.handlePttPress();
+    }
+
+    function onRelease(event) {
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      widget.handlePttRelease();
+    }
+
+    this.pttButton.addEventListener("mousedown", onPress);
+    this.pttButton.addEventListener("mouseup", onRelease);
+    this.pttButton.addEventListener("mouseleave", onRelease);
+    this.pttButton.addEventListener("touchstart", onPress, { passive: false });
+    this.pttButton.addEventListener("touchend", onRelease);
+    this.pttButton.addEventListener("touchcancel", onRelease);
+    this.pttButton.addEventListener("keydown", function (event) {
+      var key = event && event.key ? String(event.key).toLowerCase() : "";
+      if (key === " " || key === "spacebar" || key === "enter") {
+        onPress(event);
+      }
+    });
+    this.pttButton.addEventListener("keyup", function (event) {
+      var key = event && event.key ? String(event.key).toLowerCase() : "";
+      if (key === " " || key === "spacebar" || key === "enter") {
+        onRelease(event);
+      }
+    });
+  };
+
+  NavaiVoiceWidget.prototype.requestRealtimeInterruption = function () {
+    if (!this.realtimeSettings.interruptResponse) {
+      return;
+    }
+
+    try {
+      this.sendRealtimeEvent({ type: "response.cancel" });
+    } catch (_error) {
+      // noop
+    }
+    try {
+      this.sendRealtimeEvent({ type: "output_audio_buffer.clear" });
+    } catch (_error2) {
+      // noop
+    }
+    this.setActivityState("interrupted");
+  };
+
+  NavaiVoiceWidget.prototype.handlePttPress = function () {
+    if (!this.isPushToTalkMode() || this.state !== "connected" || this.connectionMode === "text") {
+      return;
+    }
+    if (this.pttPressed) {
+      return;
+    }
+
+    this.pttPressed = true;
+    if (this.activityState === "speaking") {
+      this.requestRealtimeInterruption();
+    }
+
+    try {
+      this.sendRealtimeEvent({ type: "input_audio_buffer.clear" });
+    } catch (error) {
+      this.appendLog("Failed to start push-to-talk: " + String(error), "error");
+      this.pttPressed = false;
+      this.updatePttButton();
+      return;
+    }
+
+    this.setActivityState("listening");
+  };
+
+  NavaiVoiceWidget.prototype.handlePttRelease = function () {
+    if (!this.pttPressed) {
+      return;
+    }
+    this.pttPressed = false;
+
+    if (this.state !== "connected" || this.connectionMode === "text") {
+      this.updatePttButton();
+      this.updateStatusIndicator();
+      return;
+    }
+
+    try {
+      this.sendRealtimeEvent({ type: "input_audio_buffer.commit" });
+      this.sendRealtimeEvent({ type: "response.create" });
+      this.setActivityState("idle");
+    } catch (error) {
+      this.appendLog("Failed to finish push-to-talk: " + String(error), "error");
+      this.setActivityState("idle");
+    }
+  };
+
+  NavaiVoiceWidget.prototype.handleTextSubmit = function (event) {
+    if (event && typeof event.preventDefault === "function") {
+      event.preventDefault();
+    }
+
+    if (!this.textInput) {
+      return;
+    }
+
+    var text = asTrimmedString(this.textInput.value);
+    if (!text) {
+      return;
+    }
+
+    this.textInput.value = "";
+    this.sendTextMessage(text);
+  };
+
+  NavaiVoiceWidget.prototype.flushPendingTextMessages = function () {
+    if (!Array.isArray(this.pendingTextMessages) || this.pendingTextMessages.length === 0) {
+      return;
+    }
+    if (this.state !== "connected") {
+      return;
+    }
+
+    var queued = this.pendingTextMessages.slice(0);
+    this.pendingTextMessages = [];
+    for (var i = 0; i < queued.length; i += 1) {
+      this.sendRealtimeTextInput(queued[i]);
+      if (this.state !== "connected") {
+        break;
+      }
+    }
+  };
+
+  NavaiVoiceWidget.prototype.sendTextMessage = function (text) {
+    var message = asTrimmedString(text);
+    if (!message) {
+      return;
+    }
+
+    this.queueSessionMessage({
+      direction: "user",
+      message_type: "text",
+      content_text: message,
+      content_json: {
+        type: "text_input_manual",
+        mode: this.state === "connected" ? this.connectionMode : "text"
+      }
+    });
+
+    if (this.state === "connected") {
+      this.updateTextControlsDisabledState(true);
+      this.setStatus(getMessage(this.globalConfig, "sendingText", "Sending text..."));
+      this.sendRealtimeTextInput(message);
+      return;
+    }
+
+    this.pendingTextMessages.push(message);
+    this.updateTextControlsDisabledState(true);
+    this.setStatus(getMessage(this.globalConfig, "sendingText", "Sending text..."));
+
+    if (this.state === "connecting") {
+      return;
+    }
+
+    this.start({ skipMicrophone: true, reason: "text" });
+  };
+
+  NavaiVoiceWidget.prototype.sendRealtimeTextInput = function (text) {
+    var message = asTrimmedString(text);
+    if (!message) {
+      return;
+    }
+    if (this.state !== "connected") {
+      this.pendingTextMessages.push(message);
+      return;
+    }
+
+    try {
+      this.sendRealtimeEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: message
+            }
+          ]
+        }
+      });
+      this.sendRealtimeEvent({ type: "response.create" });
+      if (this.activityState !== "speaking") {
+        this.setActivityState("idle");
+      }
+    } catch (error) {
+      this.appendLog("Failed to send text message: " + String(error), "error");
+      this.pendingTextMessages.unshift(message);
+    } finally {
+      this.updateTextControlsDisabledState(false);
+      this.updateStatusIndicator();
+    }
+  };
+
+  NavaiVoiceWidget.prototype.applyStateClass = function () {
+    this.container.classList.remove(
+      "is-idle",
+      "is-connecting",
+      "is-connected",
+      "is-error",
+      "is-listening",
+      "is-speaking",
+      "is-interrupted",
+      "is-text-mode",
+      "is-ptt-mode"
+    );
+
+    if (this.state === "connected") {
+      this.container.classList.add("is-connected");
+    } else if (this.state === "connecting") {
+      this.container.classList.add("is-connecting");
+    } else if (this.state === "error") {
+      this.container.classList.add("is-error");
+    } else {
+      this.container.classList.add("is-idle");
+    }
+
+    if (this.isPushToTalkMode()) {
+      this.container.classList.add("is-ptt-mode");
+    }
+
+    if (this.connectionMode === "text" && (this.state === "connected" || this.state === "connecting")) {
+      this.container.classList.add("is-text-mode");
+    }
+
+    if (this.state === "connected" && this.activityState === "listening") {
+      this.container.classList.add("is-listening");
+    } else if (this.state === "connected" && this.activityState === "speaking") {
+      this.container.classList.add("is-speaking");
+    } else if (this.state === "connected" && this.activityState === "interrupted") {
+      this.container.classList.add("is-interrupted");
+    }
   };
 
   NavaiVoiceWidget.prototype.storeActivePreference = function (enabled) {
@@ -158,6 +648,71 @@
     } catch (_error) {
       return false;
     }
+  };
+
+  NavaiVoiceWidget.prototype.getSessionStorageKey = function () {
+    if (this.widgetMode === "global") {
+      return GLOBAL_SESSION_KEY_STORAGE_KEY;
+    }
+    return GLOBAL_SESSION_KEY_STORAGE_KEY + "_" + this.widgetMode;
+  };
+
+  NavaiVoiceWidget.prototype.loadSessionKey = function () {
+    if (!this.storage) {
+      return "";
+    }
+
+    try {
+      var stored = this.storage.getItem(this.getSessionStorageKey());
+      if (typeof sanitizeSessionKey === "function") {
+        return sanitizeSessionKey(stored || "");
+      }
+      return asTrimmedString(stored);
+    } catch (_error) {
+      return "";
+    }
+  };
+
+  NavaiVoiceWidget.prototype.storeSessionKey = function (sessionKey) {
+    if (!this.storage) {
+      return;
+    }
+
+    var clean = typeof sanitizeSessionKey === "function" ? sanitizeSessionKey(sessionKey || "") : asTrimmedString(sessionKey);
+    if (!clean) {
+      return;
+    }
+
+    try {
+      this.storage.setItem(this.getSessionStorageKey(), clean);
+    } catch (_error) {
+      // noop
+    }
+  };
+
+  NavaiVoiceWidget.prototype.ensureSessionKey = function () {
+    var clean = typeof sanitizeSessionKey === "function" ? sanitizeSessionKey(this.sessionKey || "") : asTrimmedString(this.sessionKey);
+    if (!clean) {
+      clean = this.loadSessionKey();
+    }
+    if (!clean) {
+      clean = typeof generateSessionKey === "function"
+        ? generateSessionKey()
+        : ("navai_" + (Date.now ? Date.now() : new Date().getTime()) + "_" + Math.random().toString(36).slice(2, 10));
+    }
+
+    this.sessionKey = clean;
+    this.storeSessionKey(clean);
+    return clean;
+  };
+
+  NavaiVoiceWidget.prototype.setSessionKey = function (sessionKey) {
+    var clean = typeof sanitizeSessionKey === "function" ? sanitizeSessionKey(sessionKey || "") : asTrimmedString(sessionKey);
+    if (!clean) {
+      return;
+    }
+    this.sessionKey = clean;
+    this.storeSessionKey(clean);
   };
 
   NavaiVoiceWidget.prototype.appendLog = function (message, level) {
@@ -189,6 +744,8 @@
   NavaiVoiceWidget.prototype.refreshButton = function () {
     if (!this.button) {
       this.applyStateClass();
+      this.updatePttButton();
+      this.updateTextControlsDisabledState(false);
       return;
     }
 
@@ -200,6 +757,8 @@
       this.button.setAttribute("aria-pressed", "false");
       this.button.setAttribute("aria-label", this.startLabel);
       this.applyStateClass();
+      this.updatePttButton();
+      this.updateTextControlsDisabledState(true);
       return;
     }
 
@@ -209,30 +768,52 @@
     this.button.setAttribute("aria-pressed", this.state === "connected" ? "true" : "false");
     this.button.setAttribute("aria-label", buttonText);
     this.applyStateClass();
+    this.updatePttButton();
+    this.updateTextControlsDisabledState(false);
   };
 
-  NavaiVoiceWidget.prototype.start = async function () {
+  NavaiVoiceWidget.prototype.start = async function (options) {
     if (this.state === "connecting" || this.state === "connected") {
       return;
     }
 
+    var startOptions = isRecord(options) ? options : {};
+    var skipMicrophone = !!startOptions.skipMicrophone;
+
     if (!window.RTCPeerConnection) {
       this.storeActivePreference(false);
       this.setStatus("WebRTC is not supported in this browser.");
+      this.updateTextControlsDisabledState(false);
       return;
     }
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (!skipMicrophone && (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
       this.storeActivePreference(false);
       this.setStatus("Microphone capture is not supported in this browser.");
+      this.updateTextControlsDisabledState(false);
       return;
     }
 
     this.state = "connecting";
+    this.connectionMode = skipMicrophone ? "text" : "voice";
+    this.activityState = "idle";
+    this.pttPressed = false;
     this.navigationInProgress = false;
     this.storeActivePreference(true);
     this.refreshButton();
+    this.updateStatusIndicator();
     this.handledCalls = {};
+    this.ensureSessionKey();
+    this.queueSessionMessage({
+      direction: "system",
+      message_type: "event",
+      content_text: "Widget start requested.",
+      content_json: {
+        type: "widget_start",
+        widget_mode: this.widgetMode,
+        connection_mode: this.connectionMode
+      }
+    });
 
     try {
       this.setStatus(getMessage(this.globalConfig, "requestingSecret", "Requesting client secret..."));
@@ -265,11 +846,17 @@
       var secretInput = this.resolveClientSecretInput();
       var model = asTrimmedString(secretInput.model) || DEFAULT_MODEL;
       var secret = await requestClientSecret(this.globalConfig, secretInput);
+      if (secret && secret.session && typeof secret.session.key === "string") {
+        this.setSessionKey(secret.session.key);
+      }
 
-      this.setStatus(getMessage(this.globalConfig, "requestingMicrophone", "Requesting microphone permission..."));
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        audio: true
-      });
+      this.localStream = null;
+      if (!skipMicrophone) {
+        this.setStatus(getMessage(this.globalConfig, "requestingMicrophone", "Requesting microphone permission..."));
+        this.localStream = await navigator.mediaDevices.getUserMedia({
+          audio: true
+        });
+      }
 
       this.setStatus(getMessage(this.globalConfig, "connectingRealtime", "Connecting realtime session..."));
       await this.openRealtimeSession(secret.value, model);
@@ -277,14 +864,38 @@
       this.state = "connected";
       this.storeActivePreference(true);
       this.refreshButton();
-      this.setStatus(getMessage(this.globalConfig, "connected", "Connected"));
+      this.setActivityState("idle");
+      this.updateStatusIndicator();
+      this.queueSessionMessage({
+        direction: "system",
+        message_type: "event",
+        content_text: "Realtime session connected.",
+        content_json: {
+          type: "realtime_connected",
+          model: model,
+          connection_mode: this.connectionMode
+        }
+      });
+      this.flushPendingTextMessages();
     } catch (error) {
       this.appendLog("Failed to start voice: " + String(error), "error");
       this.stopInternal();
       this.state = "error";
+      this.connectionMode = skipMicrophone ? "text" : "voice";
       this.storeActivePreference(false);
       this.refreshButton();
       this.setStatus(getMessage(this.globalConfig, "failed", "Failed to start voice session."));
+      this.updateTextControlsDisabledState(false);
+      this.queueSessionMessage({
+        direction: "system",
+        message_type: "event",
+        content_text: "Widget failed to start.",
+        content_json: {
+          type: "widget_start_failed",
+          error: String(error),
+          connection_mode: this.connectionMode
+        }
+      });
     }
   };
 
@@ -297,13 +908,32 @@
     var keepActiveAcrossNavigation = this.navigationInProgress;
     this.stopInternal();
     this.state = "idle";
+    this.connectionMode = "voice";
+    this.activityState = "idle";
     this.storeActivePreference(keepActiveAcrossNavigation);
     this.navigationInProgress = false;
     this.refreshButton();
     this.setStatus(getMessage(this.globalConfig, "stopped", "Stopped"));
+    this.queueSessionMessage({
+      direction: "system",
+      message_type: "event",
+      content_text: "Widget stopped.",
+      content_json: {
+        type: "widget_stopped",
+        navigated: !!keepActiveAcrossNavigation
+      }
+    });
+    this.flushSessionMessages(false);
   };
 
   NavaiVoiceWidget.prototype.stopInternal = function () {
+    if (this.sessionFlushTimer) {
+      window.clearTimeout(this.sessionFlushTimer);
+      this.sessionFlushTimer = 0;
+    }
+    this.clearInterruptedStateTimer();
+    this.pttPressed = false;
+
     if (this.eventsChannel) {
       try {
         this.eventsChannel.close();
@@ -339,6 +969,8 @@
 
     this.directAliases = [];
     this.handledCalls = {};
+    this.updatePttButton();
+    this.updateTextControlsDisabledState(false);
   };
 
   NavaiVoiceWidget.prototype.resolveClientSecretInput = function () {
@@ -370,6 +1002,9 @@
     if (voiceTone) {
       input.voiceTone = voiceTone;
     }
+    if (this.ensureSessionKey()) {
+      input.session_key = this.sessionKey;
+    }
 
     return input;
   };
@@ -386,9 +1021,13 @@
     this.peerConnection.ontrack = this.handlePeerTrack.bind(this);
     this.peerConnection.onconnectionstatechange = this.handleConnectionStateChange.bind(this);
 
-    var tracks = this.localStream.getTracks();
-    for (var i = 0; i < tracks.length; i += 1) {
-      this.peerConnection.addTrack(tracks[i], this.localStream);
+    if (this.localStream && typeof this.localStream.getTracks === "function") {
+      var tracks = this.localStream.getTracks();
+      for (var i = 0; i < tracks.length; i += 1) {
+        this.peerConnection.addTrack(tracks[i], this.localStream);
+      }
+    } else if (typeof this.peerConnection.addTransceiver === "function") {
+      this.peerConnection.addTransceiver("audio", { direction: "recvonly" });
     }
 
     var channelReadyPromise = this.createEventsChannel();
@@ -484,6 +1123,7 @@
     var defaults = isRecord(this.globalConfig.defaults) ? this.globalConfig.defaults : {};
     var baseInstructions = this.instructionsOverride || asTrimmedString(defaults.instructions);
     var voice = this.voiceOverride || asTrimmedString(defaults.voice);
+    var turnDetection = this.buildTurnDetectionConfig();
     var toolsResult = buildToolDefinitions(this.routes, this.backendFunctions);
     this.directAliases = toolsResult.directAliases;
 
@@ -507,6 +1147,8 @@
       };
     }
 
+    session.turn_detection = turnDetection;
+
     this.sendRealtimeEvent({
       type: "session.update",
       session: session
@@ -523,6 +1165,76 @@
     this.appendLog("sent: " + payload, "info");
   };
 
+  NavaiVoiceWidget.prototype.updateRealtimeActivityFromEvent = function (type, event) {
+    if (this.state !== "connected") {
+      return;
+    }
+
+    var normalizedType = asTrimmedString(type).toLowerCase();
+    if (!normalizedType) {
+      return;
+    }
+
+    if (normalizedType === "session.created" || normalizedType === "session.updated") {
+      this.flushPendingTextMessages();
+      this.updateStatusIndicator();
+      return;
+    }
+
+    if (normalizedType === "input_audio_buffer.speech_started" || normalizedType === "conversation.item.input_audio_transcription.started") {
+      this.setActivityState("listening");
+      return;
+    }
+
+    if (
+      normalizedType === "conversation.interrupted" ||
+      normalizedType === "output_audio_buffer.cleared" ||
+      normalizedType === "response.canceled" ||
+      normalizedType === "response.cancelled"
+    ) {
+      this.setActivityState("interrupted");
+      return;
+    }
+
+    if (
+      normalizedType === "response.audio.delta" ||
+      normalizedType === "response.audio_transcript.delta" ||
+      normalizedType === "response.output_text.delta" ||
+      normalizedType === "response.text.delta"
+    ) {
+      this.setActivityState("speaking");
+      return;
+    }
+
+    if (normalizedType === "response.created") {
+      this.setActivityState("speaking");
+      return;
+    }
+
+    if (normalizedType === "input_audio_buffer.speech_stopped") {
+      if (this.pttPressed) {
+        this.setActivityState("listening");
+      } else if (this.activityState !== "speaking") {
+        this.setActivityState("idle");
+      }
+      return;
+    }
+
+    if (normalizedType === "response.audio.done" || normalizedType === "response.done") {
+      this.setActivityState(this.pttPressed ? "listening" : "idle");
+      return;
+    }
+
+    if (normalizedType === "error") {
+      this.setActivityState("idle");
+      return;
+    }
+
+    if (normalizedType === "response.output_item.done" && isRecord(event) && isRecord(event.item) && event.item.type === "message") {
+      this.setActivityState(this.pttPressed ? "listening" : "idle");
+    }
+  };
+
   NavaiVoiceWidget.prototype.handleRealtimeEvent = function (rawEvent) {
     var parsed = parseJsonSafe(rawEvent);
     if (!isRecord(parsed)) {
@@ -534,6 +1246,12 @@
     if (!type) {
       return;
     }
+
+    var sessionMessages = this.extractSessionMessagesFromRealtimeEvent(parsed);
+    for (var s = 0; s < sessionMessages.length; s += 1) {
+      this.queueSessionMessage(sessionMessages[s]);
+    }
+    this.updateRealtimeActivityFromEvent(type, parsed);
 
     if (type === "error") {
       var errorMessage = "Realtime error event received.";
@@ -579,6 +1297,211 @@
         });
       }
     }
+  };
+
+  NavaiVoiceWidget.prototype.extractSessionMessagesFromRealtimeEvent = function (event) {
+    var messages = [];
+    var type = asTrimmedString(event && event.type);
+    if (!type) {
+      return messages;
+    }
+
+    function push(direction, messageType, contentText, contentJson, meta) {
+      messages.push({
+        direction: direction,
+        message_type: messageType,
+        content_text: contentText || "",
+        content_json: contentJson || null,
+        meta: meta || null
+      });
+    }
+
+    if (type === "conversation.item.input_audio_transcription.completed") {
+      push(
+        "user",
+        "text",
+        asTrimmedString(event.transcript || ""),
+        {
+          type: type,
+          transcript: event.transcript || ""
+        },
+        {
+          item_id: event.item_id || null
+        }
+      );
+      return messages;
+    }
+
+    if (type === "response.audio_transcript.done" || type === "response.output_text.done" || type === "response.text.done") {
+      var text = asTrimmedString(event.transcript || event.text || "");
+      push(
+        "assistant",
+        "text",
+        text,
+        {
+          type: type,
+          transcript: event.transcript || null,
+          text: event.text || null
+        },
+        {
+          response_id: event.response_id || null,
+          item_id: event.item_id || null
+        }
+      );
+      return messages;
+    }
+
+    if (type === "response.function_call_arguments.done") {
+      push(
+        "tool",
+        "tool_call",
+        asTrimmedString(event.name || ""),
+        {
+          type: type,
+          name: event.name || "",
+          call_id: event.call_id || "",
+          arguments: event.arguments || null
+        },
+        null
+      );
+      return messages;
+    }
+
+    if (type === "response.output_item.done" && isRecord(event.item) && event.item.type === "function_call") {
+      push(
+        "tool",
+        "tool_call",
+        asTrimmedString(event.item.name || ""),
+        {
+          type: type,
+          item: event.item
+        },
+        null
+      );
+      return messages;
+    }
+
+    if (type === "error") {
+      var errorMessage = "";
+      if (isRecord(event.error) && typeof event.error.message === "string") {
+        errorMessage = event.error.message;
+      }
+      push(
+        "system",
+        "event",
+        errorMessage || "Realtime error event",
+        {
+          type: type,
+          error: event.error || null
+        },
+        null
+      );
+      return messages;
+    }
+
+    if (type === "session.created" || type === "session.updated" || type === "response.done") {
+      push(
+        "system",
+        "event",
+        type,
+        {
+          type: type
+        },
+        null
+      );
+    }
+
+    return messages;
+  };
+
+  NavaiVoiceWidget.prototype.queueSessionMessage = function (message) {
+    if (!message || typeof message !== "object") {
+      return;
+    }
+
+    if (this.globalConfig && this.globalConfig.sessionMemoryEnabled === false) {
+      return;
+    }
+
+    if (!this.ensureSessionKey()) {
+      return;
+    }
+
+    this.sessionMessageQueue.push(message);
+    if (this.sessionMessageQueue.length > 60) {
+      this.sessionMessageQueue = this.sessionMessageQueue.slice(this.sessionMessageQueue.length - 60);
+    }
+    this.scheduleSessionFlush();
+  };
+
+  NavaiVoiceWidget.prototype.scheduleSessionFlush = function () {
+    if (this.sessionFlushInFlight || this.sessionFlushTimer) {
+      return;
+    }
+
+    var widget = this;
+    this.sessionFlushTimer = window.setTimeout(function () {
+      widget.sessionFlushTimer = 0;
+      widget.flushSessionMessages(false);
+    }, 700);
+  };
+
+  NavaiVoiceWidget.prototype.flushSessionMessages = function (syncMode) {
+    if (!Array.isArray(this.sessionMessageQueue) || this.sessionMessageQueue.length === 0) {
+      return;
+    }
+    if (this.sessionFlushInFlight) {
+      return;
+    }
+    if (typeof sendSessionMessages !== "function") {
+      return;
+    }
+
+    var sessionKey = this.ensureSessionKey();
+    if (!sessionKey) {
+      return;
+    }
+
+    var batch = this.sessionMessageQueue.splice(0, 20);
+    if (!batch.length) {
+      return;
+    }
+
+    if (syncMode && navigator && typeof navigator.sendBeacon === "function" && this.globalConfig && this.globalConfig.restBaseUrl) {
+      try {
+        var url = String(this.globalConfig.restBaseUrl).replace(/\/+$/, "") + "/sessions";
+        var body = safeJsonStringify({
+          session_key: sessionKey,
+          items: batch
+        });
+        navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
+      } catch (_error) {
+        // noop
+      }
+      return;
+    }
+
+    this.sessionFlushInFlight = true;
+    var widget = this;
+    sendSessionMessages(this.globalConfig, sessionKey, batch)
+      .then(function (response) {
+        if (!isRecord(response) || response.ok === false) {
+          widget.sessionMessageQueue = batch.concat(widget.sessionMessageQueue);
+          return;
+        }
+        if (isRecord(response) && isRecord(response.session) && typeof response.session.session_key === "string") {
+          widget.setSessionKey(response.session.session_key);
+        }
+      })
+      .catch(function () {
+        widget.sessionMessageQueue = batch.concat(widget.sessionMessageQueue);
+      })
+      .finally(function () {
+        widget.sessionFlushInFlight = false;
+        if (widget.sessionMessageQueue.length > 0) {
+          widget.scheduleSessionFlush();
+        }
+      });
   };
 
   NavaiVoiceWidget.prototype.processFunctionCall = function (input) {
@@ -691,7 +1614,12 @@
     }
 
     try {
-      var backendResult = await executeBackendFunction(this.globalConfig, cleanName, payload);
+      var backendResult = await executeBackendFunction(this.globalConfig, cleanName, payload, {
+        sessionKey: this.ensureSessionKey()
+      });
+      if (isRecord(backendResult) && isRecord(backendResult.session) && typeof backendResult.session.key === "string") {
+        this.setSessionKey(backendResult.session.key);
+      }
       return await this.maybeExecuteClientFunctionCode(cleanName, payload, backendResult);
     } catch (error) {
       return {

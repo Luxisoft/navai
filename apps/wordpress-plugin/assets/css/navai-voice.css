@@ -72,11 +72,142 @@
   background: var(--navai-btn-error-color);
 }
 
+.navai-voice-widget.is-listening .navai-voice-toggle {
+  box-shadow: 0 0 0 3px rgba(18, 99, 220, 0.16);
+}
+
+.navai-voice-widget.is-speaking .navai-voice-toggle {
+  box-shadow: 0 0 0 3px rgba(16, 136, 63, 0.18), 0 0 0 8px rgba(16, 136, 63, 0.08);
+}
+
+.navai-voice-widget.is-speaking .navai-voice-toggle-icon {
+  animation: navai-voice-pulse 1s ease-in-out infinite;
+}
+
+.navai-voice-widget.is-interrupted .navai-voice-toggle {
+  box-shadow: 0 0 0 3px rgba(186, 46, 46, 0.16);
+  filter: saturate(1.1);
+}
+
+.navai-voice-widget.is-interrupted .navai-voice-toggle-icon {
+  animation: navai-voice-shake 0.25s ease-in-out 2;
+}
+
+.navai-voice-widget.is-text-mode .navai-voice-toggle {
+  opacity: 0.92;
+}
+
 .navai-voice-status {
   margin: 0;
   color: #2f2f2f;
   font-size: 0.9rem;
   line-height: 1.35;
+}
+
+.navai-voice-widget.is-listening .navai-voice-status {
+  color: #0f58bc;
+}
+
+.navai-voice-widget.is-speaking .navai-voice-status {
+  color: #0f7a39;
+}
+
+.navai-voice-widget.is-interrupted .navai-voice-status {
+  color: #a42626;
+}
+
+.navai-voice-ptt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid #d2d9e5;
+  background: #f5f7fb;
+  color: #233044;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  font-weight: 600;
+  line-height: 1.15;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.navai-voice-ptt:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.navai-voice-ptt .dashicons {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.navai-voice-ptt.is-active {
+  background: #ecf4ff;
+  border-color: #a8c8f1;
+  box-shadow: 0 0 0 3px rgba(18, 99, 220, 0.12);
+}
+
+.navai-voice-widget.is-interrupted .navai-voice-ptt {
+  border-color: #e9b3b3;
+  background: #fff3f3;
+}
+
+.navai-voice-text-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.navai-voice-text-input {
+  min-width: 0;
+  border: 1px solid #cfd7e4;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  color: #1e2a39;
+}
+
+.navai-voice-text-input:focus {
+  outline: none;
+  border-color: #1263dc;
+  box-shadow: 0 0 0 3px rgba(18, 99, 220, 0.14);
+}
+
+.navai-voice-text-input:disabled {
+  background: #f5f7fa;
+  color: #6a7483;
+}
+
+.navai-voice-text-send {
+  border: 0;
+  background: #1b2a43;
+  color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.navai-voice-text-send:hover:not(:disabled),
+.navai-voice-text-send:focus-visible:not(:disabled) {
+  background: #0f1c33;
+}
+
+.navai-voice-text-send:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.navai-voice-text-send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .navai-voice-log {
@@ -126,6 +257,22 @@
   box-shadow: 0 8px 18px rgba(8, 29, 59, 0.22);
 }
 
+.navai-voice-widget--floating .navai-voice-ptt {
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 0.65rem 0.95rem;
+  box-shadow: 0 6px 14px rgba(8, 29, 59, 0.12);
+}
+
+.navai-voice-widget--floating .navai-voice-text-form {
+  width: min(88vw, 360px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d9e1ec;
+  border-radius: 0.85rem;
+  padding: 0.5rem;
+  box-shadow: 0 10px 22px rgba(8, 29, 59, 0.12);
+}
+
 .navai-voice-widget--floating[data-show-text="0"] .navai-voice-toggle {
   width: 52px;
   min-width: 52px;
@@ -152,5 +299,43 @@
 
   .navai-voice-widget--floating.navai-voice-widget--side-right {
     right: 14px;
+  }
+
+  .navai-voice-text-form {
+    grid-template-columns: 1fr;
+  }
+
+  .navai-voice-text-send {
+    width: 100%;
+  }
+}
+
+@keyframes navai-voice-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes navai-voice-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1px);
+  }
+  75% {
+    transform: translateX(1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navai-voice-widget.is-speaking .navai-voice-toggle-icon,
+  .navai-voice-widget.is-interrupted .navai-voice-toggle-icon {
+    animation: none !important;
   }
 }

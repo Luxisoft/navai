@@ -29,8 +29,36 @@ trait Navai_Voice_Settings_Render_Page_Trait
         if (trim($frontendButtonTextActive) === '') {
             $frontendButtonTextActive = 'Stop NAVAI';
         }
+        $frontendVoiceInputMode = $this->sanitize_frontend_voice_input_mode($settings['frontend_voice_input_mode'] ?? 'vad');
+        $frontendTextInputEnabled = !array_key_exists('frontend_text_input_enabled', $settings) || !empty($settings['frontend_text_input_enabled']);
+        $frontendTextPlaceholder = sanitize_text_field((string) ($settings['frontend_text_placeholder'] ?? 'Escribe un mensaje...'));
+        if (trim($frontendTextPlaceholder) === '') {
+            $frontendTextPlaceholder = 'Escribe un mensaje...';
+        }
+        $realtimeTurnDetectionMode = $this->sanitize_realtime_turn_detection_mode($settings['realtime_turn_detection_mode'] ?? 'server_vad');
+        $realtimeInterruptResponse = !array_key_exists('realtime_interrupt_response', $settings) || !empty($settings['realtime_interrupt_response']);
+        $realtimeVadThreshold = $this->sanitize_float_range_value($settings['realtime_vad_threshold'] ?? 0.5, 0.5, 0.1, 0.99, 2);
+        $realtimeVadSilenceDurationMs = $this->sanitize_int_range_value($settings['realtime_vad_silence_duration_ms'] ?? 800, 800, 100, 5000);
+        $realtimeVadPrefixPaddingMs = $this->sanitize_int_range_value($settings['realtime_vad_prefix_padding_ms'] ?? 300, 300, 0, 2000);
         $dashboardLanguage = $this->sanitize_dashboard_language($settings['dashboard_language'] ?? 'en');
         $guardrailsEnabled = !array_key_exists('enable_guardrails', $settings) || !empty($settings['enable_guardrails']);
+        $approvalsEnabled = !array_key_exists('enable_approvals', $settings) || !empty($settings['enable_approvals']);
+        $tracingEnabled = !array_key_exists('enable_tracing', $settings) || !empty($settings['enable_tracing']);
+        $sessionMemoryEnabled = !array_key_exists('enable_session_memory', $settings) || !empty($settings['enable_session_memory']);
+        $agentsEnabled = !array_key_exists('enable_agents', $settings) || !empty($settings['enable_agents']);
+        $mcpEnabled = !array_key_exists('enable_mcp', $settings) || !empty($settings['enable_mcp']);
+        $sessionTtlMinutes = isset($settings['session_ttl_minutes']) && is_numeric($settings['session_ttl_minutes'])
+            ? (int) $settings['session_ttl_minutes']
+            : 1440;
+        $sessionRetentionDays = isset($settings['session_retention_days']) && is_numeric($settings['session_retention_days'])
+            ? (int) $settings['session_retention_days']
+            : 30;
+        $sessionCompactionThreshold = isset($settings['session_compaction_threshold']) && is_numeric($settings['session_compaction_threshold'])
+            ? (int) $settings['session_compaction_threshold']
+            : 120;
+        $sessionCompactionKeepRecent = isset($settings['session_compaction_keep_recent']) && is_numeric($settings['session_compaction_keep_recent'])
+            ? (int) $settings['session_compaction_keep_recent']
+            : 80;
         $normalizeSearchableOptions = static function (array $options, string $selected): array {
             $cleanOptions = array_values(array_unique(array_filter(array_map(
                 static fn($value): string => sanitize_text_field((string) $value),
@@ -115,6 +143,21 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 </button>
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="safety">
                                     <?php echo esc_html__('Seguridad', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="approvals">
+                                    <?php echo esc_html__('Aprobaciones', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="traces">
+                                    <?php echo esc_html__('Trazas', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="history">
+                                    <?php echo esc_html__('Historial', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="agents">
+                                    <?php echo esc_html__('Agentes', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="mcp">
+                                    <?php echo esc_html__('MCP', 'navai-voice'); ?>
                                 </button>
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="settings">
                                     <?php echo esc_html__('Ajustes', 'navai-voice'); ?>
@@ -640,6 +683,11 @@ trait Navai_Voice_Settings_Render_Page_Trait
 
                 <?php require __DIR__ . '/../views/admin/navai-settings-panel-plugins.php'; ?>
                 <?php require __DIR__ . '/../views/admin/navai-settings-panel-safety.php'; ?>
+                <?php require __DIR__ . '/../views/admin/navai-settings-panel-approvals.php'; ?>
+                <?php require __DIR__ . '/../views/admin/navai-settings-panel-traces.php'; ?>
+                <?php require __DIR__ . '/../views/admin/navai-settings-panel-history.php'; ?>
+                <?php require __DIR__ . '/../views/admin/navai-settings-panel-agents.php'; ?>
+                <?php require __DIR__ . '/../views/admin/navai-settings-panel-mcp.php'; ?>
                 <section class="navai-admin-panel" data-navai-panel="settings">
                     <h2><?php echo esc_html__('Ajustes', 'navai-voice'); ?></h2>
                     <p><?php echo esc_html__('Configuracion principal del runtime de voz.', 'navai-voice'); ?></p>
@@ -990,6 +1038,105 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 value="<?php echo esc_attr($frontendButtonTextActive); ?>"
                             />
                         </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Modo de entrada de voz', 'navai-voice'); ?></span>
+                            <select name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_voice_input_mode]">
+                                <option value="vad" <?php selected($frontendVoiceInputMode, 'vad'); ?>>
+                                    <?php echo esc_html__('Microfono abierto (VAD)', 'navai-voice'); ?>
+                                </option>
+                                <option value="ptt" <?php selected($frontendVoiceInputMode, 'ptt'); ?>>
+                                    <?php echo esc_html__('Push-to-talk (mantener pulsado)', 'navai-voice'); ?>
+                                </option>
+                            </select>
+                        </label>
+
+                        <label class="navai-admin-check">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_text_input_enabled]"
+                                value="1"
+                                <?php checked($frontendTextInputEnabled, true); ?>
+                            />
+                            <span><?php echo esc_html__('Habilitar input de texto (modo hibrido)', 'navai-voice'); ?></span>
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Placeholder del input de texto', 'navai-voice'); ?></span>
+                            <input
+                                class="regular-text"
+                                type="text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_text_placeholder]"
+                                value="<?php echo esc_attr($frontendTextPlaceholder); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Turn detection', 'navai-voice'); ?></span>
+                            <select name="<?php echo esc_attr(self::OPTION_KEY); ?>[realtime_turn_detection_mode]">
+                                <option value="server_vad" <?php selected($realtimeTurnDetectionMode, 'server_vad'); ?>>
+                                    <?php echo esc_html__('Server VAD', 'navai-voice'); ?>
+                                </option>
+                                <option value="semantic_vad" <?php selected($realtimeTurnDetectionMode, 'semantic_vad'); ?>>
+                                    <?php echo esc_html__('Semantic VAD', 'navai-voice'); ?>
+                                </option>
+                                <option value="none" <?php selected($realtimeTurnDetectionMode, 'none'); ?>>
+                                    <?php echo esc_html__('Desactivado (manual/PTT)', 'navai-voice'); ?>
+                                </option>
+                            </select>
+                        </label>
+
+                        <label class="navai-admin-check">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[realtime_interrupt_response]"
+                                value="1"
+                                <?php checked($realtimeInterruptResponse, true); ?>
+                            />
+                            <span><?php echo esc_html__('Permitir interrumpir la respuesta al hablar', 'navai-voice'); ?></span>
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Sensibilidad VAD (0.10 - 0.99)', 'navai-voice'); ?></span>
+                            <input
+                                type="number"
+                                min="0.1"
+                                max="0.99"
+                                step="0.01"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[realtime_vad_threshold]"
+                                value="<?php echo esc_attr(number_format((float) $realtimeVadThreshold, 2, '.', '')); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Silencio para cortar turno (ms)', 'navai-voice'); ?></span>
+                            <input
+                                type="number"
+                                min="100"
+                                max="5000"
+                                step="50"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[realtime_vad_silence_duration_ms]"
+                                value="<?php echo esc_attr((string) $realtimeVadSilenceDurationMs); ?>"
+                            />
+                        </label>
+
+                        <label>
+                            <span><?php echo esc_html__('Prefijo VAD (ms)', 'navai-voice'); ?></span>
+                            <input
+                                type="number"
+                                min="0"
+                                max="2000"
+                                step="50"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[realtime_vad_prefix_padding_ms]"
+                                value="<?php echo esc_attr((string) $realtimeVadPrefixPaddingMs); ?>"
+                            />
+                        </label>
+
+                        <div class="navai-admin-full-width">
+                            <p class="description navai-admin-description">
+                                <?php echo esc_html__('Los ajustes de VAD aplican cuando el modo de voz usa microfono abierto. En Push-to-talk, el envio del turno es manual.', 'navai-voice'); ?>
+                            </p>
+                        </div>
                             </div>
                         </section>
 

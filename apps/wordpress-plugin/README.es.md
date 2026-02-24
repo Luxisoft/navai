@@ -26,7 +26,7 @@ El plugin esta implementado en PHP (servidor) y JavaScript vanilla (navegador) p
 - `Instalar`: [WordPress admin](#instalacion-desde-wordpress-admin) | [Manual](#instalacion-manual-filesystem)
 - `Configurar`: [Configuracion rapida](#configuracion-rapida-recomendada)
 - `Usar`: [Boton global flotante](#opcion-a-boton-global-flotante) | [Shortcode](#opcion-b-shortcode)
-- `Tabs admin`: [Navegacion](#tab-navegacion-rutas-permitidas-para-la-ia) | [Funciones](#tab-funciones-funciones-personalizadas) | [Seguridad](#tab-seguridad-guardrails-fase-1) | [Ajustes](#resumen-del-panel-de-administracion)
+- `Tabs admin`: [Navegacion](#tab-navegacion-rutas-permitidas-para-la-ia) | [Funciones](#tab-funciones-funciones-personalizadas) | [Seguridad](#tab-seguridad-guardrails-fase-1) | [Aprobaciones](#fases-integradas-fase-2-a-fase-7) | [Trazas](#fases-integradas-fase-2-a-fase-7) | [Historial](#fases-integradas-fase-2-a-fase-7) | [Agentes](#fases-integradas-fase-2-a-fase-7) | [MCP](#fases-integradas-fase-2-a-fase-7)
 - `Desarrollo`: [Endpoints REST](#endpoints-rest-actuales) | [Extensibilidad backend](#extensibilidad-backend-filters)
 - `Operaciones`: [Generar ZIP](#generar-zip-instalable-powershell) | [Problemas comunes](#troubleshooting--problemas-comunes)
 
@@ -117,6 +117,11 @@ Esto sirve para evitar que NAVAI ejecute acciones destructivas en funciones back
 - Bloquear llamadas a funciones (`/functions/execute`) cuando una regla de guardrail coincide.
 - Probar reglas de guardrails desde el panel admin (`Seguridad > Probar reglas`).
 - Registrar eventos minimos de bloqueo (`guardrail_blocked`) en base de datos para trazabilidad basica.
+- Gestionar aprobaciones humanas (HITL) para funciones sensibles (`pending`, `approved`, `rejected`) y ejecutar la accion pendiente desde el panel.
+- Consultar trazas de runtime (tool_start, tool_success, tool_error, guardrails, approvals, handoffs, MCP bloqueado) para depuracion.
+- Persistir sesiones, transcriptos y tool calls con retencion/limpieza y vista de historial.
+- Configurar agentes especialistas con allowlist de tools/rutas y reglas de handoff por intencion/contexto.
+- Integrar servidores MCP (JSON-RPC HTTP), sincronizar tools remotas y restringir su uso con allowlist/denylist por rol/agente.
 - Usar endpoints REST integrados para client secret, rutas, listado de funciones y ejecucion.
 
 ## Requisitos
@@ -131,7 +136,7 @@ El plugin agrega un item en el menu lateral:
 
 - `NAVAI Voice`
 
-El dashboard tiene cuatro tabs principales y controles extra:
+El dashboard tiene tabs operativas por fases y controles extra:
 
 - `Navegacion`
   - Rutas publicas desde menus de WordPress
@@ -149,6 +154,26 @@ El dashboard tiene cuatro tabs principales y controles extra:
   - Scopes `input`, `tool`, `output`
   - Filtros por rol y por plugin/funcion
   - Probador de reglas (`Probar reglas`) con texto/payload JSON
+- `Aprobaciones` (Fase 2)
+  - Cola de solicitudes `pending`
+  - Aprobar/rechazar funciones sensibles
+  - Detalle de payload, trace y resultado de ejecucion
+- `Trazas` (Fase 2)
+  - Timeline por `trace_id`
+  - Eventos de tools, guardrails, approvals y handoffs
+  - Filtros por evento/severidad
+- `Historial` (Fase 3)
+  - Sesiones persistidas y transcriptos
+  - Limpieza por sesion
+  - Retencion y compactacion
+- `Agentes` (Fase 6)
+  - CRUD de agentes especialistas
+  - Allowlists de tools y rutas
+  - Reglas de handoff por intencion/contexto
+- `MCP` (Fase 7)
+  - CRUD de servidores MCP (URL, auth, timeouts)
+  - Health check + sync/listado de tools remotas
+  - Politicas allow/deny por `tool`, rol y `agent_key`
 - `Ajustes`
   - Conexion/runtime (API key, modelo, voz, selector buscable de idioma, acento, tono, TTL)
   - Widget global (modo, lado, colores, textos)
@@ -397,6 +422,177 @@ En `Seguridad > Probar reglas` puedes enviar:
 
 Esto llama al endpoint de prueba y devuelve si la regla haria match (`blocked`, `matched_count`, `matches`).
 
+## Fases integradas (Fase 2 a Fase 7)
+
+Esta version ya integra las fases avanzadas del roadmap. Abajo tienes para que sirve cada una, como usarla y ejemplos de uso en WordPress.
+
+### Fase 2: Aprobaciones (HITL) + Trazas basicas
+
+#### Aprobaciones: para que sirve
+
+- Evita ejecutar automaticamente funciones sensibles.
+- Permite que un admin revise el payload antes de aprobar.
+- Guarda estado y resultado para auditoria.
+
+#### Aprobaciones: como usarla
+
+1. En `Funciones`, marca una funcion con `Requiere aprobacion`.
+2. En `Aprobaciones`, activa `Activar aprobaciones para funciones sensibles`.
+3. Cuando NAVAI intente ejecutar la funcion, se crea una solicitud `pending`.
+4. En la tab `Aprobaciones`, abre `Ver detalle`.
+5. Revisa payload, trace y funcion solicitada.
+6. Haz `Aprobar` o `Rechazar`.
+
+Nota: al aprobar, el plugin puede ejecutar la funcion pendiente en ese momento (flujo por defecto).
+
+#### Aprobaciones: ejemplos en WordPress
+
+- WooCommerce: aprobar devoluciones, cancelaciones o cambios de pedido.
+- Membership: aprobar cambios de plan o extension manual.
+- CRM/ERP: aprobar sincronizaciones manuales o reenvio de datos.
+- Soporte: aprobar una accion que cree/edite tickets en sistemas externos.
+
+#### Trazas: para que sirve
+
+- Ver que ocurrio en cada llamada (inicio, exito, error, bloqueos).
+- Depurar por que una tool fue bloqueada por guardrail, agente o MCP.
+- Seguir handoffs entre agentes.
+
+#### Trazas: como usarla
+
+1. Activa `Trazas` desde la tab `Trazas`.
+2. Ejecuta pruebas desde widget o panel.
+3. Abre la tab `Trazas`.
+4. Filtra por evento/severidad.
+5. Entra al `timeline` del `trace_id` para ver la secuencia completa.
+
+#### Trazas: ejemplos en WordPress
+
+- "La funcion de pedidos falla": ver `tool_error` y payload de entrada.
+- "No navega a una pagina privada": validar guardrails/roles/ruta.
+- "Se delego al agente incorrecto": revisar evento `agent_handoff`.
+
+### Fase 3: Sesiones + memoria + transcript
+
+#### Para que sirve
+
+- Mantiene contexto entre interacciones del usuario.
+- Guarda transcriptos y tool calls para soporte/analisis.
+- Permite retencion y limpieza por cumplimiento u operacion.
+
+#### Como usarla
+
+1. Activa `Historial` / memoria de sesiones.
+2. Configura `TTL`, `Retencion` y compactacion.
+3. Usa el widget (texto/voz) normalmente.
+4. Abre `Historial` para revisar sesiones y mensajes.
+5. Usa `Limpiar sesion` o `Aplicar retencion` cuando necesites.
+
+#### Ejemplos en WordPress
+
+- Soporte: revisar que dijo un usuario antes de una escalacion.
+- Ecommerce: ver la secuencia de acciones antes de una compra fallida.
+- Admin interno: auditar que tools uso NAVAI durante una tarea.
+
+### Fase 4: UX de voz avanzada + texto/voz
+
+#### Para que sirve
+
+- Mejora la experiencia realtime (VAD, interrupciones, modo texto).
+- Permite usar texto como fallback sin perder sesion.
+
+#### Como usarla
+
+1. En `Ajustes`, define modo de deteccion de turno y parametros VAD.
+2. Activa/desactiva interrupciones segun tu caso.
+3. Activa input de texto para fallback.
+4. Prueba continuidad entre texto y voz en una misma sesion.
+
+#### Ejemplos en WordPress
+
+- Call center interno: voz con interrupciones habilitadas.
+- Backoffice silencioso: usar solo texto manteniendo memoria.
+- Sitio publico: voz + texto para accesibilidad.
+
+### Fase 5: Funciones JS/PHP robustas (schema, timeout, retries, test)
+
+#### Para que sirve
+
+- Reduce errores de payload con validacion por schema.
+- Controla tiempo de ejecucion y reintentos.
+- Permite probar funciones antes de usarlas en produccion.
+
+#### Como usarla
+
+1. En `Funciones`, define `JSON Schema` (opcional pero recomendado).
+2. Ajusta `Timeout`, `Retries`, `Scope` y `Requiere aprobacion`.
+3. Usa `Test function` con un payload de prueba.
+4. Guarda solo cuando la prueba sea correcta.
+
+#### Ejemplos en WordPress
+
+- WooCommerce: schema para exigir `order_id` entero.
+- CRM: timeout corto y retries para endpoints inestables.
+- Formularios: testear payloads antes de habilitar ejecucion publica.
+
+### Fase 6: Multiagente + handoffs
+
+#### Para que sirve
+
+- Separa responsabilidades (soporte, ecommerce, contenido, backoffice).
+- Limita tools/rutas por agente.
+- Permite delegacion automatica por reglas (handoff).
+
+#### Como usarla
+
+1. En `Agentes`, crea agentes especialistas.
+2. Define `allowed_tools` y `allowed_routes`.
+3. Crea reglas de handoff por intencion, tool, payload, roles o contexto.
+4. Ejecuta pruebas y revisa `Trazas` para validar el handoff.
+
+#### Ejemplos en WordPress
+
+- Agente `support`: FAQ, tickets, paginas de ayuda.
+- Agente `ecommerce`: carrito, checkout, pedidos, cupones.
+- Agente `content`: entradas, paginas, SEO, media.
+- Handoff: si detecta "pedido" o "checkout", delegar a `ecommerce`.
+
+### Fase 7: MCP + integraciones estandar
+
+#### Para que sirve
+
+- Conectar NAVAI a tools remotas estandarizadas fuera de WordPress.
+- Centralizar integraciones (ERP, CRM, inventario, BI) via un servidor MCP.
+- Restringir tools remotas por rol y/o `agent_key`.
+
+#### Como usarla
+
+1. Ve a la tab `MCP`.
+2. Crea un `Servidor MCP` con:
+   - `URL base`
+   - `Auth type` y credencial
+   - timeouts
+3. Ejecuta `Health` o `Sync tools`.
+4. Revisa las tools remotas cacheadas y su `Function name (runtime)`.
+5. Crea politicas `allow` / `deny` por:
+   - `tool_name` (o `*`)
+   - rol
+   - `agent_key`
+6. Prueba la ejecucion y revisa `Trazas` si algo se bloquea.
+
+Compatibilidad implementada en el plugin:
+
+- transporte HTTP JSON-RPC
+- `tools/list`
+- `tools/call`
+
+#### Ejemplos en WordPress
+
+- WooCommerce + ERP: consultar stock y precios desde sistema externo.
+- Soporte: buscar articulos en una base de conocimiento externa.
+- Backoffice: ejecutar consultas de reportes en un servicio interno.
+- Multiagente: permitir tools MCP solo al agente `support` y bloquearlas para `guest`.
+
 ## Endpoints REST (actuales)
 
 El plugin registra estas rutas REST:
@@ -405,17 +601,48 @@ El plugin registra estas rutas REST:
 - `GET /wp-json/navai/v1/functions`
 - `GET /wp-json/navai/v1/routes`
 - `POST /wp-json/navai/v1/functions/execute`
+- `POST /wp-json/navai/v1/functions/test` (admin)
 - `GET /wp-json/navai/v1/guardrails` (admin)
 - `POST /wp-json/navai/v1/guardrails` (admin)
 - `PUT /wp-json/navai/v1/guardrails/{id}` (admin)
 - `DELETE /wp-json/navai/v1/guardrails/{id}` (admin)
 - `POST /wp-json/navai/v1/guardrails/test` (admin)
+- `GET /wp-json/navai/v1/approvals` (admin)
+- `POST /wp-json/navai/v1/approvals/{id}/approve` (admin)
+- `POST /wp-json/navai/v1/approvals/{id}/reject` (admin)
+- `GET /wp-json/navai/v1/traces` (admin)
+- `GET /wp-json/navai/v1/traces/{trace_id}` (admin)
+- `GET /wp-json/navai/v1/sessions` (admin)
+- `POST /wp-json/navai/v1/sessions` (public/admin segun config)
+- `POST /wp-json/navai/v1/sessions/cleanup` (admin)
+- `GET /wp-json/navai/v1/sessions/{id}` (admin)
+- `GET /wp-json/navai/v1/sessions/{id}/messages` (admin)
+- `POST /wp-json/navai/v1/sessions/{id}/clear` (admin)
+- `GET /wp-json/navai/v1/agents` (admin)
+- `POST /wp-json/navai/v1/agents` (admin)
+- `PUT /wp-json/navai/v1/agents/{id}` (admin)
+- `DELETE /wp-json/navai/v1/agents/{id}` (admin)
+- `GET /wp-json/navai/v1/agents/handoffs` (admin)
+- `POST /wp-json/navai/v1/agents/handoffs` (admin)
+- `PUT /wp-json/navai/v1/agents/handoffs/{id}` (admin)
+- `DELETE /wp-json/navai/v1/agents/handoffs/{id}` (admin)
+- `GET /wp-json/navai/v1/mcp/servers` (admin)
+- `POST /wp-json/navai/v1/mcp/servers` (admin)
+- `PUT /wp-json/navai/v1/mcp/servers/{id}` (admin)
+- `DELETE /wp-json/navai/v1/mcp/servers/{id}` (admin)
+- `POST /wp-json/navai/v1/mcp/servers/{id}/health` (admin)
+- `GET /wp-json/navai/v1/mcp/servers/{id}/tools` (admin)
+- `GET /wp-json/navai/v1/mcp/policies` (admin)
+- `POST /wp-json/navai/v1/mcp/policies` (admin)
+- `PUT /wp-json/navai/v1/mcp/policies/{id}` (admin)
+- `DELETE /wp-json/navai/v1/mcp/policies/{id}` (admin)
 
 Notas:
 
 - `client-secret` tiene rate limit basico (por IP, ventana corta).
 - El acceso publico a `client-secret` y funciones backend se puede activar/desactivar desde Ajustes.
 - Los endpoints `guardrails` requieren permisos de administrador (`manage_options`).
+- `approvals`, `traces`, `sessions`, `agents` y `mcp` requieren permisos de administrador (`manage_options`).
 
 ## Extensibilidad backend (filters)
 

@@ -39,12 +39,12 @@ hacia una plataforma mas completa con:
 ## Checklist maestro (orden recomendado)
 
 - [x] Fase 1: Base DB + migraciones + Guardrails (seguridad)
-- [ ] Fase 2: Aprobaciones (HITL) + Trazas basicas
-- [ ] Fase 3: Sesiones + memoria + transcript/historial
-- [ ] Fase 4: UX de voz avanzada (realtime) + modo texto/voz
-- [ ] Fase 5: Funciones JS robustas (schema, timeout, test)
-- [ ] Fase 6: Multiagente + handoffs
-- [ ] Fase 7: MCP + integraciones estandar
+- [x] Fase 2: Aprobaciones (HITL) + Trazas basicas
+- [x] Fase 3: Sesiones + memoria + transcript/historial
+- [x] Fase 4: UX de voz avanzada (realtime) + modo texto/voz
+- [x] Fase 5: Funciones JS robustas (schema, timeout, test)
+- [x] Fase 6: Multiagente + handoffs
+- [x] Fase 7: MCP + integraciones estandar
 
 ## Arquitectura objetivo (nueva capa interna)
 
@@ -202,15 +202,15 @@ Introducir aprobacion humana para funciones sensibles y trazas para depuracion.
 
 ### Implementacion
 
-- [ ] Crear repositorio `approval`
-- [ ] Crear servicio `approval`
-- [ ] Crear repositorio `trace`
-- [ ] Crear servicio `trace`
-- [ ] Integrar trazas en `class-navai-voice-api.php` (`tool_start`, `tool_success`, `tool_error`, `guardrail_blocked`)
-- [ ] Si funcion requiere aprobacion, crear registro `pending`
-- [ ] Extender modal de `Functions` con `requires approval`, `timeout`, `scope`
-- [ ] Crear tabs `Approvals` / `Aprobaciones` y `Traces` / `Trazas`
-- [ ] Implementar UI de listados y acciones
+- [x] Crear repositorio `approval`
+- [x] Crear servicio `approval`
+- [x] Crear repositorio `trace`
+- [x] Crear servicio `trace`
+- [x] Integrar trazas en `class-navai-voice-api.php` (`tool_start`, `tool_success`, `tool_error`, `guardrail_blocked`)
+- [x] Si funcion requiere aprobacion, crear registro `pending`
+- [x] Extender modal de `Functions` con `requires approval`, `timeout`, `scope`
+- [x] Crear tabs `Approvals` / `Aprobaciones` y `Traces` / `Trazas`
+- [x] Implementar UI de listados y acciones
 
 ### Vistas nuevas
 
@@ -227,9 +227,9 @@ Introducir aprobacion humana para funciones sensibles y trazas para depuracion.
 
 ### Criterios de aceptacion
 
-- [ ] Una funcion sensible no se ejecuta sin aprobacion
-- [ ] Se puede aprobar/rechazar desde el panel admin
-- [ ] Hay timeline basico de eventos por interaccion
+- [x] Una funcion sensible no se ejecuta sin aprobacion
+- [x] Se puede aprobar/rechazar desde el panel admin
+- [x] Hay timeline basico de eventos por interaccion
 
 ## Fase 3 (v0.6.x): Sesiones + memoria + transcript
 
@@ -239,13 +239,13 @@ Persistir sesiones y conversaciones para contexto y soporte.
 
 ### Implementacion
 
-- [ ] Crear repositorio `session` (sesiones + mensajes)
-- [ ] Crear servicio `session` (resolver sesion, TTL, compactacion)
-- [ ] Guardar mensajes/eventos/tool calls por sesion
-- [ ] Enviar `session_key` desde frontend
-- [ ] Crear tab `History` / `Historial`
-- [ ] Implementar listado y detalle de sesiones con transcript
-- [ ] Opciones de retencion, limpieza y modo sin persistencia
+- [x] Crear repositorio `session` (sesiones + mensajes)
+- [x] Crear servicio `session` (resolver sesion, TTL, compactacion)
+- [x] Guardar mensajes/eventos/tool calls por sesion
+- [x] Enviar `session_key` desde frontend
+- [x] Crear tab `History` / `Historial`
+- [x] Implementar listado y detalle de sesiones con transcript
+- [x] Opciones de retencion, limpieza y modo sin persistencia
 
 ### Vistas nuevas
 
@@ -260,10 +260,10 @@ Persistir sesiones y conversaciones para contexto y soporte.
 
 ### Criterios de aceptacion
 
-- [ ] Persistencia por usuario/visitante
-- [ ] Historial visible en admin
-- [ ] Se puede limpiar una sesion
-- [ ] Configurable retencion/no guardar
+- [x] Persistencia por usuario/visitante
+- [x] Historial visible en admin
+- [x] Se puede limpiar una sesion
+- [x] Configurable retencion/no guardar
 
 ## Fase 4 (v0.7.x): UX de voz avanzada + texto/voz
 
@@ -273,11 +273,11 @@ Mejorar controles realtime y accesibilidad.
 
 ### Implementacion
 
-- [ ] Agregar ajustes avanzados (`turnDetection`, `interruptResponse`, sensibilidad/VAD)
-- [ ] Agregar `push-to-talk` opcional
-- [ ] Agregar input de texto como fallback (modo hibrido)
-- [ ] Mantener sesion compartida entre texto y voz
-- [ ] Mejorar estados visuales del widget (escuchando/hablando/interrumpido)
+- [x] Agregar ajustes avanzados (`turnDetection`, `interruptResponse`, sensibilidad/VAD)
+- [x] Agregar `push-to-talk` opcional
+- [x] Agregar input de texto como fallback (modo hibrido)
+- [x] Mantener sesion compartida entre texto y voz
+- [x] Mejorar estados visuales del widget (escuchando/hablando/interrumpido)
 
 ### Archivos principales
 
@@ -288,9 +288,9 @@ Mejorar controles realtime y accesibilidad.
 
 ### Criterios de aceptacion
 
-- [ ] Se pueden activar/desactivar interrupciones
-- [ ] Se puede enviar texto sin voz
-- [ ] La sesion mantiene continuidad entre canales
+- [x] Se pueden activar/desactivar interrupciones
+- [x] Se puede enviar texto sin voz
+- [x] La sesion mantiene continuidad entre canales
 
 ## Fase 5 (v0.8.x): Funciones JS robustas (schema, timeout, test)
 
@@ -300,16 +300,16 @@ Profesionalizar el sistema de funciones personalizadas sin perder flexibilidad.
 
 ### Implementacion
 
-- [ ] Extender modal de `Functions` con:
-- [ ] `JSON Schema` de argumentos
-- [ ] `Timeout`
-- [ ] `Retries`
-- [ ] `Scope` (`frontend`, `admin`, `both`)
-- [ ] `Requires approval`
-- [ ] `Test payload`
-- [ ] Validar schema JSON en admin antes de guardar
-- [ ] Validar payload en runtime antes de ejecutar
-- [ ] Implementar boton `Test function`
+- [x] Extender modal de `Functions` con:
+- [x] `JSON Schema` de argumentos
+- [x] `Timeout`
+- [x] `Retries`
+- [x] `Scope` (`frontend`, `admin`, `both`)
+- [x] `Requires approval`
+- [x] `Test payload`
+- [x] Validar schema JSON en admin antes de guardar
+- [x] Validar payload en runtime antes de ejecutar
+- [x] Implementar boton `Test function`
 
 ### Archivos principales
 
@@ -319,9 +319,9 @@ Profesionalizar el sistema de funciones personalizadas sin perder flexibilidad.
 
 ### Criterios de aceptacion
 
-- [ ] Payload invalido bloqueado con error claro
-- [ ] Se puede probar una funcion desde el modal
-- [ ] Timeouts y retries aplican correctamente
+- [x] Payload invalido bloqueado con error claro
+- [x] Se puede probar una funcion desde el modal
+- [x] Timeouts y retries aplican correctamente
 
 ## Fase 6 (v0.9.x): Multiagente + handoffs
 
@@ -331,12 +331,12 @@ Permitir especialistas (navegacion, ecommerce, soporte, contenido, backoffice) y
 
 ### Implementacion
 
-- [ ] Crear repositorio `agent`
-- [ ] Crear servicio `agent`
-- [ ] Crear tab `Agents`
-- [ ] CRUD de agentes (nombre, instrucciones, tools permitidas, rutas permitidas)
-- [ ] Reglas de handoff por intencion/contexto
-- [ ] Registrar handoffs en trazas
+- [x] Crear repositorio `agent`
+- [x] Crear servicio `agent`
+- [x] Crear tab `Agents`
+- [x] CRUD de agentes (nombre, instrucciones, tools permitidas, rutas permitidas)
+- [x] Reglas de handoff por intencion/contexto
+- [x] Registrar handoffs en trazas
 
 ### Vistas nuevas
 
@@ -344,9 +344,9 @@ Permitir especialistas (navegacion, ecommerce, soporte, contenido, backoffice) y
 
 ### Criterios de aceptacion
 
-- [ ] Se puede crear un agente especialista
-- [ ] Se puede delegar a otro agente por regla
-- [ ] Se visualiza el handoff en trazas
+- [x] Se puede crear un agente especialista
+- [x] Se puede delegar a otro agente por regla
+- [x] Se visualiza el handoff en trazas
 
 ## Fase 7 (v1.0.x): MCP + integraciones estandar
 
@@ -356,13 +356,13 @@ Integrar servidores MCP y filtrar tools por rol/agente.
 
 ### Implementacion
 
-- [ ] Crear repositorio `mcp`
-- [ ] Crear servicio `mcp`
-- [ ] Crear REST `mcp`
-- [ ] Crear tab `MCP`
-- [ ] Alta de servidor MCP (URL, auth, timeouts)
-- [ ] Health check y listado de tools
-- [ ] Allowlist/denylist de tools por rol/agente
+- [x] Crear repositorio `mcp`
+- [x] Crear servicio `mcp`
+- [x] Crear REST `mcp`
+- [x] Crear tab `MCP`
+- [x] Alta de servidor MCP (URL, auth, timeouts)
+- [x] Health check y listado de tools
+- [x] Allowlist/denylist de tools por rol/agente
 
 ### Vistas nuevas
 
@@ -370,9 +370,9 @@ Integrar servidores MCP y filtrar tools por rol/agente.
 
 ### Criterios de aceptacion
 
-- [ ] Se puede registrar servidor MCP
-- [ ] Se listan tools remotas
-- [ ] Se restringe uso por permisos
+- [x] Se puede registrar servidor MCP
+- [x] Se listan tools remotas
+- [x] Se restringe uso por permisos
 
 ## Hooks internos recomendados (extensibilidad)
 

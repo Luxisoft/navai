@@ -103,6 +103,73 @@
                                                     placeholder="<?php echo esc_attr__('Describe when NAVAI should execute this function', 'navai-voice'); ?>"
                                                 />
                                             </label>
+
+                                            <label>
+                                                <span><?php echo esc_html__('Scope de ejecucion', 'navai-voice'); ?></span>
+                                                <select class="navai-plugin-function-editor-scope">
+                                                    <option value="both"><?php echo esc_html__('Frontend y admin', 'navai-voice'); ?></option>
+                                                    <option value="frontend"><?php echo esc_html__('Solo frontend', 'navai-voice'); ?></option>
+                                                    <option value="admin"><?php echo esc_html__('Solo admin', 'navai-voice'); ?></option>
+                                                </select>
+                                            </label>
+
+                                            <label>
+                                                <span><?php echo esc_html__('Timeout (segundos)', 'navai-voice'); ?></span>
+                                                <input
+                                                    type="number"
+                                                    class="small-text navai-plugin-function-editor-timeout"
+                                                    min="0"
+                                                    max="600"
+                                                    step="1"
+                                                    value="0"
+                                                />
+                                            </label>
+
+                                            <label>
+                                                <span><?php echo esc_html__('Retries', 'navai-voice'); ?></span>
+                                                <input
+                                                    type="number"
+                                                    class="small-text navai-plugin-function-editor-retries"
+                                                    min="0"
+                                                    max="5"
+                                                    step="1"
+                                                    value="0"
+                                                />
+                                            </label>
+
+                                            <label class="navai-plugin-function-meta-check">
+                                                <span><?php echo esc_html__('Aprobacion', 'navai-voice'); ?></span>
+                                                <span class="navai-plugin-function-meta-check-field">
+                                                    <input type="checkbox" class="navai-plugin-function-editor-requires-approval" />
+                                                    <span><?php echo esc_html__('Requiere aprobacion', 'navai-voice'); ?></span>
+                                                </span>
+                                            </label>
+
+                                            <label class="navai-plugin-function-code-wrap">
+                                                <span><?php echo esc_html__('JSON Schema de argumentos (opcional)', 'navai-voice'); ?></span>
+                                                <textarea
+                                                    class="navai-plugin-function-code navai-plugin-function-editor-schema"
+                                                    rows="8"
+                                                    placeholder="<?php echo esc_attr__('Ejemplo: {\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}},\"required\":[\"id\"]}', 'navai-voice'); ?>"
+                                                ></textarea>
+                                            </label>
+
+                                            <label class="navai-plugin-function-code-wrap">
+                                                <span><?php echo esc_html__('Test payload (JSON)', 'navai-voice'); ?></span>
+                                                <textarea
+                                                    class="navai-plugin-function-code navai-plugin-function-editor-test-payload"
+                                                    rows="6"
+                                                    placeholder="<?php echo esc_attr__('Ejemplo: {\"id\":123}', 'navai-voice'); ?>"
+                                                >{}</textarea>
+                                            </label>
+
+                                            <div class="navai-plugin-function-test-tools">
+                                                <button type="button" class="button button-secondary navai-plugin-function-test">
+                                                    <?php echo esc_html__('Test function', 'navai-voice'); ?>
+                                                </button>
+                                                <p class="navai-admin-description navai-plugin-function-editor-status" hidden></p>
+                                                <pre class="navai-plugin-function-test-result" hidden></pre>
+                                            </div>
                                         </div>
 
                                         <div class="navai-plugin-function-editor-actions">
@@ -140,6 +207,26 @@
                                     }
                                     $rowFunctionCode = $this->sanitize_plugin_function_code((string) ($functionConfig['function_code'] ?? ''));
                                     $rowDescription = sanitize_text_field((string) ($functionConfig['description'] ?? ''));
+                                    $rowRequiresApproval = !empty($functionConfig['requires_approval']);
+                                    $rowTimeoutSeconds = is_numeric($functionConfig['timeout_seconds'] ?? null) ? (int) $functionConfig['timeout_seconds'] : 0;
+                                    if ($rowTimeoutSeconds < 0) {
+                                        $rowTimeoutSeconds = 0;
+                                    }
+                                    if ($rowTimeoutSeconds > 600) {
+                                        $rowTimeoutSeconds = 600;
+                                    }
+                                    $rowExecutionScope = sanitize_key((string) ($functionConfig['execution_scope'] ?? 'both'));
+                                    if (!in_array($rowExecutionScope, ['frontend', 'admin', 'both'], true)) {
+                                        $rowExecutionScope = 'both';
+                                    }
+                                    $rowRetries = is_numeric($functionConfig['retries'] ?? null) ? (int) $functionConfig['retries'] : 0;
+                                    if ($rowRetries < 0) {
+                                        $rowRetries = 0;
+                                    }
+                                    if ($rowRetries > 5) {
+                                        $rowRetries = 5;
+                                    }
+                                    $rowArgumentSchemaJson = $this->sanitize_plugin_function_argument_schema_json($functionConfig['argument_schema_json'] ?? '');
                                     ?>
                                     <div
                                         class="navai-plugin-function-storage-row"
@@ -182,6 +269,36 @@
                                             name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][description]"
                                             value="<?php echo esc_attr($rowDescription); ?>"
                                         />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-requires-approval"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][requires_approval]"
+                                            value="<?php echo $rowRequiresApproval ? '1' : '0'; ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-timeout"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][timeout_seconds]"
+                                            value="<?php echo esc_attr((string) $rowTimeoutSeconds); ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-scope"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][execution_scope]"
+                                            value="<?php echo esc_attr($rowExecutionScope); ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-retries"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][retries]"
+                                            value="<?php echo esc_attr((string) $rowRetries); ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-argument-schema"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][argument_schema_json]"
+                                            value="<?php echo esc_attr($rowArgumentSchemaJson); ?>"
+                                        />
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -222,6 +339,36 @@
                                         type="hidden"
                                         class="navai-plugin-function-storage-description"
                                         name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][description]"
+                                        value=""
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-requires-approval"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][requires_approval]"
+                                        value="0"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-timeout"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][timeout_seconds]"
+                                        value="0"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-scope"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][execution_scope]"
+                                        value="both"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-retries"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][retries]"
+                                        value="0"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-argument-schema"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][argument_schema_json]"
                                         value=""
                                     />
                                 </div>

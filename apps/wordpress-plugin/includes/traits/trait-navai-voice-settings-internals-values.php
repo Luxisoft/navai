@@ -524,6 +524,58 @@ trait Navai_Voice_Settings_Internals_Values_Trait
     }
 
     /**
+     * @param mixed $value
+     */
+    private function sanitize_realtime_turn_detection_mode($value): string
+    {
+        $mode = sanitize_key((string) $value);
+        if (!in_array($mode, ['server_vad', 'semantic_vad', 'none'], true)) {
+            return 'server_vad';
+        }
+
+        return $mode;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_frontend_voice_input_mode($value): string
+    {
+        $mode = sanitize_key((string) $value);
+        if (!in_array($mode, ['vad', 'ptt'], true)) {
+            return 'vad';
+        }
+
+        return $mode;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_int_range_value($value, int $fallback, int $min, int $max): int
+    {
+        $number = is_numeric($value) ? (int) $value : $fallback;
+        if ($number < $min || $number > $max) {
+            return $fallback;
+        }
+
+        return $number;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_float_range_value($value, float $fallback, float $min, float $max, int $precision = 2): float
+    {
+        $number = is_numeric($value) ? (float) $value : $fallback;
+        if (!is_finite($number) || $number < $min || $number > $max) {
+            $number = $fallback;
+        }
+
+        return round($number, $precision);
+    }
+
+    /**
      * @param array<string, mixed>|null $settingsOverride
      * @return array<string, mixed>
      */

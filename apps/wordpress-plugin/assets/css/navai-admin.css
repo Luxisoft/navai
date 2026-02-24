@@ -61,6 +61,10 @@
   min-height: 32px;
 }
 
+.navai-guardrails-grid-span-full {
+  grid-column: 1 / -1;
+}
+
 .navai-guardrails-pattern-field {
   margin-top: 12px;
 }
@@ -96,6 +100,29 @@
 .navai-guardrails-list-head h3,
 .navai-guardrails-test h3 {
   margin: 0;
+}
+
+.navai-guardrails-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-guardrail-modal .navai-guardrails-editor {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.navai-guardrail-test-modal .navai-guardrails-test {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .navai-guardrails-table-wrap {
@@ -136,6 +163,12 @@
   border-color: #fedf89;
 }
 
+.navai-status-badge.is-pending {
+  background: #eef4ff;
+  color: #174ea6;
+  border-color: #bfd3ff;
+}
+
 .navai-guardrails-test-result {
   margin: 10px 0 0;
   background: #0f172a;
@@ -151,6 +184,319 @@
   color: #fecaca;
 }
 
+.navai-approvals-panel,
+.navai-traces-panel,
+.navai-history-panel,
+.navai-agents-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.navai-approvals-toolbar,
+.navai-traces-toolbar,
+.navai-history-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+
+.navai-approvals-toolbar > label,
+.navai-traces-toolbar > label,
+.navai-history-toolbar > label {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.navai-approvals-toolbar-actions,
+.navai-traces-toolbar-actions,
+.navai-history-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-approvals-table-wrap,
+.navai-traces-table-wrap,
+.navai-history-table-wrap {
+  overflow-x: auto;
+}
+
+.navai-approvals-row-actions,
+.navai-traces-row-actions,
+.navai-history-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-approvals-detail,
+.navai-trace-detail,
+.navai-history-detail,
+.navai-agents-detail {
+  border: 1px solid #d9e4f3;
+  border-radius: 12px;
+  background: #fbfdff;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.navai-approvals-detail-head,
+.navai-trace-detail-head,
+.navai-history-detail-head,
+.navai-agents-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.navai-approvals-detail-head h3,
+.navai-trace-detail-head h3,
+.navai-history-detail-head h3,
+.navai-agents-detail-head h3 {
+  margin: 0;
+}
+
+.navai-approvals-detail-json,
+.navai-trace-detail-meta,
+.navai-history-detail-meta,
+.navai-agents-detail-json {
+  margin: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.navai-trace-detail-meta {
+  white-space: pre-wrap;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.navai-history-detail-meta,
+.navai-history-detail-summary-text,
+.navai-agents-detail-json {
+  white-space: pre-wrap;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.navai-agents-grid,
+.navai-handoffs-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(420px, 1.2fr);
+  gap: 14px;
+}
+
+.navai-agents-editor,
+.navai-agents-list,
+.navai-handoffs-editor,
+.navai-handoffs-list {
+  border: 1px solid #d9e4f3;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.navai-agents-section-head {
+  margin: 0 0 10px;
+}
+
+.navai-agents-section-head h3 {
+  margin: 0;
+}
+
+.navai-agents-section-head .navai-admin-description {
+  margin-top: 4px;
+}
+
+.navai-agents-form-grid,
+.navai-handoffs-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.navai-agents-form-grid > label,
+.navai-handoffs-form-grid > label {
+  display: grid;
+  gap: 6px;
+}
+
+.navai-agents-form-grid-span-full {
+  grid-column: 1 / -1;
+}
+
+.navai-agent-form-check {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+
+.navai-agent-form-check > span {
+  margin: 0 !important;
+}
+
+.navai-agents-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.navai-agents-table-wrap {
+  overflow-x: auto;
+}
+
+.navai-agents-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-agents-inline-code {
+  display: inline-block;
+  margin-left: 6px;
+}
+
+.navai-agents-note {
+  display: block;
+  color: #526077;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.navai-history-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.navai-history-config-grid > label {
+  display: grid;
+  gap: 6px;
+}
+
+.navai-history-detail-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.navai-history-detail-summary h4 {
+  margin: 0;
+}
+
+.navai-history-detail-summary-text {
+  margin: 0;
+  background: #101827;
+  color: #dbeafe;
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.navai-history-detail-messages {
+  display: grid;
+  gap: 10px;
+}
+
+.navai-history-message-card {
+  border: 1px solid #d9e4f3;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.navai-history-message-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f4f8ff;
+  border-bottom: 1px solid #e3ebf7;
+}
+
+.navai-history-message-card-head span {
+  color: #55657b;
+  font-size: 12px;
+}
+
+.navai-history-message-card-body {
+  margin: 0;
+  padding: 10px 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.navai-history-message-card-body.is-error {
+  background: #3b0d11;
+  color: #fecaca;
+}
+
+.navai-trace-detail-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.navai-trace-event-card {
+  border: 1px solid #d9e4f3;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.navai-trace-event-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f4f8ff;
+  border-bottom: 1px solid #e3ebf7;
+}
+
+.navai-trace-event-card-head span {
+  color: #55657b;
+  font-size: 12px;
+}
+
+.navai-trace-event-card-body {
+  margin: 0;
+  padding: 10px 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.navai-trace-event-card-body.is-error {
+  background: #3b0d11;
+  color: #fecaca;
+}
+
+.navai-plugin-function-meta-check {
+  display: grid;
+  gap: 6px;
+}
+
+.navai-plugin-function-meta-check-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+
 @media (max-width: 900px) {
   .navai-guardrails-grid {
     grid-template-columns: 1fr;
@@ -163,6 +509,48 @@
 
   .navai-guardrails-row-actions {
     flex-wrap: wrap;
+  }
+
+  .navai-guardrails-list-actions {
+    width: 100%;
+  }
+
+  .navai-guardrails-list-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navai-approvals-toolbar > label,
+  .navai-traces-toolbar > label,
+  .navai-history-toolbar > label,
+  .navai-approvals-toolbar-actions,
+  .navai-traces-toolbar-actions,
+  .navai-history-toolbar-actions {
+    width: 100%;
+  }
+
+  .navai-approvals-toolbar-actions .button,
+  .navai-traces-toolbar-actions .button,
+  .navai-history-toolbar-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navai-agents-grid,
+  .navai-handoffs-grid,
+  .navai-agents-form-grid,
+  .navai-handoffs-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .navai-agents-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navai-agents-actions .button {
+    width: 100%;
+    justify-content: center;
   }
 }
 
