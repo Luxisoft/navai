@@ -1,10 +1,34 @@
-# NAVAI Voice for WordPress (EN)
+# NAVAI Voice for WordPress
 
-Spanish version: [`README.es.md`](./README.es.md)
+<p align="center">
+  <a href="./README.es.md"><img alt="Spanish" src="https://img.shields.io/badge/Idioma-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./README.md"><img alt="English" src="https://img.shields.io/badge/Language-EN-1D9A6C?style=for-the-badge"></a>
+</p>
+
+<p align="center">
+  <a href="https://navai.luxisoft.com/documentation/installation-wordpress"><img alt="Documentation" src="https://img.shields.io/badge/WordPress%20Documentation-Open-146EF5?style=for-the-badge"></a>
+  <a href="./release/build-zip.ps1"><img alt="Build ZIP" src="https://img.shields.io/badge/Build%20ZIP-PowerShell-5C2D91?style=for-the-badge"></a>
+  <a href="./navai-voice.php"><img alt="Plugin Bootstrap" src="https://img.shields.io/badge/Plugin-Bootstrap-2F6FEB?style=for-the-badge"></a>
+</p>
+
+<p align="center">
+  <img alt="WordPress 6.2+" src="https://img.shields.io/badge/WordPress-6.2%2B-21759B?style=for-the-badge">
+  <img alt="PHP 8.0+" src="https://img.shields.io/badge/PHP-8.0%2B-777BB4?style=for-the-badge">
+  <img alt="OpenAI Realtime" src="https://img.shields.io/badge/OpenAI-Realtime-0B8F6A?style=for-the-badge">
+</p>
 
 NAVAI Voice is a WordPress plugin that adds a voice widget powered by OpenAI Realtime, plus an admin dashboard to control navigation routes, custom functions, and runtime settings without Node.js.
 
 This plugin is implemented in PHP (server side) and vanilla JS (browser side) for easier WordPress deployment.
+
+## Quick links
+
+- `Install`: [WordPress admin install](#installation-wordpress-admin) | [Manual install](#installation-manual--filesystem)
+- `Configure`: [Quick configuration](#quick-configuration-recommended)
+- `Use`: [Global floating button](#option-a-global-floating-button) | [Shortcode](#option-b-shortcode)
+- `Admin tabs`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Plugins](#plugins-tab-custom-functions) | [Settings](#admin-dashboard-overview)
+- `Developer`: [REST endpoints](#rest-endpoints-current) | [Backend extensibility](#backend-extensibility-filters)
+- `Ops`: [Build ZIP](#build-installable-zip-powershell) | [Troubleshooting](#troubleshooting)
 
 ## What the plugin can do today
 
@@ -148,6 +172,20 @@ Use this tab to control where the AI can navigate when it calls `navigate_to`.
 
 This is useful for role-based admin pages or protected pages.
 
+### Examples (navigation)
+
+These examples work only if the target route is enabled in the `Navigation` tab and the current user has access.
+
+- "Go to the contact page"
+- "Open checkout"
+- "Take me to my account"
+- "Navigate to orders"
+- "Open WooCommerce settings"
+- "Go to Coupons in WooCommerce" (if configured as a private/admin route)
+- "Open WPForms entries" (if added as a private route)
+
+Tip: add route descriptions like "Use this route when the user asks to manage coupons" to improve routing decisions.
+
 ## Plugins tab (custom functions)
 
 Use this tab to define custom functions per plugin and role.
@@ -228,6 +266,34 @@ Example value in dashboard:
 ```txt
 @action:list_recent_orders
 ```
+
+### Examples (custom functions)
+
+These examples depend on the functions you create and activate in the `Plugins` tab.
+
+Possible use cases in WordPress:
+
+- Read WooCommerce recent orders
+- Check low-stock products
+- Create a support note in a plugin/system
+- Fetch form submissions summary (WPForms / custom forms)
+- Query user profile or membership status
+- Trigger a CRM sync action
+- Run an internal admin helper task (trusted environments only)
+
+Example prompts a user can say:
+
+- "Show me the last 5 orders"
+- "Check if any products are low on stock"
+- "Get the latest contact form submissions"
+- "Run the order sync function"
+- "Open the orders page and then fetch pending orders"
+
+Recommended pattern:
+
+- Use `Navigation` for moving the user to the correct page
+- Use `Plugins` custom functions for reading data or executing actions
+- Add clear descriptions so NAVAI knows when each function should be called
 
 ## REST endpoints (current)
 
@@ -357,4 +423,3 @@ Check:
 - Realtime model/voice values are valid
 - REST endpoints are reachable
 - Security toggles are not blocking your current user/session
-
