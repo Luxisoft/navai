@@ -25,6 +25,10 @@ class Navai_Voice_Plugin
 
     public function init(): void
     {
+        if (class_exists('Navai_Voice_Migrator', false)) {
+            Navai_Voice_Migrator::maybe_migrate();
+        }
+
         add_action('admin_menu', [$this->settings, 'register_menu']);
         add_action('admin_init', [$this->settings, 'register_settings']);
         add_action('rest_api_init', [$this->api, 'register_routes']);
@@ -179,9 +183,12 @@ class Navai_Voice_Plugin
             'NAVAI_VOICE_ADMIN_CONFIG',
             [
                 'activeTab' => $activeTab,
+                'restBaseUrl' => esc_url_raw(rest_url('navai/v1')),
+                'restNonce' => wp_create_nonce('wp_rest'),
                 'dashboardLanguage' => isset($settings['dashboard_language']) && is_string($settings['dashboard_language'])
                     ? $settings['dashboard_language']
                     : 'en',
+                'guardrailsEnabled' => !array_key_exists('enable_guardrails', $settings) || !empty($settings['enable_guardrails']),
             ]
         );
     }

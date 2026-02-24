@@ -38,7 +38,7 @@ hacia una plataforma mas completa con:
 
 ## Checklist maestro (orden recomendado)
 
-- [ ] Fase 1: Base DB + migraciones + Guardrails (seguridad)
+- [x] Fase 1: Base DB + migraciones + Guardrails (seguridad)
 - [ ] Fase 2: Aprobaciones (HITL) + Trazas basicas
 - [ ] Fase 3: Sesiones + memoria + transcript/historial
 - [ ] Fase 4: UX de voz avanzada (realtime) + modo texto/voz
@@ -164,16 +164,16 @@ Agregar estructura de datos y guardrails basicos (input/tool/output) sin romper 
 
 ### Implementacion
 
-- [ ] Agregar `NAVAI_VOICE_DB_VERSION` y carga de nuevas clases en `apps/wordpress-plugin/navai-voice.php`
-- [ ] Crear `class-navai-voice-db.php` (helper de tablas/charset/collate)
-- [ ] Crear `class-navai-voice-migrator.php` con `dbDelta` y migraciones versionadas
-- [ ] Crear repositorio `guardrail`
-- [ ] Crear servicio `guardrail`
-- [ ] Insertar evaluacion de guardrails antes/despues de tools en `class-navai-voice-api.php`
-- [ ] Registrar REST de guardrails
-- [ ] Crear tab/panel `Safety` / `Seguridad`
-- [ ] Agregar traducciones EN/ES en `navai-admin-core.js`
-- [ ] Crear UI CRUD de reglas en `navai-admin.js`
+- [x] Agregar `NAVAI_VOICE_DB_VERSION` y carga de nuevas clases en `apps/wordpress-plugin/navai-voice.php`
+- [x] Crear `class-navai-voice-db.php` (helper de tablas/charset/collate)
+- [x] Crear `class-navai-voice-migrator.php` con `dbDelta` y migraciones versionadas
+- [x] Crear repositorio `guardrail`
+- [x] Crear servicio `guardrail`
+- [x] Insertar evaluacion de guardrails antes/despues de tools en `class-navai-voice-api.php`
+- [x] Registrar REST de guardrails
+- [x] Crear tab/panel `Safety` / `Seguridad`
+- [x] Agregar traducciones EN/ES en `navai-admin-core.js`
+- [x] Crear UI CRUD de reglas en `navai-admin.js`
 
 ### Vistas nuevas
 
@@ -189,10 +189,10 @@ Agregar estructura de datos y guardrails basicos (input/tool/output) sin romper 
 
 ### Criterios de aceptacion
 
-- [ ] Se pueden crear reglas por rol/contexto
-- [ ] Un prompt bloqueado impide la ejecucion de la funcion
-- [ ] Se registra evento de bloqueo
-- [ ] No se rompe `Navigation`, `Functions`, `Settings`
+- [x] Se pueden crear reglas por rol/contexto
+- [x] Un prompt bloqueado impide la ejecucion de la funcion
+- [x] Se registra evento de bloqueo
+- [x] No se rompe `Navigation`, `Functions`, `Settings`
 
 ## Fase 2 (v0.5.x): Aprobaciones (HITL) + Trazas basicas
 

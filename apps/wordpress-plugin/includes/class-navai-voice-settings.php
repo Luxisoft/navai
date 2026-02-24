@@ -54,6 +54,7 @@ class Navai_Voice_Settings
         $submenu[self::PAGE_SLUG] = [
             [__('Navegacion', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#navigation'],
             [__('Funciones', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#plugins'],
+            [__('Seguridad', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#safety'],
             [__('Ajustes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#settings'],
             [__('Documentacion', 'navai-voice'), 'manage_options', $documentationUrl],
         ];
@@ -93,7 +94,7 @@ class Navai_Voice_Settings
         $ttl = ($ttlInput >= 10 && $ttlInput <= 7200) ? $ttlInput : (int) $defaults['client_secret_ttl'];
 
         $activeTab = isset($source['active_tab']) ? sanitize_key((string) $source['active_tab']) : 'navigation';
-        if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
+        if (!in_array($activeTab, ['navigation', 'plugins', 'safety', 'settings'], true)) {
             $activeTab = 'navigation';
         }
         $dashboardLanguage = $this->sanitize_dashboard_language(
@@ -191,6 +192,7 @@ class Navai_Voice_Settings
             'client_secret_ttl' => $ttl,
             'allow_public_client_secret' => !empty($source['allow_public_client_secret']),
             'allow_public_functions' => !empty($source['allow_public_functions']),
+            'enable_guardrails' => !empty($source['enable_guardrails']),
             'allowed_menu_item_ids' => $this->sanitize_menu_item_ids($source['allowed_menu_item_ids'] ?? []),
             'allowed_route_keys' => $allowedRouteKeys,
             'allowed_plugin_files' => $this->sanitize_plugin_files($allowedPluginFilesInput),

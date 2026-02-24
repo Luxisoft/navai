@@ -3,7 +3,7 @@
  * Plugin Name: NAVAI Voice
  * Plugin URI: https://navai.luxisoft.com/documentation/installation-wordpress
  * Description: Integracion de voz NAVAI para WordPress usando endpoints REST en PHP.
- * Version: 0.3.37
+ * Version: 0.3.38
  * Author: NAVAI
  * Text Domain: navai-voice
  * Requires at least: 6.2
@@ -405,6 +405,12 @@ if (!function_exists('navai_voice_load_dependencies')) {
     function navai_voice_load_dependencies(string $basePath): bool
     {
         $relativeFiles = [
+            'includes/class-navai-voice-db.php',
+            'includes/class-navai-voice-migrator.php',
+            'includes/repositories/class-navai-voice-guardrail-repository.php',
+            'includes/repositories/class-navai-voice-trace-repository.php',
+            'includes/services/class-navai-voice-trace-service.php',
+            'includes/services/class-navai-voice-guardrail-service.php',
             'includes/traits/trait-navai-voice-settings-internals-values.php',
             'includes/traits/trait-navai-voice-settings-internals-navigation.php',
             'includes/traits/trait-navai-voice-settings-internals-custom.php',
@@ -446,6 +452,14 @@ if (!function_exists('navai_voice_on_activation')) {
     {
         navai_voice_repair_flattened_layout(plugin_dir_path(__FILE__));
         navai_voice_repair_registry(true);
+
+        $basePath = plugin_dir_path(__FILE__);
+        $dbFile = trailingslashit($basePath) . 'includes/class-navai-voice-db.php';
+        $migratorFile = trailingslashit($basePath) . 'includes/class-navai-voice-migrator.php';
+
+        if (navai_voice_safe_require($dbFile) && navai_voice_safe_require($migratorFile) && class_exists('Navai_Voice_Migrator', false)) {
+            Navai_Voice_Migrator::maybe_migrate();
+        }
     }
 }
 
@@ -462,7 +476,10 @@ if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $currentPath) {
 }
 
 if (!defined('NAVAI_VOICE_VERSION')) {
-    define('NAVAI_VOICE_VERSION', '0.3.37');
+    define('NAVAI_VOICE_VERSION', '0.3.38');
+}
+if (!defined('NAVAI_VOICE_DB_VERSION')) {
+    define('NAVAI_VOICE_DB_VERSION', '1');
 }
 if (!defined('NAVAI_VOICE_PATH')) {
     define('NAVAI_VOICE_PATH', $currentPath);

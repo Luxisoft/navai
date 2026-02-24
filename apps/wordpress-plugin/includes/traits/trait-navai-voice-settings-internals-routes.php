@@ -878,6 +878,7 @@ trait Navai_Voice_Settings_Internals_Routes_Trait
             'client_secret_ttl' => 600,
             'allow_public_client_secret' => true,
             'allow_public_functions' => true,
+            'enable_guardrails' => true,
             'allowed_menu_item_ids' => [],
             'allowed_route_keys' => [],
             'allowed_plugin_files' => [],

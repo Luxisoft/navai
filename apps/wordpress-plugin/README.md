@@ -26,7 +26,7 @@ This plugin is implemented in PHP (server side) and vanilla JS (browser side) fo
 - `Install`: [WordPress admin install](#installation-wordpress-admin) | [Manual install](#installation-manual--filesystem)
 - `Configure`: [Quick configuration](#quick-configuration-recommended)
 - `Use`: [Global floating button](#option-a-global-floating-button) | [Shortcode](#option-b-shortcode)
-- `Admin tabs`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Functions](#functions-tab-custom-functions) | [Settings](#admin-dashboard-overview)
+- `Admin tabs`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Functions](#functions-tab-custom-functions) | [Safety](#safety-tab-guardrails-phase-1) | [Settings](#admin-dashboard-overview)
 - `Developer`: [REST endpoints](#rest-endpoints-current) | [Backend extensibility](#backend-extensibility-filters)
 - `Ops`: [Build ZIP](#build-installable-zip-powershell) | [Troubleshooting](#troubleshooting)
 
@@ -74,6 +74,26 @@ Recommended pattern:
 - Use `Functions` custom functions for reading data or executing actions
 - Add clear descriptions so NAVAI knows when each function should be called
 
+### Guardrails examples (Phase 1)
+
+Use cases for the `Safety` tab (guardrails):
+
+- Block dangerous store actions (for example `delete_order`, `delete_product`)
+- Block payloads containing sensitive data (card data, IDs, secrets)
+- Mark high-risk actions as `warn` first to calibrate before blocking
+- Block sensitive output (for example emails) using regex on `output`
+- Restrict rules by role (`guest`, `subscriber`, `administrator`) and function/plugin
+
+Quick WooCommerce example:
+
+- `Scope`: `tool`
+- `Type`: `keyword`
+- `Action`: `block`
+- `Pattern`: `delete`
+- `Plugin/Function scope`: `run_plugin_action,order`
+
+This helps prevent NAVAI from executing destructive backend actions.
+
 ## What the plugin can do today
 
 - Add a voice widget to WordPress using OpenAI Realtime (WebRTC).
@@ -93,6 +113,10 @@ Recommended pattern:
 - Edit/delete custom functions directly from the list.
 - Filter routes/functions by text, plugin, and role in the admin UI.
 - Switch admin panel language (English/Spanish) from the NAVAI dashboard.
+- Configure guardrails (Phase 1) in the `Safety` tab for `input`, `tool`, and `output` using `keyword`/`regex` rules.
+- Block function calls (`/functions/execute`) when a guardrail rule matches.
+- Test guardrail rules from the admin panel (`Safety > Test rules`).
+- Store minimal guardrail block events (`guardrail_blocked`) in the database for basic traceability.
 - Use built-in REST endpoints for client secret, routes, function listing, and execution.
 
 ## Requirements
@@ -107,7 +131,7 @@ The plugin adds a left menu item:
 
 - `NAVAI Voice`
 
-The dashboard has three main tabs plus utility controls:
+The dashboard has four main tabs plus utility controls:
 
 - `Navigation`
   - Public menu routes
@@ -119,6 +143,12 @@ The dashboard has three main tabs plus utility controls:
   - Custom function list with activation checkboxes
   - Edit/Delete actions
   - Filters by text/plugin/role
+- `Safety` (Phase 1)
+  - `Enable realtime guardrails` toggle
+  - Rule CRUD (`keyword` / `regex`)
+  - `input`, `tool`, `output` scopes
+  - Role and plugin/function scope filters
+  - Rule tester (`Test rules`) with text and JSON payload
 - `Settings`
   - Connection/runtime settings (API key, model, voice, instructions, searchable language selector, accent, tone, TTL)
   - Global widget settings (mode, side, colors, labels)
@@ -300,6 +330,73 @@ Example value in dashboard:
 @action:list_recent_orders
 ```
 
+## Safety tab (Guardrails, Phase 1)
+
+Use this section to create rules that block or warn when NAVAI attempts to execute functions with inputs, payloads, or results you do not want to allow.
+
+### What it evaluates
+
+- `input`: input/payload before function execution
+- `tool`: the tool/function call and its payload
+- `output`: the function result after execution
+
+### Rule types
+
+- `keyword`: substring text match
+- `regex`: regular expression match
+
+### Rule actions
+
+- `block`: blocks execution or output
+- `warn`: does not block, but records a match (useful for tuning)
+- `allow`: reference rule (no blocking)
+
+### Useful fields
+
+- `Roles (csv)`: limit by roles (`guest,subscriber,administrator`)
+- `Plugin/Function scope (csv)`: limit by function name or source (for example `run_plugin_action,woocommerce`)
+- `Priority`: lower number is evaluated first
+
+### Example 1 (WooCommerce store): block destructive actions
+
+Recommended rule:
+
+- `Name`: `Block order deletion`
+- `Scope`: `tool`
+- `Type`: `keyword`
+- `Action`: `block`
+- `Pattern`: `delete`
+- `Plugin/Function scope`: `run_plugin_action,order`
+
+Usage:
+
+- If NAVAI attempts a backend action with a payload containing `delete`, the call is blocked and returns `403`.
+
+### Example 2 (blog): block email leaks in outputs
+
+Recommended rule:
+
+- `Scope`: `output`
+- `Type`: `regex`
+- `Action`: `block`
+- `Pattern`: `/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i`
+
+Usage:
+
+- If a function returns emails by mistake, NAVAI blocks the output.
+
+### Test rules before enabling in real flows
+
+In `Safety > Test rules`, you can send:
+
+- `Scope`
+- `Function name`
+- `Function source`
+- `Test text`
+- `Payload JSON`
+
+This calls the test endpoint and returns whether a rule would match (`blocked`, `matched_count`, `matches`).
+
 ## REST endpoints (current)
 
 The plugin registers these REST routes:
@@ -308,11 +405,17 @@ The plugin registers these REST routes:
 - `GET /wp-json/navai/v1/functions`
 - `GET /wp-json/navai/v1/routes`
 - `POST /wp-json/navai/v1/functions/execute`
+- `GET /wp-json/navai/v1/guardrails` (admin)
+- `POST /wp-json/navai/v1/guardrails` (admin)
+- `PUT /wp-json/navai/v1/guardrails/{id}` (admin)
+- `DELETE /wp-json/navai/v1/guardrails/{id}` (admin)
+- `POST /wp-json/navai/v1/guardrails/test` (admin)
 
 Notes:
 
 - `client-secret` has a basic rate limit (per IP, short time window).
 - Public access to `client-secret` and backend functions can be toggled in Settings.
+- `guardrails` endpoints require administrator permissions (`manage_options`).
 
 ## Backend extensibility (filters)
 
@@ -379,6 +482,7 @@ add_filter('navai_voice_frontend_config', function (array $config, array $settin
 - The OpenAI API key remains on the server.
 - If `Allow public client_secret` is disabled, only admins can request a client secret.
 - If `Allow public backend functions` is disabled, only admins can list/execute backend functions.
+- `Safety` (Phase 1) can block `functions/execute` calls by `input`, `tool`, and `output`.
 - Custom PHP code in the Functions tab is trusted admin code and runs on your server. Use carefully.
 - Restrict routes/functions to only what NAVAI should be allowed to use.
 

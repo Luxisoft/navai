@@ -26,7 +26,7 @@ El plugin esta implementado en PHP (servidor) y JavaScript vanilla (navegador) p
 - `Instalar`: [WordPress admin](#instalacion-desde-wordpress-admin) | [Manual](#instalacion-manual-filesystem)
 - `Configurar`: [Configuracion rapida](#configuracion-rapida-recomendada)
 - `Usar`: [Boton global flotante](#opcion-a-boton-global-flotante) | [Shortcode](#opcion-b-shortcode)
-- `Tabs admin`: [Navegacion](#tab-navegacion-rutas-permitidas-para-la-ia) | [Funciones](#tab-funciones-funciones-personalizadas) | [Ajustes](#resumen-del-panel-de-administracion)
+- `Tabs admin`: [Navegacion](#tab-navegacion-rutas-permitidas-para-la-ia) | [Funciones](#tab-funciones-funciones-personalizadas) | [Seguridad](#tab-seguridad-guardrails-fase-1) | [Ajustes](#resumen-del-panel-de-administracion)
 - `Desarrollo`: [Endpoints REST](#endpoints-rest-actuales) | [Extensibilidad backend](#extensibilidad-backend-filters)
 - `Operaciones`: [Generar ZIP](#generar-zip-instalable-powershell) | [Problemas comunes](#troubleshooting--problemas-comunes)
 
@@ -74,6 +74,26 @@ Patron recomendado:
 - Usa funciones personalizadas en `Funciones` para leer datos o ejecutar acciones
 - Agrega descripciones claras para que NAVAI sepa cuando llamar cada funcion
 
+### Ejemplos de guardrails (Fase 1)
+
+Casos de uso para la tab `Seguridad` (guardrails):
+
+- Bloquear acciones peligrosas en tienda (ej. `delete_order`, `delete_product`)
+- Bloquear payloads con datos sensibles (tarjeta, documento, claves)
+- Marcar como `warn` acciones de alto riesgo para calibrar reglas antes de bloquear
+- Bloquear salida de datos sensibles (ej. emails) usando regex en `output`
+- Limitar reglas por rol (`guest`, `subscriber`, `administrator`) y por funcion/plugin
+
+Ejemplo rapido (WooCommerce):
+
+- `Scope`: `tool`
+- `Tipo`: `keyword`
+- `Accion`: `block`
+- `Pattern`: `delete`
+- `Plugin/Function scope`: `run_plugin_action,order`
+
+Esto sirve para evitar que NAVAI ejecute acciones destructivas en funciones backend.
+
 ## Que puede hacer actualmente el plugin
 
 - Agregar un widget de voz a WordPress usando OpenAI Realtime (WebRTC).
@@ -93,6 +113,10 @@ Patron recomendado:
 - Editar/eliminar funciones personalizadas directamente desde la lista.
 - Filtrar rutas/funciones por texto, plugin y rol en el panel admin.
 - Cambiar idioma del panel (English/Spanish) desde el dashboard de NAVAI.
+- Configurar guardrails (Fase 1) desde la tab `Seguridad` para `input`, `tool` y `output` con reglas `keyword`/`regex`.
+- Bloquear llamadas a funciones (`/functions/execute`) cuando una regla de guardrail coincide.
+- Probar reglas de guardrails desde el panel admin (`Seguridad > Probar reglas`).
+- Registrar eventos minimos de bloqueo (`guardrail_blocked`) en base de datos para trazabilidad basica.
 - Usar endpoints REST integrados para client secret, rutas, listado de funciones y ejecucion.
 
 ## Requisitos
@@ -107,7 +131,7 @@ El plugin agrega un item en el menu lateral:
 
 - `NAVAI Voice`
 
-El dashboard tiene tres tabs principales y controles extra:
+El dashboard tiene cuatro tabs principales y controles extra:
 
 - `Navegacion`
   - Rutas publicas desde menus de WordPress
@@ -119,6 +143,12 @@ El dashboard tiene tres tabs principales y controles extra:
   - Lista de funciones con checkbox de activacion
   - Acciones Editar/Eliminar
   - Filtros por texto/plugin/rol
+- `Seguridad` (Fase 1)
+  - Toggle `Activar guardrails en tiempo real`
+  - CRUD de reglas (`keyword` / `regex`)
+  - Scopes `input`, `tool`, `output`
+  - Filtros por rol y por plugin/funcion
+  - Probador de reglas (`Probar reglas`) con texto/payload JSON
 - `Ajustes`
   - Conexion/runtime (API key, modelo, voz, selector buscable de idioma, acento, tono, TTL)
   - Widget global (modo, lado, colores, textos)
@@ -300,6 +330,73 @@ Ejemplo en el dashboard:
 @action:list_recent_orders
 ```
 
+## Tab Seguridad (Guardrails, Fase 1)
+
+Usa esta seccion para crear reglas que bloquean o advierten cuando NAVAI intenta ejecutar funciones con entradas, payloads o resultados que no quieres permitir.
+
+### Que evalua
+
+- `input`: entrada/payload antes de ejecutar la funcion
+- `tool`: llamada a la herramienta/funcion y su payload
+- `output`: resultado devuelto por la funcion
+
+### Tipos de regla
+
+- `keyword`: coincidencia por texto (substring)
+- `regex`: coincidencia por expresion regular
+
+### Acciones de regla
+
+- `block`: bloquea la ejecucion o salida
+- `warn`: no bloquea, pero marca coincidencia (util para calibrar)
+- `allow`: regla de referencia (sin bloqueo)
+
+### Campos utiles
+
+- `Roles (csv)`: limita por roles (`guest,subscriber,administrator`)
+- `Plugin/Function scope (csv)`: limita por nombre de funcion o source (ej. `run_plugin_action,woocommerce`)
+- `Prioridad`: menor numero se evalua primero
+
+### Ejemplo 1 (tienda WooCommerce): bloquear acciones destructivas
+
+Regla recomendada:
+
+- `Nombre`: `Bloquear borrado de pedidos`
+- `Scope`: `tool`
+- `Tipo`: `keyword`
+- `Accion`: `block`
+- `Pattern`: `delete`
+- `Plugin/Function scope`: `run_plugin_action,order`
+
+Uso:
+
+- Si NAVAI intenta ejecutar una accion backend con payload que incluya `delete`, la llamada se bloquea y devuelve error `403`.
+
+### Ejemplo 2 (blog): bloquear fuga de emails en resultados
+
+Regla recomendada:
+
+- `Scope`: `output`
+- `Tipo`: `regex`
+- `Accion`: `block`
+- `Pattern`: `/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i`
+
+Uso:
+
+- Si una funcion devuelve correos por error, NAVAI bloquea la salida.
+
+### Probar reglas antes de activar bloqueo en flujos reales
+
+En `Seguridad > Probar reglas` puedes enviar:
+
+- `Scope`
+- `Function name`
+- `Function source`
+- `Texto de prueba`
+- `Payload JSON`
+
+Esto llama al endpoint de prueba y devuelve si la regla haria match (`blocked`, `matched_count`, `matches`).
+
 ## Endpoints REST (actuales)
 
 El plugin registra estas rutas REST:
@@ -308,11 +405,17 @@ El plugin registra estas rutas REST:
 - `GET /wp-json/navai/v1/functions`
 - `GET /wp-json/navai/v1/routes`
 - `POST /wp-json/navai/v1/functions/execute`
+- `GET /wp-json/navai/v1/guardrails` (admin)
+- `POST /wp-json/navai/v1/guardrails` (admin)
+- `PUT /wp-json/navai/v1/guardrails/{id}` (admin)
+- `DELETE /wp-json/navai/v1/guardrails/{id}` (admin)
+- `POST /wp-json/navai/v1/guardrails/test` (admin)
 
 Notas:
 
 - `client-secret` tiene rate limit basico (por IP, ventana corta).
 - El acceso publico a `client-secret` y funciones backend se puede activar/desactivar desde Ajustes.
+- Los endpoints `guardrails` requieren permisos de administrador (`manage_options`).
 
 ## Extensibilidad backend (filters)
 
@@ -379,6 +482,7 @@ add_filter('navai_voice_frontend_config', function (array $config, array $settin
 - La API key de OpenAI permanece en el servidor.
 - Si `Permitir client_secret publico` esta desactivado, solo admins pueden solicitar client secret.
 - Si `Permitir funciones backend publicas` esta desactivado, solo admins pueden listar/ejecutar funciones backend.
+- `Seguridad` (Fase 1) permite bloquear llamadas por `input`, `tool` y `output` antes/despues de `functions/execute`.
 - El codigo PHP personalizado en la tab `Funciones` es codigo confiable de admin y se ejecuta en tu servidor. Usalo con cuidado.
 - Restringe rutas y funciones a lo estrictamente necesario.
 

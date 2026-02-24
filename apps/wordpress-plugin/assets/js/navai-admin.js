@@ -2,6 +2,7 @@
   "use strict";
 
   var runtime = window.NAVAI_VOICE_ADMIN_RUNTIME || {};
+  var getAdminConfig = runtime.getAdminConfig;
   var normalizeText = runtime.normalizeText;
   var translateValue = runtime.translateValue;
   var readInitialTab = runtime.readInitialTab;
@@ -13,6 +14,69 @@
   var initNavigationControls = runtime.initNavigationControls;
   var createRowFromTemplate = runtime.createRowFromTemplate;
   var cloneTemplateElement = runtime.cloneTemplateElement;
+
+  function getAdminApiConfig() {
+    var config = typeof getAdminConfig === "function" ? getAdminConfig() : (window.NAVAI_VOICE_ADMIN_CONFIG || {});
+    return {
+      restBaseUrl: typeof config.restBaseUrl === "string" ? config.restBaseUrl : "",
+      restNonce: typeof config.restNonce === "string" ? config.restNonce : ""
+    };
+  }
+
+  function currentDashboardLanguage() {
+    var wrap = document.querySelector(".navai-admin-wrap");
+    var lang = wrap ? String(wrap.getAttribute("data-navai-dashboard-language") || "") : "";
+    if (lang !== "es" && lang !== "en") {
+      lang = typeof readDashboardLanguage === "function" ? readDashboardLanguage() : "en";
+    }
+    return lang === "es" ? "es" : "en";
+  }
+
+  function tAdmin(text) {
+    return typeof translateValue === "function" ? translateValue(String(text || ""), currentDashboardLanguage()) : String(text || "");
+  }
+
+  async function adminApiRequest(path, method, body) {
+    var config = getAdminApiConfig();
+    if (!config.restBaseUrl) {
+      throw new Error("Missing admin restBaseUrl.");
+    }
+
+    var url = String(config.restBaseUrl).replace(/\/$/, "") + path;
+    var headers = {
+      "Content-Type": "application/json"
+    };
+    if (config.restNonce) {
+      headers["X-WP-Nonce"] = config.restNonce;
+    }
+
+    var response = await fetch(url, {
+      method: method || "GET",
+      headers: headers,
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+
+    var data = null;
+    try {
+      data = await response.json();
+    } catch (_error) {
+      data = null;
+    }
+
+    if (!response.ok) {
+      var msg = "";
+      if (data && typeof data.message === "string") {
+        msg = data.message;
+      } else if (data && typeof data.error === "string") {
+        msg = data.error;
+      } else {
+        msg = "Request failed (" + response.status + ")";
+      }
+      throw new Error(msg);
+    }
+
+    return data;
+  }
 
   function applyPluginFunctionFilters(pluginPanel) {
     if (!pluginPanel) {
@@ -861,6 +925,372 @@
     applyPluginFunctionFilters(pluginPanel);
   }
 
+  function initGuardrailsControls() {
+    var panel = document.querySelector('[data-navai-panel="safety"] [data-navai-guardrails-panel]');
+    if (!panel || panel.__navaiGuardrailsReady) {
+      return;
+    }
+    panel.__navaiGuardrailsReady = true;
+
+    var editor = panel.querySelector("[data-navai-guardrails-editor]");
+    var idInput = panel.querySelector(".navai-guardrail-id");
+    var nameInput = panel.querySelector(".navai-guardrail-name");
+    var scopeSelect = panel.querySelector(".navai-guardrail-scope");
+    var typeSelect = panel.querySelector(".navai-guardrail-type");
+    var actionSelect = panel.querySelector(".navai-guardrail-action");
+    var rolesInput = panel.querySelector(".navai-guardrail-roles");
+    var pluginsInput = panel.querySelector(".navai-guardrail-plugins");
+    var priorityInput = panel.querySelector(".navai-guardrail-priority");
+    var enabledInput = panel.querySelector(".navai-guardrail-enabled");
+    var patternInput = panel.querySelector(".navai-guardrail-pattern");
+    var saveButton = panel.querySelector(".navai-guardrail-save");
+    var cancelButton = panel.querySelector(".navai-guardrail-cancel");
+    var resetButton = panel.querySelector(".navai-guardrail-reset");
+    var reloadButton = panel.querySelector(".navai-guardrail-reload");
+    var statusNode = panel.querySelector(".navai-guardrails-status");
+    var tbody = panel.querySelector(".navai-guardrails-table-body");
+    var guardrailsToggle = panel.querySelector('.navai-guardrails-toggle input[type="checkbox"]');
+
+    var testScope = panel.querySelector(".navai-guardrail-test-scope");
+    var testFunctionName = panel.querySelector(".navai-guardrail-test-function-name");
+    var testFunctionSource = panel.querySelector(".navai-guardrail-test-function-source");
+    var testText = panel.querySelector(".navai-guardrail-test-text");
+    var testPayload = panel.querySelector(".navai-guardrail-test-payload");
+    var testRunButton = panel.querySelector(".navai-guardrail-test-run");
+    var testResult = panel.querySelector(".navai-guardrails-test-result");
+
+    if (!editor || !idInput || !nameInput || !scopeSelect || !typeSelect || !actionSelect || !rolesInput || !pluginsInput || !priorityInput || !enabledInput || !patternInput || !saveButton || !cancelButton || !resetButton || !reloadButton || !statusNode || !tbody) {
+      return;
+    }
+
+    var state = {
+      rules: [],
+      loading: false
+    };
+
+    function setStatus(message, isError) {
+      if (!statusNode) {
+        return;
+      }
+      statusNode.textContent = message ? tAdmin(message) : "";
+      statusNode.classList.toggle("is-error", !!isError);
+      statusNode.classList.toggle("is-success", !!message && !isError);
+    }
+
+    function setTestResult(payload, isError) {
+      if (!testResult) {
+        return;
+      }
+      if (!payload) {
+        testResult.textContent = "";
+        testResult.setAttribute("hidden", "hidden");
+        testResult.classList.remove("is-error");
+        return;
+      }
+      testResult.textContent = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+      testResult.removeAttribute("hidden");
+      testResult.classList.toggle("is-error", !!isError);
+    }
+
+    function resetEditorStatusOnly() {
+      setStatus("Selecciona una regla para editar o crea una nueva.", false);
+    }
+
+    function resetEditor(keepStatus) {
+      idInput.value = "";
+      nameInput.value = "";
+      scopeSelect.value = "input";
+      typeSelect.value = "keyword";
+      actionSelect.value = "block";
+      rolesInput.value = "";
+      pluginsInput.value = "";
+      priorityInput.value = "100";
+      enabledInput.checked = true;
+      patternInput.value = "";
+      saveButton.textContent = tAdmin("Guardar regla");
+      cancelButton.setAttribute("hidden", "hidden");
+      if (!keepStatus) {
+        resetEditorStatusOnly();
+      }
+    }
+
+    function fillEditor(item) {
+      idInput.value = String(item.id || "");
+      nameInput.value = String(item.name || "");
+      scopeSelect.value = String(item.scope || "input");
+      typeSelect.value = String(item.type || "keyword");
+      actionSelect.value = String(item.action || "block");
+      rolesInput.value = String(item.role_scope || "");
+      pluginsInput.value = String(item.plugin_scope || "");
+      priorityInput.value = String(typeof item.priority === "number" ? item.priority : 100);
+      enabledInput.checked = !!item.enabled;
+      patternInput.value = String(item.pattern || "");
+      saveButton.textContent = tAdmin("Guardar regla");
+      cancelButton.removeAttribute("hidden");
+      setStatus("", false);
+      if (nameInput.focus) {
+        nameInput.focus();
+      }
+    }
+
+    function collectEditorData() {
+      return {
+        name: String(nameInput.value || "").trim(),
+        scope: String(scopeSelect.value || "input"),
+        type: String(typeSelect.value || "keyword"),
+        action: String(actionSelect.value || "block"),
+        role_scope: String(rolesInput.value || "").trim(),
+        plugin_scope: String(pluginsInput.value || "").trim(),
+        priority: parseInt(priorityInput.value || "100", 10),
+        enabled: !!enabledInput.checked,
+        pattern: String(patternInput.value || "")
+      };
+    }
+
+    function renderRows(items) {
+      tbody.innerHTML = "";
+
+      if (!items || !items.length) {
+        var emptyRow = document.createElement("tr");
+        emptyRow.className = "navai-guardrails-empty-row";
+        var cell = document.createElement("td");
+        cell.colSpan = 8;
+        cell.textContent = tAdmin("No hay reglas guardadas.");
+        emptyRow.appendChild(cell);
+        tbody.appendChild(emptyRow);
+        return;
+      }
+
+      for (var i = 0; i < items.length; i += 1) {
+        var item = items[i];
+        var row = document.createElement("tr");
+        row.className = "navai-guardrail-row";
+        row.setAttribute("data-guardrail-id", String(item.id || ""));
+
+        var statusCell = document.createElement("td");
+        var statusBadge = document.createElement("span");
+        statusBadge.className = "navai-status-badge " + (item.enabled ? "is-enabled" : "is-disabled");
+        statusBadge.textContent = item.enabled ? tAdmin("Guardrails habilitados") : tAdmin("Guardrails deshabilitados");
+        statusCell.appendChild(statusBadge);
+
+        var nameCell = document.createElement("td");
+        nameCell.textContent = String(item.name || "");
+
+        var scopeCell = document.createElement("td");
+        scopeCell.textContent = String(item.scope || "");
+
+        var typeCell = document.createElement("td");
+        typeCell.textContent = String(item.type || "");
+
+        var actionCell = document.createElement("td");
+        actionCell.textContent = String(item.action || "");
+
+        var patternCell = document.createElement("td");
+        var patternCode = document.createElement("code");
+        var patternText = String(item.pattern || "");
+        patternCode.textContent = patternText.length > 80 ? (patternText.slice(0, 77) + "...") : patternText;
+        patternCell.appendChild(patternCode);
+
+        var priorityCell = document.createElement("td");
+        priorityCell.textContent = String(typeof item.priority === "number" ? item.priority : "");
+
+        var actionsCell = document.createElement("td");
+        actionsCell.className = "navai-guardrails-row-actions";
+        var editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "button button-secondary button-small navai-guardrail-edit";
+        editButton.setAttribute("data-guardrail-id", String(item.id || ""));
+        editButton.textContent = tAdmin("Editar");
+        var deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "button button-link-delete navai-guardrail-delete";
+        deleteButton.setAttribute("data-guardrail-id", String(item.id || ""));
+        deleteButton.textContent = tAdmin("Eliminar");
+        actionsCell.appendChild(editButton);
+        actionsCell.appendChild(deleteButton);
+
+        row.appendChild(statusCell);
+        row.appendChild(nameCell);
+        row.appendChild(scopeCell);
+        row.appendChild(typeCell);
+        row.appendChild(actionCell);
+        row.appendChild(patternCell);
+        row.appendChild(priorityCell);
+        row.appendChild(actionsCell);
+        tbody.appendChild(row);
+      }
+    }
+
+    async function loadRules(showStatus) {
+      if (state.loading) {
+        return;
+      }
+      state.loading = true;
+      if (showStatus !== false) {
+        setStatus("Cargando reglas...", false);
+      }
+
+      try {
+        var response = await adminApiRequest("/guardrails", "GET");
+        state.rules = response && Array.isArray(response.items) ? response.items : [];
+        renderRows(state.rules);
+        if (showStatus !== false) {
+          setStatus("", false);
+        }
+      } catch (error) {
+        renderRows([]);
+        setStatus("No se pudo cargar la lista de reglas.", true);
+      } finally {
+        state.loading = false;
+      }
+    }
+
+    function findRuleById(id) {
+      for (var i = 0; i < state.rules.length; i += 1) {
+        if (String(state.rules[i].id) === String(id)) {
+          return state.rules[i];
+        }
+      }
+      return null;
+    }
+
+    async function saveRule() {
+      var data = collectEditorData();
+      if (!data.pattern || !String(data.pattern).trim()) {
+        setStatus("No se pudo guardar la regla.", true);
+        return;
+      }
+
+      var id = String(idInput.value || "").trim();
+      saveButton.disabled = true;
+      try {
+        if (id) {
+          await adminApiRequest("/guardrails/" + encodeURIComponent(id), "PUT", data);
+          setStatus("Regla actualizada correctamente.", false);
+        } else {
+          await adminApiRequest("/guardrails", "POST", data);
+          setStatus("Regla creada correctamente.", false);
+        }
+        resetEditor(true);
+        await loadRules(false);
+      } catch (error) {
+        setStatus((error && error.message) ? error.message : "No se pudo guardar la regla.", true);
+      } finally {
+        saveButton.disabled = false;
+      }
+    }
+
+    async function deleteRule(id) {
+      if (!id) {
+        return;
+      }
+      if (typeof window.confirm === "function" && !window.confirm(tAdmin("Eliminar esta regla?"))) {
+        return;
+      }
+
+      try {
+        await adminApiRequest("/guardrails/" + encodeURIComponent(id), "DELETE");
+        if (String(idInput.value || "") === String(id)) {
+          resetEditor(true);
+        }
+        setStatus("Regla eliminada.", false);
+        await loadRules(false);
+      } catch (error) {
+        setStatus((error && error.message) ? error.message : "No se pudo eliminar la regla.", true);
+      }
+    }
+
+    async function runGuardrailTest() {
+      if (!testRunButton) {
+        return;
+      }
+
+      var payloadValue = null;
+      var payloadText = testPayload ? String(testPayload.value || "").trim() : "";
+      if (payloadText !== "") {
+        try {
+          payloadValue = JSON.parse(payloadText);
+        } catch (_error) {
+          payloadValue = payloadText;
+        }
+      }
+
+      setTestResult(null, false);
+      testRunButton.disabled = true;
+
+      try {
+        var response = await adminApiRequest("/guardrails/test", "POST", {
+          scope: testScope ? String(testScope.value || "input") : "input",
+          function_name: testFunctionName ? String(testFunctionName.value || "") : "",
+          function_source: testFunctionSource ? String(testFunctionSource.value || "") : "",
+          text: testText ? String(testText.value || "") : "",
+          payload: payloadValue
+        });
+        setTestResult(response && response.evaluation ? response.evaluation : response, false);
+      } catch (error) {
+        setTestResult({ error: (error && error.message) ? error.message : tAdmin("No se pudo ejecutar la prueba.") }, true);
+      } finally {
+        testRunButton.disabled = false;
+      }
+    }
+
+    reloadButton.addEventListener("click", function () {
+      loadRules(true);
+    });
+
+    saveButton.addEventListener("click", function () {
+      saveRule();
+    });
+
+    cancelButton.addEventListener("click", function () {
+      resetEditor(false);
+    });
+
+    resetButton.addEventListener("click", function () {
+      resetEditor(false);
+      setTestResult(null, false);
+    });
+
+    if (testRunButton) {
+      testRunButton.addEventListener("click", function () {
+        runGuardrailTest();
+      });
+    }
+
+    tbody.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest) {
+        return;
+      }
+
+      var editButton = target.closest(".navai-guardrail-edit");
+      if (editButton) {
+        event.preventDefault();
+        var editId = String(editButton.getAttribute("data-guardrail-id") || "");
+        var rule = findRuleById(editId);
+        if (rule) {
+          fillEditor(rule);
+        }
+        return;
+      }
+
+      var deleteButton = target.closest(".navai-guardrail-delete");
+      if (deleteButton) {
+        event.preventDefault();
+        deleteRule(String(deleteButton.getAttribute("data-guardrail-id") || ""));
+      }
+    });
+
+    if (guardrailsToggle) {
+      guardrailsToggle.addEventListener("change", function () {
+        setStatus(this.checked ? "Guardrails habilitados" : "Guardrails deshabilitados", false);
+      });
+    }
+
+    resetEditor(false);
+    loadRules(true);
+  }
+
   function initDashboardTabs() {
     var tabButtons = document.querySelectorAll(".navai-admin-tab-button");
     var tabPanels = document.querySelectorAll(".navai-admin-panel");
@@ -893,6 +1323,7 @@
 
     initNavigationControls();
     initPluginFunctionsControls();
+    initGuardrailsControls();
     if (typeof initSearchableSelects === "function") {
       initSearchableSelects();
     }

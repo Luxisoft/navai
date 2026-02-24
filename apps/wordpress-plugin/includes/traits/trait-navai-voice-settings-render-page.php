@@ -30,6 +30,7 @@ trait Navai_Voice_Settings_Render_Page_Trait
             $frontendButtonTextActive = 'Stop NAVAI';
         }
         $dashboardLanguage = $this->sanitize_dashboard_language($settings['dashboard_language'] ?? 'en');
+        $guardrailsEnabled = !array_key_exists('enable_guardrails', $settings) || !empty($settings['enable_guardrails']);
         $normalizeSearchableOptions = static function (array $options, string $selected): array {
             $cleanOptions = array_values(array_unique(array_filter(array_map(
                 static fn($value): string => sanitize_text_field((string) $value),
@@ -111,6 +112,9 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 </button>
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="plugins">
                                     <?php echo esc_html__('Funciones', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="safety">
+                                    <?php echo esc_html__('Seguridad', 'navai-voice'); ?>
                                 </button>
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="settings">
                                     <?php echo esc_html__('Ajustes', 'navai-voice'); ?>
@@ -635,6 +639,7 @@ trait Navai_Voice_Settings_Render_Page_Trait
                 </section>
 
                 <?php require __DIR__ . '/../views/admin/navai-settings-panel-plugins.php'; ?>
+                <?php require __DIR__ . '/../views/admin/navai-settings-panel-safety.php'; ?>
                 <section class="navai-admin-panel" data-navai-panel="settings">
                     <h2><?php echo esc_html__('Ajustes', 'navai-voice'); ?></h2>
                     <p><?php echo esc_html__('Configuracion principal del runtime de voz.', 'navai-voice'); ?></p>
