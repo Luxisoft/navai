@@ -26,7 +26,7 @@ This plugin is implemented in PHP (server side) and vanilla JS (browser side) fo
 - `Install`: [WordPress admin install](#installation-wordpress-admin) | [Manual install](#installation-manual--filesystem)
 - `Configure`: [Quick configuration](#quick-configuration-recommended)
 - `Use`: [Global floating button](#option-a-global-floating-button) | [Shortcode](#option-b-shortcode)
-- `Admin tabs`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Plugins](#plugins-tab-custom-functions) | [Settings](#admin-dashboard-overview)
+- `Admin tabs`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Functions](#functions-tab-custom-functions) | [Settings](#admin-dashboard-overview)
 - `Developer`: [REST endpoints](#rest-endpoints-current) | [Backend extensibility](#backend-extensibility-filters)
 - `Ops`: [Build ZIP](#build-installable-zip-powershell) | [Troubleshooting](#troubleshooting)
 
@@ -48,7 +48,7 @@ Tip: add route descriptions like "Use this route when the user asks to manage co
 
 ### Custom function examples
 
-These examples depend on the functions you create and activate in the `Plugins` tab.
+These examples depend on the functions you create and activate in the `Functions` tab.
 
 Possible use cases in WordPress:
 
@@ -71,7 +71,7 @@ Example prompts a user can say:
 Recommended pattern:
 
 - Use `Navigation` for moving the user to the correct page
-- Use `Plugins` custom functions for reading data or executing actions
+- Use `Functions` custom functions for reading data or executing actions
 - Add clear descriptions so NAVAI knows when each function should be called
 
 ## What the plugin can do today
@@ -114,13 +114,13 @@ The dashboard has three main tabs plus utility controls:
   - Private custom routes by role
   - Route descriptions
   - Filters and bulk selection actions
-- `Plugins`
-  - Custom function editor (create/edit)
+- `Functions`
+  - Custom function editor in a responsive modal (create/edit)
   - Custom function list with activation checkboxes
   - Edit/Delete actions
   - Filters by text/plugin/role
 - `Settings`
-  - Connection/runtime settings (API key, model, voice, instructions, language, accent, tone, TTL)
+  - Connection/runtime settings (API key, model, voice, instructions, searchable language selector, accent, tone, TTL)
   - Global widget settings (mode, side, colors, labels)
   - Visibility/shortcode settings (allowed roles, shortcode helper)
 
@@ -129,6 +129,7 @@ Extra controls in the top header:
 - `Documentation` button (opens NAVAI WordPress documentation)
 - `Panel language` selector (`English`, `Spanish`)
 - Sticky header (logo + menu) while scrolling inside the NAVAI settings page
+- Dashboard opens in `Navigation` by default (first tab) when entering NAVAI settings
 
 ## Installation (WordPress admin)
 
@@ -145,7 +146,7 @@ Extra controls in the top header:
 
 ## Quick configuration (recommended)
 
-1. Open `NAVAI Voice > Settings`.
+1. Open `NAVAI Voice` (the dashboard opens in `Navigation` first), then go to `Settings`.
 2. Configure at minimum:
    - `OpenAI API Key`
    - `Realtime Model` (default: `gpt-realtime`)
@@ -216,16 +217,17 @@ Use this tab to control where the AI can navigate when it calls `navigate_to`.
 
 This is useful for role-based admin pages or protected pages.
 
-## Plugins tab (custom functions)
+## Functions tab (custom functions)
 
 Use this tab to define custom functions per plugin and role.
 
 Workflow:
 
-1. Select plugin and role.
-2. Add code in `NAVAI Function`.
-3. Add a description.
-4. Click `Add function`.
+1. Click `Create function` (opens the responsive modal).
+2. Select plugin and role.
+3. Add code in `NAVAI Function`.
+4. Add a description.
+5. Click `Add function`.
 
 After creating:
 
@@ -235,6 +237,7 @@ After creating:
   - Edit
   - Delete
   - Activate/deactivate via checkbox
+- Editing reopens the same modal prefilled with the selected function data
 
 ### Code modes for "NAVAI Function"
 
@@ -376,7 +379,7 @@ add_filter('navai_voice_frontend_config', function (array $config, array $settin
 - The OpenAI API key remains on the server.
 - If `Allow public client_secret` is disabled, only admins can request a client secret.
 - If `Allow public backend functions` is disabled, only admins can list/execute backend functions.
-- Custom PHP code in the Plugins tab is trusted admin code and runs on your server. Use carefully.
+- Custom PHP code in the Functions tab is trusted admin code and runs on your server. Use carefully.
 - Restrict routes/functions to only what NAVAI should be allowed to use.
 
 ## Build installable ZIP (PowerShell)

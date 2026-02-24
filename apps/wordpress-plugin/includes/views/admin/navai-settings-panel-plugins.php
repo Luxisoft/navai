@@ -10,75 +10,118 @@
                 $pluginFunctionGroupsCount = count($pluginFunctionGroups);
                 ?>
                 <section class="navai-admin-panel" data-navai-panel="plugins">
-                    <h2><?php echo esc_html__('Plugins', 'navai-voice'); ?></h2>
+                    <h2><?php echo esc_html__('Funciones', 'navai-voice'); ?></h2>
                     <p><?php echo esc_html__('Define funciones personalizadas por plugin y rol para que NAVAI las ejecute.', 'navai-voice'); ?></p>
 
                     <div class="navai-admin-card">
                         <div class="navai-plugin-functions-builder" data-next-index="<?php echo esc_attr((string) $pluginCustomFunctionsCount); ?>">
-                            <h3><?php echo esc_html__('Funciones personalizadas', 'navai-voice'); ?></h3>
-                            <p class="navai-admin-description">
-                                <?php echo esc_html__('Selecciona plugin y rol. Luego agrega codigo (PHP o JavaScript) y una descripcion para guiar al agente IA.', 'navai-voice'); ?>
-                            </p>
-
-                            <div class="navai-plugin-function-editor" data-mode="create">
-                                <input type="hidden" class="navai-plugin-function-editor-id" value="" />
-                                <input type="hidden" class="navai-plugin-function-editor-index" value="" />
-
-                                <div class="navai-plugin-function-row navai-plugin-function-row--editor">
-                                    <label>
-                                        <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
-                                        <select class="navai-plugin-function-editor-plugin">
-                                            <?php foreach ($pluginFunctionPluginCatalog as $pluginKey => $pluginLabel) : ?>
-                                                <option value="<?php echo esc_attr((string) $pluginKey); ?>">
-                                                    <?php echo esc_html((string) $pluginLabel); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </label>
-
-                                    <label>
-                                        <span><?php echo esc_html__('Rol', 'navai-voice'); ?></span>
-                                        <select class="navai-plugin-function-editor-role">
-                                            <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
-                                                <option value="<?php echo esc_attr((string) $roleKey); ?>">
-                                                    <?php echo esc_html((string) $roleLabel); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </label>
-
-                                    <label class="navai-plugin-function-code-wrap">
-                                        <span><?php echo esc_html__('Funcion NAVAI', 'navai-voice'); ?></span>
-                                        <textarea
-                                            class="navai-plugin-function-code navai-plugin-function-editor-code"
-                                            rows="12"
-                                            placeholder="<?php echo esc_attr__('Pega codigo PHP o JavaScript para NAVAI. Para JavaScript usa prefijo js:.', 'navai-voice'); ?>"
-                                        ></textarea>
-                                    </label>
-
-                                    <label class="navai-plugin-function-description">
-                                        <span><?php echo esc_html__('Descripcion', 'navai-voice'); ?></span>
-                                        <input
-                                            type="text"
-                                            class="navai-plugin-function-editor-description"
-                                            value=""
-                                            placeholder="<?php echo esc_attr__('Describe when NAVAI should execute this function', 'navai-voice'); ?>"
-                                        />
-                                    </label>
+                            <div class="navai-plugin-functions-builder-head">
+                                <div class="navai-plugin-functions-builder-head-copy">
+                                    <h3><?php echo esc_html__('Funciones personalizadas', 'navai-voice'); ?></h3>
+                                    <p class="navai-admin-description">
+                                        <?php echo esc_html__('Selecciona plugin y rol. Luego agrega codigo (PHP o JavaScript) y una descripcion para guiar al agente IA.', 'navai-voice'); ?>
+                                    </p>
                                 </div>
+                                <div class="navai-plugin-functions-builder-head-actions">
+                                    <button type="button" class="button button-primary navai-plugin-function-open">
+                                        <?php echo esc_html__('Crear funcion', 'navai-voice'); ?>
+                                    </button>
+                                </div>
+                            </div>
 
-                                <div class="navai-plugin-function-editor-actions">
-                                    <button
-                                        type="button"
-                                        class="button button-primary navai-plugin-function-save"
-                                        data-label-create="<?php echo esc_attr__('Anadir funcion', 'navai-voice'); ?>"
-                                        data-label-edit="<?php echo esc_attr__('Guardar cambios', 'navai-voice'); ?>"
-                                    >
-                                        <?php echo esc_html__('Anadir funcion', 'navai-voice'); ?>
-                                    </button>
-                                    <button type="button" class="button button-secondary navai-plugin-function-cancel" hidden>
-                                        <?php echo esc_html__('Cancelar edicion', 'navai-voice'); ?>
-                                    </button>
+                            <div class="navai-plugin-function-modal" hidden>
+                                <div
+                                    class="navai-plugin-function-modal-dialog"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="navai-plugin-function-modal-title"
+                                >
+                                    <div class="navai-plugin-function-modal-head">
+                                        <div>
+                                            <h4
+                                                id="navai-plugin-function-modal-title"
+                                                class="navai-plugin-function-modal-title"
+                                                data-label-create="<?php echo esc_attr__('Crear funcion', 'navai-voice'); ?>"
+                                                data-label-edit="<?php echo esc_attr__('Editar funcion', 'navai-voice'); ?>"
+                                            >
+                                                <?php echo esc_html__('Crear funcion', 'navai-voice'); ?>
+                                            </h4>
+                                            <p class="navai-admin-description">
+                                                <?php echo esc_html__('Selecciona plugin y rol. Luego agrega codigo (PHP o JavaScript) y una descripcion para guiar al agente IA.', 'navai-voice'); ?>
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="button button-secondary button-small navai-plugin-function-modal-dismiss navai-plugin-function-modal-dismiss--top"
+                                        >
+                                            <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                                        </button>
+                                    </div>
+
+                                    <div class="navai-plugin-function-editor" data-mode="create">
+                                        <input type="hidden" class="navai-plugin-function-editor-id" value="" />
+                                        <input type="hidden" class="navai-plugin-function-editor-index" value="" />
+
+                                        <div class="navai-plugin-function-row navai-plugin-function-row--editor">
+                                            <label>
+                                                <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
+                                                <select class="navai-plugin-function-editor-plugin">
+                                                    <?php foreach ($pluginFunctionPluginCatalog as $pluginKey => $pluginLabel) : ?>
+                                                        <option value="<?php echo esc_attr((string) $pluginKey); ?>">
+                                                            <?php echo esc_html((string) $pluginLabel); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
+
+                                            <label>
+                                                <span><?php echo esc_html__('Rol', 'navai-voice'); ?></span>
+                                                <select class="navai-plugin-function-editor-role">
+                                                    <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
+                                                        <option value="<?php echo esc_attr((string) $roleKey); ?>">
+                                                            <?php echo esc_html((string) $roleLabel); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
+
+                                            <label class="navai-plugin-function-code-wrap">
+                                                <span><?php echo esc_html__('Funcion NAVAI', 'navai-voice'); ?></span>
+                                                <textarea
+                                                    class="navai-plugin-function-code navai-plugin-function-editor-code"
+                                                    rows="12"
+                                                    placeholder="<?php echo esc_attr__('Pega codigo PHP o JavaScript para NAVAI. Para JavaScript usa prefijo js:.', 'navai-voice'); ?>"
+                                                ></textarea>
+                                            </label>
+
+                                            <label class="navai-plugin-function-description">
+                                                <span><?php echo esc_html__('Descripcion', 'navai-voice'); ?></span>
+                                                <input
+                                                    type="text"
+                                                    class="navai-plugin-function-editor-description"
+                                                    value=""
+                                                    placeholder="<?php echo esc_attr__('Describe when NAVAI should execute this function', 'navai-voice'); ?>"
+                                                />
+                                            </label>
+                                        </div>
+
+                                        <div class="navai-plugin-function-editor-actions">
+                                            <button
+                                                type="button"
+                                                class="button button-primary navai-plugin-function-save"
+                                                data-label-create="<?php echo esc_attr__('Anadir funcion', 'navai-voice'); ?>"
+                                                data-label-edit="<?php echo esc_attr__('Guardar cambios', 'navai-voice'); ?>"
+                                            >
+                                                <?php echo esc_html__('Anadir funcion', 'navai-voice'); ?>
+                                            </button>
+                                            <button type="button" class="button button-secondary navai-plugin-function-cancel" hidden>
+                                                <?php echo esc_html__('Cancelar edicion', 'navai-voice'); ?>
+                                            </button>
+                                            <button type="button" class="button button-secondary navai-plugin-function-modal-dismiss">
+                                                <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -250,7 +293,7 @@
                         </div>
 
                         <p class="navai-plugin-func-empty-state" <?php echo $pluginFunctionGroupsCount === 0 ? '' : 'hidden'; ?>>
-                            <?php echo esc_html__('No hay funciones personalizadas. Usa el formulario de arriba para agregarlas.', 'navai-voice'); ?>
+                            <?php echo esc_html__('No hay funciones personalizadas. Usa el boton Crear funcion para agregarlas.', 'navai-voice'); ?>
                         </p>
 
                         <div class="navai-plugin-func-groups">

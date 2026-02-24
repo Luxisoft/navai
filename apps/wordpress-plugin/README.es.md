@@ -26,7 +26,7 @@ El plugin esta implementado en PHP (servidor) y JavaScript vanilla (navegador) p
 - `Instalar`: [WordPress admin](#instalacion-desde-wordpress-admin) | [Manual](#instalacion-manual-filesystem)
 - `Configurar`: [Configuracion rapida](#configuracion-rapida-recomendada)
 - `Usar`: [Boton global flotante](#opcion-a-boton-global-flotante) | [Shortcode](#opcion-b-shortcode)
-- `Tabs admin`: [Navegacion](#tab-navegacion-rutas-permitidas-para-la-ia) | [Plugins](#tab-plugins-funciones-personalizadas) | [Ajustes](#resumen-del-panel-de-administracion)
+- `Tabs admin`: [Navegacion](#tab-navegacion-rutas-permitidas-para-la-ia) | [Funciones](#tab-funciones-funciones-personalizadas) | [Ajustes](#resumen-del-panel-de-administracion)
 - `Desarrollo`: [Endpoints REST](#endpoints-rest-actuales) | [Extensibilidad backend](#extensibilidad-backend-filters)
 - `Operaciones`: [Generar ZIP](#generar-zip-instalable-powershell) | [Problemas comunes](#troubleshooting--problemas-comunes)
 
@@ -48,7 +48,7 @@ Tip: agrega descripciones de ruta como "Usar cuando el usuario pida gestionar cu
 
 ### Ejemplos de funciones personalizadas
 
-Estos ejemplos dependen de las funciones que crees y dejes activas en la tab `Plugins`.
+Estos ejemplos dependen de las funciones que crees y dejes activas en la tab `Funciones`.
 
 Casos de uso posibles en WordPress:
 
@@ -71,7 +71,7 @@ Ejemplos de prompts que puede decir el usuario:
 Patron recomendado:
 
 - Usa `Navegacion` para mover al usuario a la pagina correcta
-- Usa funciones personalizadas en `Plugins` para leer datos o ejecutar acciones
+- Usa funciones personalizadas en `Funciones` para leer datos o ejecutar acciones
 - Agrega descripciones claras para que NAVAI sepa cuando llamar cada funcion
 
 ## Que puede hacer actualmente el plugin
@@ -114,13 +114,13 @@ El dashboard tiene tres tabs principales y controles extra:
   - Rutas privadas personalizadas por rol
   - Descripciones de rutas
   - Filtros y acciones de seleccion masiva
-- `Plugins`
-  - Editor de funciones personalizadas (crear/editar)
+- `Funciones`
+  - Editor de funciones personalizadas en modal responsive (crear/editar)
   - Lista de funciones con checkbox de activacion
   - Acciones Editar/Eliminar
   - Filtros por texto/plugin/rol
 - `Ajustes`
-  - Conexion/runtime (API key, modelo, voz, instrucciones, idioma, acento, tono, TTL)
+  - Conexion/runtime (API key, modelo, voz, selector buscable de idioma, acento, tono, TTL)
   - Widget global (modo, lado, colores, textos)
   - Visibilidad/shortcode (roles permitidos, ayuda de shortcode)
 
@@ -129,6 +129,7 @@ Controles extra en la cabecera:
 - Boton `Documentation` (abre documentacion de NAVAI para WordPress)
 - Selector de idioma del panel (`English`, `Spanish`)
 - Cabecera sticky (logo + menu) al hacer scroll dentro de la pagina de ajustes NAVAI
+- El dashboard abre por defecto en `Navegacion` al entrar a NAVAI
 
 ## Instalacion (desde WordPress admin)
 
@@ -145,7 +146,7 @@ Controles extra en la cabecera:
 
 ## Configuracion rapida (recomendada)
 
-1. Abre `NAVAI Voice > Ajustes`.
+1. Abre `NAVAI Voice` (el dashboard abre primero en `Navegacion`) y luego entra a `Ajustes`.
 2. Configura como minimo:
    - `OpenAI API Key`
    - `Modelo Realtime` (default: `gpt-realtime`)
@@ -216,16 +217,17 @@ Usa esta seccion para controlar a donde puede navegar la IA cuando llama `naviga
 
 Esto sirve para paginas protegidas o pantallas admin por rol.
 
-## Tab Plugins (funciones personalizadas)
+## Tab Funciones (funciones personalizadas)
 
 Usa esta seccion para definir funciones personalizadas por plugin y por rol.
 
 Flujo:
 
-1. Selecciona plugin y rol.
-2. Agrega codigo en `Funcion NAVAI`.
-3. Agrega una descripcion.
-4. Click en `Anadir funcion`.
+1. Click en `Crear funcion` (abre el modal responsive).
+2. Selecciona plugin y rol.
+3. Agrega codigo en `Funcion NAVAI`.
+4. Agrega una descripcion.
+5. Click en `Anadir funcion`.
 
 Despues de crear:
 
@@ -235,6 +237,7 @@ Despues de crear:
   - Editar
   - Eliminar
   - Activar/desactivar con checkbox
+- Al editar, se abre el mismo modal con los datos de la funcion cargados
 
 ### Modos de codigo para "Funcion NAVAI"
 
@@ -376,7 +379,7 @@ add_filter('navai_voice_frontend_config', function (array $config, array $settin
 - La API key de OpenAI permanece en el servidor.
 - Si `Permitir client_secret publico` esta desactivado, solo admins pueden solicitar client secret.
 - Si `Permitir funciones backend publicas` esta desactivado, solo admins pueden listar/ejecutar funciones backend.
-- El codigo PHP personalizado en la tab `Plugins` es codigo confiable de admin y se ejecuta en tu servidor. Usalo con cuidado.
+- El codigo PHP personalizado en la tab `Funciones` es codigo confiable de admin y se ejecuta en tu servidor. Usalo con cuidado.
 - Restringe rutas y funciones a lo estrictamente necesario.
 
 ## Generar ZIP instalable (PowerShell)

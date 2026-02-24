@@ -15,7 +15,7 @@ trait Navai_Voice_Settings_Render_Page_Trait
         $settings = $this->get_settings();
         $allowedRouteKeys = $this->get_selected_route_keys($settings);
         $allowedFrontendRoles = array_map('strval', is_array($settings['frontend_allowed_roles']) ? $settings['frontend_allowed_roles'] : []);
-        $activeTab = is_string($settings['active_tab'] ?? null) ? (string) $settings['active_tab'] : 'navigation';
+        $activeTab = 'navigation';
         $frontendDisplayMode = is_string($settings['frontend_display_mode'] ?? null) ? (string) $settings['frontend_display_mode'] : 'global';
         $frontendButtonSide = is_string($settings['frontend_button_side'] ?? null) ? (string) $settings['frontend_button_side'] : 'left';
         $frontendButtonColorIdle = $this->sanitize_color_value($settings['frontend_button_color_idle'] ?? null, '#1263dc');
@@ -30,9 +30,19 @@ trait Navai_Voice_Settings_Render_Page_Trait
             $frontendButtonTextActive = 'Stop NAVAI';
         }
         $dashboardLanguage = $this->sanitize_dashboard_language($settings['dashboard_language'] ?? 'en');
-        if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
-            $activeTab = 'navigation';
+        $defaultLanguage = sanitize_text_field((string) ($settings['default_language'] ?? ''));
+        if (trim($defaultLanguage) === '') {
+            $defaultLanguage = 'English';
         }
+        $realtimeLanguageOptions = $this->get_realtime_language_options();
+        if (!in_array($defaultLanguage, $realtimeLanguageOptions, true)) {
+            array_unshift($realtimeLanguageOptions, $defaultLanguage);
+            $realtimeLanguageOptions = array_values(array_unique(array_filter(array_map(
+                static fn($value): string => sanitize_text_field((string) $value),
+                $realtimeLanguageOptions
+            ))));
+        }
+
         if (!in_array($frontendDisplayMode, ['global', 'shortcode'], true)) {
             $frontendDisplayMode = 'global';
         }
@@ -85,7 +95,7 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                     <?php echo esc_html__('Navegacion', 'navai-voice'); ?>
                                 </button>
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="plugins">
-                                    <?php echo esc_html__('Plugins', 'navai-voice'); ?>
+                                    <?php echo esc_html__('Funciones', 'navai-voice'); ?>
                                 </button>
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="settings">
                                     <?php echo esc_html__('Ajustes', 'navai-voice'); ?>
@@ -663,14 +673,65 @@ trait Navai_Voice_Settings_Render_Page_Trait
                             ><?php echo esc_textarea((string) ($settings['default_instructions'] ?? '')); ?></textarea>
                         </label>
 
-                        <label>
+                        <label class="navai-admin-language-field">
                             <span><?php echo esc_html__('Idioma', 'navai-voice'); ?></span>
-                            <input
-                                class="regular-text"
-                                type="text"
-                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_language]"
-                                value="<?php echo esc_attr((string) ($settings['default_language'] ?? '')); ?>"
-                            />
+                            <div class="navai-searchable-select" data-navai-searchable-select>
+                                <button
+                                    type="button"
+                                    class="navai-searchable-select-toggle"
+                                    aria-expanded="false"
+                                >
+                                    <span class="navai-searchable-select-value"><?php echo esc_html($defaultLanguage); ?></span>
+                                </button>
+                                <div class="navai-searchable-select-dropdown" hidden>
+                                    <input
+                                        type="search"
+                                        class="regular-text navai-searchable-select-search"
+                                        placeholder="<?php echo esc_attr__('Buscar idioma...', 'navai-voice'); ?>"
+                                        autocomplete="off"
+                                    />
+                                    <div class="navai-searchable-select-options">
+                                        <?php foreach ($realtimeLanguageOptions as $languageOption) : ?>
+                                            <?php
+                                            $languageLabel = sanitize_text_field((string) $languageOption);
+                                            if ($languageLabel === '') {
+                                                continue;
+                                            }
+                                            $isSelectedLanguage = $languageLabel === $defaultLanguage;
+                                            ?>
+                                            <button
+                                                type="button"
+                                                class="navai-searchable-select-option<?php echo $isSelectedLanguage ? ' is-selected' : ''; ?>"
+                                                data-navai-searchable-option
+                                                data-value="<?php echo esc_attr($languageLabel); ?>"
+                                                data-label="<?php echo esc_attr($languageLabel); ?>"
+                                            >
+                                                <?php echo esc_html($languageLabel); ?>
+                                            </button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <p class="navai-searchable-select-empty" hidden>
+                                        <?php echo esc_html__('No se encontraron idiomas.', 'navai-voice'); ?>
+                                    </p>
+                                </div>
+                                <select
+                                    class="navai-searchable-select-native"
+                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_language]"
+                                    hidden
+                                >
+                                    <?php foreach ($realtimeLanguageOptions as $languageOption) : ?>
+                                        <?php
+                                        $languageLabel = sanitize_text_field((string) $languageOption);
+                                        if ($languageLabel === '') {
+                                            continue;
+                                        }
+                                        ?>
+                                        <option value="<?php echo esc_attr($languageLabel); ?>" <?php selected($defaultLanguage, $languageLabel); ?>>
+                                            <?php echo esc_html($languageLabel); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </label>
 
                         <label>

@@ -8,6 +8,7 @@
   var activateTab = runtime.activateTab;
   var readDashboardLanguage = runtime.readDashboardLanguage;
   var applyDashboardLanguage = runtime.applyDashboardLanguage;
+  var initSearchableSelects = runtime.initSearchableSelects;
   var removeForeignNotices = runtime.removeForeignNotices;
   var initNavigationControls = runtime.initNavigationControls;
   var createRowFromTemplate = runtime.createRowFromTemplate;
@@ -152,7 +153,10 @@
         var storageList = builder.querySelector(".navai-plugin-functions-storage");
         var storageTemplate = builder.querySelector(".navai-plugin-function-storage-template");
         var editor = builder.querySelector(".navai-plugin-function-editor");
-        if (!storageList || !storageTemplate || !editor) {
+        var openCreateButton = builder.querySelector(".navai-plugin-function-open");
+        var modal = builder.querySelector(".navai-plugin-function-modal");
+        var modalTitle = builder.querySelector(".navai-plugin-function-modal-title");
+        if (!storageList || !storageTemplate || !editor || !openCreateButton || !modal || !modalTitle) {
           return;
         }
 
@@ -171,6 +175,45 @@
         var nextIndex = parseInt(builder.getAttribute("data-next-index") || "0", 10);
         if (!Number.isFinite(nextIndex) || nextIndex < 0) {
           nextIndex = storageList.children ? storageList.children.length : 0;
+        }
+
+        function getActiveDashboardLanguage() {
+          var wrapNode = document.querySelector(".navai-admin-wrap");
+          var activeLang = wrapNode ? String(wrapNode.getAttribute("data-navai-dashboard-language") || "") : "";
+          if (activeLang !== "es" && activeLang !== "en") {
+            activeLang = "en";
+          }
+          return activeLang;
+        }
+
+        function setModalOpenState(isOpen) {
+          if (isOpen) {
+            modal.removeAttribute("hidden");
+            modal.classList.add("is-open");
+          } else {
+            modal.classList.remove("is-open");
+            modal.setAttribute("hidden", "hidden");
+          }
+        }
+
+        function openEditorModal() {
+          setModalOpenState(true);
+        }
+
+        function closeEditorModal(shouldReset) {
+          setModalOpenState(false);
+          if (shouldReset) {
+            resetEditor(false);
+          }
+        }
+
+        function updateModalTitle(mode) {
+          if (!modalTitle) {
+            return;
+          }
+          var createLabel = modalTitle.getAttribute("data-label-create") || "";
+          var editLabel = modalTitle.getAttribute("data-label-edit") || "";
+          modalTitle.textContent = translateValue(mode === "edit" ? editLabel : createLabel, getActiveDashboardLanguage());
         }
 
         function getStorageField(row, selector) {
@@ -512,12 +555,9 @@
 
           var createLabel = saveButton.getAttribute("data-label-create") || "";
           var editLabel = saveButton.getAttribute("data-label-edit") || "";
-          var wrapNode = document.querySelector(".navai-admin-wrap");
-          var activeLang = wrapNode ? String(wrapNode.getAttribute("data-navai-dashboard-language") || "") : "";
-          if (activeLang !== "es" && activeLang !== "en") {
-            activeLang = "en";
-          }
+          var activeLang = getActiveDashboardLanguage();
           saveButton.textContent = translateValue(nextMode === "edit" ? editLabel : createLabel, activeLang);
+          updateModalTitle(nextMode);
           if (nextMode === "edit") {
             cancelButton.removeAttribute("hidden");
           } else {
@@ -560,6 +600,7 @@
           codeEditorInput.value = data.functionCode || "";
           descriptionEditorInput.value = data.description || "";
           setEditorMode("edit");
+          openEditorModal();
 
           if (codeEditorInput && typeof codeEditorInput.focus === "function") {
             codeEditorInput.focus();
@@ -584,15 +625,15 @@
 
           if (pluginKey === "") {
             pluginEditorSelect.focus();
-            return;
+            return false;
           }
           if (roleKey === "") {
             roleEditorSelect.focus();
-            return;
+            return false;
           }
           if (functionCode.replace(/\s+/g, "").trim() === "") {
             codeEditorInput.focus();
-            return;
+            return false;
           }
 
           var mode = getEditorMode();
@@ -606,7 +647,7 @@
             rowIndex = String(nextIndex);
             rowNode = createStorageRow(rowIndex);
             if (!rowNode) {
-              return;
+              return false;
             }
             nextIndex += 1;
             builder.setAttribute("data-next-index", String(nextIndex));
@@ -632,7 +673,8 @@
           writeStorageRowData(rowNode, data);
           upsertListItem(data, mode === "edit" ? checkedState : true);
           applyPluginFunctionFilters(pluginPanel);
-          resetEditor(true);
+          resetEditor(false);
+          return true;
         }
 
         function removeFunctionById(rowId) {
@@ -660,7 +702,9 @@
           var saveTarget = target.closest(".navai-plugin-function-save");
           if (saveTarget) {
             event.preventDefault();
-            saveEditorFunction();
+            if (saveEditorFunction()) {
+              closeEditorModal(false);
+            }
             return;
           }
 
@@ -668,10 +712,54 @@
           if (cancelTarget) {
             event.preventDefault();
             resetEditor(true);
+            return;
+          }
+
+        });
+
+        openCreateButton.addEventListener("click", function (event) {
+          event.preventDefault();
+          resetEditor(false);
+          openEditorModal();
+          if (codeEditorInput && typeof codeEditorInput.focus === "function") {
+            codeEditorInput.focus();
           }
         });
 
+        modal.addEventListener("click", function (event) {
+          var target = event.target;
+          if (target && target.closest) {
+            var dismissButton = target.closest(".navai-plugin-function-modal-dismiss");
+            if (dismissButton && modal.contains(dismissButton)) {
+              event.preventDefault();
+              closeEditorModal(true);
+              return;
+            }
+          }
+
+          if (event.target === modal) {
+            closeEditorModal(true);
+          }
+        });
+
+        document.addEventListener("keydown", function (event) {
+          if (!event || event.key !== "Escape") {
+            return;
+          }
+          if (modal.hasAttribute("hidden")) {
+            return;
+          }
+          closeEditorModal(true);
+        });
+
         builder.__navaiPluginEditorApi = {
+          openCreate: function () {
+            resetEditor(false);
+            openEditorModal();
+            if (codeEditorInput && typeof codeEditorInput.focus === "function") {
+              codeEditorInput.focus();
+            }
+          },
           editById: function (rowId) {
             var rowNode = getStorageRowById(rowId);
             if (!rowNode) {
@@ -685,6 +773,7 @@
         };
 
         setEditorMode("create");
+        setModalOpenState(false);
         updateEmptyStateVisibility();
       })(builders[i]);
     }
@@ -804,6 +893,9 @@
 
     initNavigationControls();
     initPluginFunctionsControls();
+    if (typeof initSearchableSelects === "function") {
+      initSearchableSelects();
+    }
     removeForeignNotices();
     applyDashboardLanguage(currentLang);
   }

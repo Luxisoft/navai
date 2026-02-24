@@ -17,7 +17,7 @@
 
   var DASHBOARD_TRANSLATIONS = [
     ["Navegacion", "Navigation"],
-    ["Plugins", "Plugins"],
+    ["Funciones", "Functions"],
     ["Ajustes", "Settings"],
     ["Documentacion", "Documentation"],
     ["Idioma del panel", "Panel language"],
@@ -47,10 +47,13 @@
     ["Funciones personalizadas", "Custom functions"],
     ["Selecciona plugin y rol. Luego agrega codigo (PHP o JavaScript) y una descripcion para guiar al agente IA.", "Select plugin and role. Then add code (PHP or JavaScript) and a description to guide the AI agent."],
     ["Funcion NAVAI", "NAVAI Function"],
-    ["No hay funciones personalizadas. Usa el formulario de arriba para agregarlas.", "No custom functions yet. Use the form above to add them."],
+    ["No hay funciones personalizadas. Usa el boton Crear funcion para agregarlas.", "No custom functions yet. Use the Create function button to add them."],
     ["Anadir funcion", "Add function"],
+    ["Crear funcion", "Create function"],
+    ["Editar funcion", "Edit function"],
     ["Editar", "Edit"],
     ["Cancelar edicion", "Cancel edit"],
+    ["Cerrar", "Close"],
     ["Eliminar", "Remove"],
     ["Configuracion principal del runtime de voz.", "Main voice runtime configuration."],
     ["Conexion y runtime", "Connection and runtime"],
@@ -91,6 +94,8 @@
     ["Describe when NAVAI should use this route", "Describe when NAVAI should use this route"],
     ["Describe when NAVAI should execute this function", "Describe when NAVAI should execute this function"],
     ["Pega codigo PHP o JavaScript para NAVAI. Para JavaScript usa prefijo js:.", "Paste PHP or JavaScript code for NAVAI. For JavaScript use the js: prefix."],
+    ["Buscar idioma...", "Search language..."],
+    ["No se encontraron idiomas.", "No languages found."],
     ["Pagina principal del sitio.", "Main site page."],
     ["Ruta publica seleccionada en menus de WordPress.", "Public route selected from WordPress menus."],
     ["Ruta privada seleccionada en WordPress.", "Private route selected in WordPress."],
@@ -102,17 +107,6 @@
   }
 
   function readInitialTab() {
-    var config = getAdminConfig();
-    var fromHash = window.location.hash.replace("#", "").trim().toLowerCase();
-    if (VALID_TABS[fromHash]) {
-      return fromHash;
-    }
-
-    var fromConfig = typeof config.activeTab === "string" ? config.activeTab.trim().toLowerCase() : "";
-    if (VALID_TABS[fromConfig]) {
-      return fromConfig;
-    }
-
     return "navigation";
   }
 
@@ -234,6 +228,149 @@
       }
 
       notice.remove();
+    }
+  }
+
+  function initSearchableSelects() {
+    var controls = document.querySelectorAll("[data-navai-searchable-select]");
+    if (!controls.length) {
+      return;
+    }
+
+    for (var i = 0; i < controls.length; i += 1) {
+      (function (control) {
+        if (!control || control.__navaiSearchableSelectReady) {
+          return;
+        }
+        control.__navaiSearchableSelectReady = true;
+
+        var toggle = control.querySelector(".navai-searchable-select-toggle");
+        var valueNode = control.querySelector(".navai-searchable-select-value");
+        var dropdown = control.querySelector(".navai-searchable-select-dropdown");
+        var searchInput = control.querySelector(".navai-searchable-select-search");
+        var nativeSelect = control.querySelector(".navai-searchable-select-native");
+        var emptyNode = control.querySelector(".navai-searchable-select-empty");
+        var optionNodes = control.querySelectorAll("[data-navai-searchable-option]");
+        if (!toggle || !valueNode || !dropdown || !searchInput || !nativeSelect || !optionNodes.length) {
+          return;
+        }
+
+        function syncSelectionState() {
+          var selectedValue = String(nativeSelect.value || "");
+          var selectedLabel = selectedValue;
+
+          for (var optionIndex = 0; optionIndex < optionNodes.length; optionIndex += 1) {
+            var optionNode = optionNodes[optionIndex];
+            var optionValue = String(optionNode.getAttribute("data-value") || "");
+            var isSelected = optionValue === selectedValue;
+            optionNode.classList.toggle("is-selected", isSelected);
+            if (isSelected) {
+              selectedLabel = String(optionNode.getAttribute("data-label") || optionNode.textContent || selectedValue);
+            }
+          }
+
+          valueNode.textContent = selectedLabel;
+        }
+
+        function filterOptions() {
+          var needle = normalizeText(String(searchInput.value || ""));
+          var visibleCount = 0;
+
+          for (var optionIndex = 0; optionIndex < optionNodes.length; optionIndex += 1) {
+            var optionNode = optionNodes[optionIndex];
+            var haystack = normalizeText(String(optionNode.getAttribute("data-label") || optionNode.textContent || ""));
+            var isVisible = needle === "" || haystack.indexOf(needle) !== -1;
+            optionNode.hidden = !isVisible;
+            if (isVisible) {
+              visibleCount += 1;
+            }
+          }
+
+          if (emptyNode) {
+            if (visibleCount === 0) {
+              emptyNode.removeAttribute("hidden");
+            } else {
+              emptyNode.setAttribute("hidden", "hidden");
+            }
+          }
+        }
+
+        function openDropdown() {
+          dropdown.removeAttribute("hidden");
+          control.classList.add("is-open");
+          toggle.setAttribute("aria-expanded", "true");
+          filterOptions();
+          if (typeof searchInput.focus === "function") {
+            searchInput.focus();
+            if (typeof searchInput.select === "function") {
+              searchInput.select();
+            }
+          }
+        }
+
+        function closeDropdown(resetSearch) {
+          control.classList.remove("is-open");
+          dropdown.setAttribute("hidden", "hidden");
+          toggle.setAttribute("aria-expanded", "false");
+          if (resetSearch) {
+            searchInput.value = "";
+            filterOptions();
+          }
+        }
+
+        toggle.addEventListener("click", function (event) {
+          event.preventDefault();
+          if (control.classList.contains("is-open")) {
+            closeDropdown(true);
+          } else {
+            openDropdown();
+          }
+        });
+
+        searchInput.addEventListener("input", filterOptions);
+
+        for (var optionIndex = 0; optionIndex < optionNodes.length; optionIndex += 1) {
+          optionNodes[optionIndex].addEventListener("click", function (event) {
+            event.preventDefault();
+            var nextValue = String(this.getAttribute("data-value") || "");
+            if (nextValue !== "") {
+              nativeSelect.value = nextValue;
+              nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            closeDropdown(true);
+          });
+        }
+
+        nativeSelect.addEventListener("change", syncSelectionState);
+
+        control.addEventListener("keydown", function (event) {
+          if (!event) {
+            return;
+          }
+
+          if (event.key === "Escape") {
+            closeDropdown(true);
+            if (typeof toggle.focus === "function") {
+              toggle.focus();
+            }
+            return;
+          }
+
+          if ((event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") && event.target === toggle) {
+            event.preventDefault();
+            openDropdown();
+          }
+        });
+
+        document.addEventListener("click", function (event) {
+          if (!event || !event.target || !control.contains(event.target)) {
+            closeDropdown(true);
+          }
+        });
+
+        syncSelectionState();
+        closeDropdown(true);
+      })(controls[i]);
     }
   }
 
@@ -631,6 +768,7 @@
   runtime.applyDashboardLanguage = applyDashboardLanguage;
   runtime.normalizeText = normalizeText;
   runtime.removeForeignNotices = removeForeignNotices;
+  runtime.initSearchableSelects = initSearchableSelects;
   runtime.activateTab = activateTab;
   runtime.activateNavigationTab = activateNavigationTab;
   runtime.hideAllUrlBoxes = hideAllUrlBoxes;

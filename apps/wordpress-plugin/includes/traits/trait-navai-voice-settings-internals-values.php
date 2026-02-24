@@ -263,6 +263,83 @@ trait Navai_Voice_Settings_Internals_Values_Trait
     }
 
     /**
+     * Preloaded language labels for OpenAI audio/realtime usage.
+     * Stored value remains the label to preserve compatibility with existing settings/API payloads.
+     *
+     * @return array<int, string>
+     */
+    private function get_realtime_language_options(): array
+    {
+        return [
+            'Afrikaans',
+            'Arabic',
+            'Armenian',
+            'Azerbaijani',
+            'Basque',
+            'Belarusian',
+            'Bengali',
+            'Bosnian',
+            'Bulgarian',
+            'Catalan',
+            'Chinese (Cantonese)',
+            'Chinese (Mandarin)',
+            'Croatian',
+            'Czech',
+            'Danish',
+            'Dutch',
+            'English',
+            'Estonian',
+            'Filipino (Tagalog)',
+            'Finnish',
+            'French',
+            'Galician',
+            'German',
+            'Greek',
+            'Gujarati',
+            'Hebrew',
+            'Hindi',
+            'Hungarian',
+            'Icelandic',
+            'Indonesian',
+            'Irish',
+            'Italian',
+            'Japanese',
+            'Kannada',
+            'Korean',
+            'Latvian',
+            'Lithuanian',
+            'Macedonian',
+            'Malay',
+            'Malayalam',
+            'Marathi',
+            'Nepali',
+            'Norwegian',
+            'Persian',
+            'Polish',
+            'Portuguese',
+            'Punjabi',
+            'Romanian',
+            'Russian',
+            'Serbian',
+            'Slovak',
+            'Slovenian',
+            'Spanish',
+            'Swahili',
+            'Swedish',
+            'Tamil',
+            'Telugu',
+            'Thai',
+            'Turkish',
+            'Ukrainian',
+            'Urdu',
+            'Vietnamese',
+            'Welsh',
+            'Yoruba',
+            'Zulu',
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     private function get_available_roles(): array

@@ -116,7 +116,7 @@
 }
 
 .navai-admin-divider {
-  margin: 0 0 16px;
+  margin: 0 0 20px;
   border-top-color: #d8e2f0;
 }
 
@@ -162,6 +162,7 @@
 
 .navai-admin-panel {
   display: none;
+  padding-top: 4px;
 }
 
 .navai-admin-panel.is-active {
@@ -308,6 +309,27 @@
   margin: 0 0 12px;
 }
 
+.navai-plugin-functions-builder-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 6px;
+}
+
+.navai-plugin-functions-builder-head-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.navai-plugin-functions-builder-head-actions {
+  flex: 0 0 auto;
+}
+
+.navai-plugin-functions-builder-head-actions .button {
+  white-space: nowrap;
+}
+
 .navai-plugin-functions-builder > h3 {
   margin: 0 0 6px;
 }
@@ -337,6 +359,63 @@
   justify-content: flex-start;
   gap: 8px;
   margin-top: 12px;
+}
+
+.navai-plugin-function-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.navai-plugin-function-modal[hidden] {
+  display: none !important;
+}
+
+.navai-plugin-function-modal-dialog {
+  width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  border: 1px solid #d4deed;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f7fbff);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.24);
+  padding: 16px;
+}
+
+.navai-plugin-function-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.navai-plugin-function-modal-title {
+  margin: 0;
+  color: #243145;
+}
+
+.navai-plugin-function-modal-head .navai-admin-description {
+  margin-top: 6px;
+}
+
+.navai-plugin-function-modal .navai-plugin-function-editor {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.navai-plugin-function-modal .navai-plugin-function-row {
+  background: #ffffff;
+  border-color: #dae4f2;
 }
 
 .navai-plugin-functions-storage {
@@ -719,6 +798,104 @@
   font-weight: 600;
 }
 
+.navai-admin-language-field {
+  position: relative;
+}
+
+.navai-searchable-select {
+  position: relative;
+}
+
+.navai-searchable-select-toggle {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1d2327;
+  cursor: pointer;
+  text-align: left;
+}
+
+.navai-searchable-select-toggle::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid #445066;
+  border-bottom: 1.5px solid #445066;
+  transform: rotate(45deg);
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.navai-searchable-select.is-open .navai-searchable-select-toggle {
+  border-color: #2271b1;
+  box-shadow: 0 0 0 1px #2271b1;
+}
+
+.navai-searchable-select-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  border: 1px solid #d5dfed;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.navai-searchable-select-search {
+  width: 100%;
+}
+
+.navai-searchable-select-options {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.navai-searchable-select-option {
+  width: 100%;
+  border: 1px solid #dbe4f1;
+  border-radius: 8px;
+  background: #fbfdff;
+  color: #243145;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  margin: 0;
+}
+
+.navai-searchable-select-option:hover,
+.navai-searchable-select-option:focus {
+  border-color: #b7cdf1;
+  background: #f3f8ff;
+}
+
+.navai-searchable-select-option.is-selected {
+  border-color: #0f62d6;
+  background: linear-gradient(135deg, #eef5ff, #f6faff);
+  color: #123a73;
+}
+
+.navai-searchable-select-empty {
+  margin: 0;
+  color: #56657a;
+  font-size: 12px;
+}
+
 .navai-admin-settings-grid > label.navai-admin-check {
   display: flex;
   align-items: center;
@@ -838,6 +1015,41 @@
   }
 
   .navai-plugin-function-editor-actions .button {
+    justify-content: center;
+  }
+
+  .navai-plugin-functions-builder-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navai-plugin-functions-builder-head-actions {
+    width: 100%;
+  }
+
+  .navai-plugin-functions-builder-head-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navai-plugin-function-modal {
+    padding: 12px;
+    align-items: flex-start;
+  }
+
+  .navai-plugin-function-modal-dialog {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    padding: 12px;
+  }
+
+  .navai-plugin-function-modal-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navai-plugin-function-modal-dismiss--top {
+    width: 100%;
     justify-content: center;
   }
 
