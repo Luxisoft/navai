@@ -30,6 +30,50 @@ This plugin is implemented in PHP (server side) and vanilla JS (browser side) fo
 - `Developer`: [REST endpoints](#rest-endpoints-current) | [Backend extensibility](#backend-extensibility-filters)
 - `Ops`: [Build ZIP](#build-installable-zip-powershell) | [Troubleshooting](#troubleshooting)
 
+## Usage examples (start here)
+
+### Navigation examples
+
+These examples work only if the target route is enabled in the `Navigation` tab and the current user has access.
+
+- "Go to the contact page"
+- "Open checkout"
+- "Take me to my account"
+- "Navigate to orders"
+- "Open WooCommerce settings"
+- "Go to Coupons in WooCommerce" (if configured as a private/admin route)
+- "Open WPForms entries" (if added as a private route)
+
+Tip: add route descriptions like "Use this route when the user asks to manage coupons" to improve routing decisions.
+
+### Custom function examples
+
+These examples depend on the functions you create and activate in the `Plugins` tab.
+
+Possible use cases in WordPress:
+
+- Read WooCommerce recent orders
+- Check low-stock products
+- Create a support note in a plugin/system
+- Fetch form submissions summary (WPForms / custom forms)
+- Query user profile or membership status
+- Trigger a CRM sync action
+- Run an internal admin helper task (trusted environments only)
+
+Example prompts a user can say:
+
+- "Show me the last 5 orders"
+- "Check if any products are low on stock"
+- "Get the latest contact form submissions"
+- "Run the order sync function"
+- "Open the orders page and then fetch pending orders"
+
+Recommended pattern:
+
+- Use `Navigation` for moving the user to the correct page
+- Use `Plugins` custom functions for reading data or executing actions
+- Add clear descriptions so NAVAI knows when each function should be called
+
 ## What the plugin can do today
 
 - Add a voice widget to WordPress using OpenAI Realtime (WebRTC).
@@ -172,20 +216,6 @@ Use this tab to control where the AI can navigate when it calls `navigate_to`.
 
 This is useful for role-based admin pages or protected pages.
 
-### Examples (navigation)
-
-These examples work only if the target route is enabled in the `Navigation` tab and the current user has access.
-
-- "Go to the contact page"
-- "Open checkout"
-- "Take me to my account"
-- "Navigate to orders"
-- "Open WooCommerce settings"
-- "Go to Coupons in WooCommerce" (if configured as a private/admin route)
-- "Open WPForms entries" (if added as a private route)
-
-Tip: add route descriptions like "Use this route when the user asks to manage coupons" to improve routing decisions.
-
 ## Plugins tab (custom functions)
 
 Use this tab to define custom functions per plugin and role.
@@ -266,34 +296,6 @@ Example value in dashboard:
 ```txt
 @action:list_recent_orders
 ```
-
-### Examples (custom functions)
-
-These examples depend on the functions you create and activate in the `Plugins` tab.
-
-Possible use cases in WordPress:
-
-- Read WooCommerce recent orders
-- Check low-stock products
-- Create a support note in a plugin/system
-- Fetch form submissions summary (WPForms / custom forms)
-- Query user profile or membership status
-- Trigger a CRM sync action
-- Run an internal admin helper task (trusted environments only)
-
-Example prompts a user can say:
-
-- "Show me the last 5 orders"
-- "Check if any products are low on stock"
-- "Get the latest contact form submissions"
-- "Run the order sync function"
-- "Open the orders page and then fetch pending orders"
-
-Recommended pattern:
-
-- Use `Navigation` for moving the user to the correct page
-- Use `Plugins` custom functions for reading data or executing actions
-- Add clear descriptions so NAVAI knows when each function should be called
 
 ## REST endpoints (current)
 

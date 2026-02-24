@@ -30,6 +30,50 @@ El plugin esta implementado en PHP (servidor) y JavaScript vanilla (navegador) p
 - `Desarrollo`: [Endpoints REST](#endpoints-rest-actuales) | [Extensibilidad backend](#extensibilidad-backend-filters)
 - `Operaciones`: [Generar ZIP](#generar-zip-instalable-powershell) | [Problemas comunes](#troubleshooting--problemas-comunes)
 
+## Ejemplos de uso (inicio rapido)
+
+### Ejemplos de navegacion
+
+Estos ejemplos funcionan solo si la ruta objetivo esta habilitada en la tab `Navegacion` y el usuario actual tiene acceso.
+
+- "Ve a la pagina de contacto"
+- "Abre checkout"
+- "Llevame a mi cuenta"
+- "Abre pedidos"
+- "Abre ajustes de WooCommerce"
+- "Ve a Cupones en WooCommerce" (si fue configurada como ruta privada/admin)
+- "Abre entradas de WPForms" (si fue agregada como ruta privada)
+
+Tip: agrega descripciones de ruta como "Usar cuando el usuario pida gestionar cupones" para mejorar la decision de navegacion.
+
+### Ejemplos de funciones personalizadas
+
+Estos ejemplos dependen de las funciones que crees y dejes activas en la tab `Plugins`.
+
+Casos de uso posibles en WordPress:
+
+- Leer pedidos recientes de WooCommerce
+- Revisar productos con bajo stock
+- Crear una nota de soporte en un plugin/sistema
+- Obtener resumen de envios de formularios (WPForms / formularios custom)
+- Consultar perfil de usuario o estado de membresia
+- Disparar una accion de sincronizacion con CRM
+- Ejecutar una tarea interna de administracion (solo en entornos confiables)
+
+Ejemplos de prompts que puede decir el usuario:
+
+- "Muestrame los ultimos 5 pedidos"
+- "Revisa si hay productos con poco stock"
+- "Trae los ultimos envios del formulario de contacto"
+- "Ejecuta la funcion de sincronizar pedidos"
+- "Abre la pagina de pedidos y luego consulta los pendientes"
+
+Patron recomendado:
+
+- Usa `Navegacion` para mover al usuario a la pagina correcta
+- Usa funciones personalizadas en `Plugins` para leer datos o ejecutar acciones
+- Agrega descripciones claras para que NAVAI sepa cuando llamar cada funcion
+
 ## Que puede hacer actualmente el plugin
 
 - Agregar un widget de voz a WordPress usando OpenAI Realtime (WebRTC).
@@ -172,20 +216,6 @@ Usa esta seccion para controlar a donde puede navegar la IA cuando llama `naviga
 
 Esto sirve para paginas protegidas o pantallas admin por rol.
 
-### Ejemplos (navegacion)
-
-Estos ejemplos funcionan solo si la ruta objetivo esta habilitada en la tab `Navegacion` y el usuario actual tiene acceso.
-
-- "Ve a la pagina de contacto"
-- "Abre checkout"
-- "Llevame a mi cuenta"
-- "Abre pedidos"
-- "Abre ajustes de WooCommerce"
-- "Ve a Cupones en WooCommerce" (si fue configurada como ruta privada/admin)
-- "Abre entradas de WPForms" (si fue agregada como ruta privada)
-
-Tip: agrega descripciones de ruta como "Usar cuando el usuario pida gestionar cupones" para mejorar la decision de navegacion.
-
 ## Tab Plugins (funciones personalizadas)
 
 Usa esta seccion para definir funciones personalizadas por plugin y por rol.
@@ -266,34 +296,6 @@ Ejemplo en el dashboard:
 ```txt
 @action:list_recent_orders
 ```
-
-### Ejemplos (funciones personalizadas)
-
-Estos ejemplos dependen de las funciones que crees y dejes activas en la tab `Plugins`.
-
-Casos de uso posibles en WordPress:
-
-- Leer pedidos recientes de WooCommerce
-- Revisar productos con bajo stock
-- Crear una nota de soporte en un plugin/sistema
-- Obtener resumen de envios de formularios (WPForms / formularios custom)
-- Consultar perfil de usuario o estado de membresia
-- Disparar una accion de sincronizacion con CRM
-- Ejecutar una tarea interna de administracion (solo en entornos confiables)
-
-Ejemplos de prompts que puede decir el usuario:
-
-- "Muestrame los ultimos 5 pedidos"
-- "Revisa si hay productos con poco stock"
-- "Trae los ultimos envios del formulario de contacto"
-- "Ejecuta la funcion de sincronizar pedidos"
-- "Abre la pagina de pedidos y luego consulta los pendientes"
-
-Patron recomendado:
-
-- Usa `Navegacion` para mover al usuario a la pagina correcta
-- Usa funciones personalizadas en `Plugins` para leer datos o ejecutar acciones
-- Agrega descripciones claras para que NAVAI sepa cuando llamar cada funcion
 
 ## Endpoints REST (actuales)
 
