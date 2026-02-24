@@ -13,6 +13,7 @@ if (Test-Path $zipPath) {
 
 $includePaths = @(
   "navai-voice.php",
+  "README.md",
   "README.es.md",
   "assets",
   "includes"

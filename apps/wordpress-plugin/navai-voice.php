@@ -3,7 +3,7 @@
  * Plugin Name: NAVAI Voice
  * Plugin URI: https://navai.luxisoft.com/documentation/installation-wordpress
  * Description: Integracion de voz NAVAI para WordPress usando endpoints REST en PHP.
- * Version: 0.3.21
+ * Version: 0.3.32
  * Author: NAVAI
  * Text Domain: navai-voice
  * Requires at least: 6.2
@@ -405,6 +405,17 @@ if (!function_exists('navai_voice_load_dependencies')) {
     function navai_voice_load_dependencies(string $basePath): bool
     {
         $relativeFiles = [
+            'includes/traits/trait-navai-voice-settings-internals-values.php',
+            'includes/traits/trait-navai-voice-settings-internals-navigation.php',
+            'includes/traits/trait-navai-voice-settings-internals-custom.php',
+            'includes/traits/trait-navai-voice-settings-internals-routes.php',
+            'includes/traits/trait-navai-voice-api-helpers-registry.php',
+            'includes/traits/trait-navai-voice-api-helpers-catalog.php',
+            'includes/traits/trait-navai-voice-api-helpers-runtime.php',
+            'includes/traits/trait-navai-voice-settings-render-page.php',
+            'includes/traits/trait-navai-voice-settings-internals.php',
+            'includes/traits/trait-navai-voice-api-helpers.php',
+            'includes/traits/trait-navai-voice-plugin-helpers.php',
             'includes/class-navai-voice-settings.php',
             'includes/class-navai-voice-api.php',
             'includes/class-navai-voice-plugin.php',
@@ -451,7 +462,7 @@ if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $currentPath) {
 }
 
 if (!defined('NAVAI_VOICE_VERSION')) {
-    define('NAVAI_VOICE_VERSION', '0.3.21');
+    define('NAVAI_VOICE_VERSION', '0.3.32');
 }
 if (!defined('NAVAI_VOICE_PATH')) {
     define('NAVAI_VOICE_PATH', $currentPath);

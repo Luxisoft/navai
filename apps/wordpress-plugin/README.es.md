@@ -1,50 +1,120 @@
-# NAVAI Voice WordPress (PHP puro)
+# NAVAI Voice para WordPress (ES)
 
-Este plugin vive separado de las librerias TypeScript porque WordPress ejecuta PHP en servidor.
+English version: [`README.md`](./README.md)
 
-Ruta propuesta en este repo:
+NAVAI Voice es un plugin para WordPress que agrega un widget de voz usando OpenAI Realtime y un panel de administracion para controlar rutas de navegacion, funciones personalizadas y configuracion del runtime sin usar Node.js.
 
-- `apps/wordpress-plugin`
+El plugin esta implementado en PHP (servidor) y JavaScript vanilla (navegador) para facilitar el despliegue en WordPress.
 
-## Que incluye este esqueleto
+## Que puede hacer actualmente el plugin
 
-- Plugin bootstrap: `navai-voice.php`
-- Dashboard en admin: menu lateral `NAVAI Voice` con secciones:
-  - `Navegacion` (items de menu permitidos para `navigate_to`)
-  - `Plugins` (plugins permitidos para consulta/acciones)
-  - `Ajustes` (configuracion principal)
-- Endpoints REST en PHP:
-  - `POST /wp-json/navai/v1/realtime/client-secret`
-  - `GET /wp-json/navai/v1/functions`
-  - `POST /wp-json/navai/v1/functions/execute`
-- Shortcode voice con WebRTC Realtime completo: `[navai_voice]`
+- Agregar un widget de voz a WordPress usando OpenAI Realtime (WebRTC).
+- Trabajar en dos modos de visualizacion:
+  - Boton global flotante
+  - Shortcode manual (`[navai_voice]`)
+- Mostrar el widget global tambien en `wp-admin` (para administradores), forzado al lado derecho para no tapar el menu lateral de WordPress.
+- Restringir visibilidad del widget por rol de WordPress (incluyendo invitados).
+- Definir rutas de navegacion permitidas para la tool `navigate_to`.
+- Crear rutas privadas personalizadas por plugin + rol + URL.
+- Agregar descripciones de rutas (para guiar a la IA sobre cuando usar cada una).
+- Crear funciones personalizadas por plugin y rol desde el dashboard:
+  - Ejecucion PHP (servidor)
+  - Ejecucion JavaScript (`js:` prefijo, lado cliente)
+  - Puente legacy de acciones (`@action:...`)
+- Activar/desactivar funciones personalizadas individualmente con checkboxes.
+- Editar/eliminar funciones personalizadas directamente desde la lista.
+- Filtrar rutas/funciones por texto, plugin y rol en el panel admin.
+- Cambiar idioma del panel (English/Spanish) desde el dashboard de NAVAI.
+- Usar endpoints REST integrados para client secret, rutas, listado de funciones y ejecucion.
 
-## Como instalar en WordPress
+## Requisitos
 
-1. Copia la carpeta `apps/wordpress-plugin` a `wp-content/plugins/navai-voice`.
-2. Activa el plugin en WordPress.
-3. Ve al menu lateral `NAVAI Voice`.
-4. Guarda al menos:
+- WordPress `6.2+`
+- PHP `8.0+`
+- API key de OpenAI con acceso a Realtime
+
+## Resumen del panel de administracion
+
+El plugin agrega un item en el menu lateral:
+
+- `NAVAI Voice`
+
+El dashboard tiene tres tabs principales y controles extra:
+
+- `Navegacion`
+  - Rutas publicas desde menus de WordPress
+  - Rutas privadas personalizadas por rol
+  - Descripciones de rutas
+  - Filtros y acciones de seleccion masiva
+- `Plugins`
+  - Editor de funciones personalizadas (crear/editar)
+  - Lista de funciones con checkbox de activacion
+  - Acciones Editar/Eliminar
+  - Filtros por texto/plugin/rol
+- `Ajustes`
+  - Conexion/runtime (API key, modelo, voz, instrucciones, idioma, acento, tono, TTL)
+  - Widget global (modo, lado, colores, textos)
+  - Visibilidad/shortcode (roles permitidos, ayuda de shortcode)
+
+Controles extra en la cabecera:
+
+- Boton `Documentation` (abre documentacion de NAVAI para WordPress)
+- Selector de idioma del panel (`English`, `Spanish`)
+- Cabecera sticky (logo + menu) al hacer scroll dentro de la pagina de ajustes NAVAI
+
+## Instalacion (desde WordPress admin)
+
+1. Genera u obten el ZIP del plugin (`navai-voice.zip`).
+2. En WordPress ve a `Plugins > Add New > Upload Plugin`.
+3. Sube el ZIP y activa el plugin.
+4. Abre `NAVAI Voice` desde el menu lateral.
+
+## Instalacion manual (filesystem)
+
+1. Copia `apps/wordpress-plugin` en:
+   - `wp-content/plugins/navai-voice`
+2. Activa `NAVAI Voice` en WordPress.
+
+## Configuracion rapida (recomendada)
+
+1. Abre `NAVAI Voice > Ajustes`.
+2. Configura como minimo:
    - `OpenAI API Key`
    - `Modelo Realtime` (default: `gpt-realtime`)
    - `Voz` (default: `marin`)
-5. Inserta `[navai_voice]` en una pagina.
+3. Elige modo de widget:
+   - `Boton global flotante` (recomendado para iniciar rapido)
+   - `Solo shortcode manual`
+4. Configura visibilidad:
+   - Selecciona que roles pueden ver el widget (y si invitados estan permitidos)
+5. Click en `Guardar cambios`.
 
-## Shortcode y opciones
+## Como usar el plugin
 
-Uso basico:
+## Opcion A: Boton global flotante
+
+Configura `Render del componente` en `Boton global flotante`.
+
+El widget se renderiza automaticamente:
+
+- En el sitio publico (si el rol del usuario actual esta permitido)
+- En `wp-admin` para administradores (forzado al lado derecho)
+
+## Opcion B: Shortcode
+
+Configura `Render del componente` en `Solo shortcode manual`, luego inserta:
 
 ```txt
 [navai_voice]
 ```
 
-Con overrides por widget:
+Ejemplo con overrides:
 
 ```txt
-[navai_voice model="gpt-realtime" voice="marin" label="Hablar" stop_label="Detener" debug="1"]
+[navai_voice label="Hablar con NAVAI" stop_label="Detener NAVAI" model="gpt-realtime" voice="marin" debug="1"]
 ```
 
-Atributos disponibles:
+Atributos soportados por el shortcode:
 
 - `label`
 - `stop_label`
@@ -55,17 +125,134 @@ Atributos disponibles:
 - `voice_accent`
 - `voice_tone`
 - `debug` (`0` o `1`)
+- `class`
 
-## Registro de funciones backend en PHP
+## Tab Navegacion (rutas permitidas para la IA)
 
-Puedes exponer tools backend sin Node usando un filtro:
+Usa esta seccion para controlar a donde puede navegar la IA cuando llama `navigate_to`.
+
+### Rutas publicas
+
+- Detecta rutas de menus publicos de WordPress
+- Permite seleccionar que rutas puede usar NAVAI
+- Permite agregar descripcion por ruta (recomendado)
+
+### Rutas privadas
+
+- Permite agregar URLs privadas manualmente
+- Asignando a cada ruta:
+  - Grupo de plugin
+  - Rol
+  - URL
+  - Descripcion
+
+Esto sirve para paginas protegidas o pantallas admin por rol.
+
+## Tab Plugins (funciones personalizadas)
+
+Usa esta seccion para definir funciones personalizadas por plugin y por rol.
+
+Flujo:
+
+1. Selecciona plugin y rol.
+2. Agrega codigo en `Funcion NAVAI`.
+3. Agrega una descripcion.
+4. Click en `Anadir funcion`.
+
+Despues de crear:
+
+- La funcion se agrega a la lista
+- Queda activa por defecto
+- Luego puedes:
+  - Editar
+  - Eliminar
+  - Activar/desactivar con checkbox
+
+### Modos de codigo para "Funcion NAVAI"
+
+### 1) PHP (ejecucion en servidor)
+
+- Modo por defecto (sin prefijo)
+- Acepta prefijo opcional `php:`
+- El codigo corre en el servidor mediante `eval()` (codigo confiable de administrador)
+
+Variables disponibles dentro del codigo PHP:
+
+- `$payloadData`
+- `$contextData`
+- `$plugin`
+- `$request`
+
+Ejemplo:
+
+```php
+return [
+    'ok' => true,
+    'message' => 'Hola desde una funcion PHP',
+    'payload' => $payloadData,
+];
+```
+
+### 2) JavaScript (ejecucion en cliente)
+
+Usa el prefijo `js:`.
+
+El backend devuelve el codigo al navegador y el widget lo ejecuta en el cliente.
+
+Ejemplo:
+
+```js
+js:
+return {
+  ok: true,
+  current_url: context.current_url,
+  page_title: context.page_title
+};
+```
+
+La funcion JS recibe:
+
+- `payload`
+- `context`
+- `widget`
+- `config`
+- `window`
+- `document`
+
+### 3) Puente legacy de acciones (`@action:`)
+
+Para compatibilidad con acciones registradas usando `navai_voice_plugin_actions`.
+
+Ejemplo en el dashboard:
+
+```txt
+@action:list_recent_orders
+```
+
+## Endpoints REST (actuales)
+
+El plugin registra estas rutas REST:
+
+- `POST /wp-json/navai/v1/realtime/client-secret`
+- `GET /wp-json/navai/v1/functions`
+- `GET /wp-json/navai/v1/routes`
+- `POST /wp-json/navai/v1/functions/execute`
+
+Notas:
+
+- `client-secret` tiene rate limit basico (por IP, ventana corta).
+- El acceso publico a `client-secret` y funciones backend se puede activar/desactivar desde Ajustes.
+
+## Extensibilidad backend (filters)
+
+### Registrar funciones backend directamente en PHP
 
 ```php
 add_filter('navai_voice_functions_registry', function (array $items): array {
     $items[] = [
         'name' => 'get_user_profile',
-        'description' => 'Read current user profile.',
-        'source' => 'my-plugin',
+        'description' => 'Lee el perfil del usuario actual.',
+        'source' => 'mi-plugin',
         'callback' => function (array $payload, array $context) {
             $user = wp_get_current_user();
             return [
@@ -80,14 +267,7 @@ add_filter('navai_voice_functions_registry', function (array $items): array {
 });
 ```
 
-Ademas, el plugin expone funciones backend automáticas para la seccion `Plugins`:
-
-- `list_allowed_plugins`
-- `get_plugin_information`
-- `list_plugin_actions`
-- `run_plugin_action`
-
-`run_plugin_action` ejecuta acciones registradas por filtro:
+### Registrar acciones de plugins (usadas por `@action:`)
 
 ```php
 add_filter('navai_voice_plugin_actions', function (array $actions): array {
@@ -100,65 +280,81 @@ add_filter('navai_voice_plugin_actions', function (array $actions): array {
 });
 ```
 
-## Rutas permitidas para `navigate_to`
-
-Puedes definir rutas con el filtro `navai_voice_routes`:
+### Extender rutas permitidas
 
 ```php
 add_filter('navai_voice_routes', function (array $routes): array {
     $routes[] = [
-        'name' => 'contacto',
-        'path' => home_url('/contacto'),
+        'name' => 'Contacto',
+        'path' => home_url('/contacto/'),
         'description' => 'Pagina de contacto',
-        'synonyms' => ['contact', 'contact us'],
+        'synonyms' => ['contact us'],
     ];
     return $routes;
 });
 ```
 
-## Flujo runtime (frontend)
+### Ajustar config frontend antes de enviarla al widget
 
-1. El widget pide `client_secret` a WordPress.
-2. Abre WebRTC contra `https://api.openai.com/v1/realtime/calls`.
-3. Envia `session.update` con tools:
-   - `navigate_to`
-   - `execute_app_function`
-   - aliases directos de funciones backend validas
-4. Al recibir `function_call`, ejecuta:
-   - navegacion permitida por rutas
-   - o `POST /functions/execute` para tools backend
-5. Devuelve `function_call_output` al modelo y solicita `response.create`.
+```php
+add_filter('navai_voice_frontend_config', function (array $config, array $settings): array {
+    $config['messages']['idle'] = 'Listo';
+    return $config;
+}, 10, 2);
+```
 
-## Empaquetar ZIP instalable
+## Notas de seguridad
 
-Desde la raiz del repo (PowerShell):
+- La API key de OpenAI permanece en el servidor.
+- Si `Permitir client_secret publico` esta desactivado, solo admins pueden solicitar client secret.
+- Si `Permitir funciones backend publicas` esta desactivado, solo admins pueden listar/ejecutar funciones backend.
+- El codigo PHP personalizado en la tab `Plugins` es codigo confiable de admin y se ejecuta en tu servidor. Usalo con cuidado.
+- Restringe rutas y funciones a lo estrictamente necesario.
+
+## Generar ZIP instalable (PowerShell)
+
+Desde la raiz del repo:
 
 ```powershell
 & "apps/wordpress-plugin/release/build-zip.ps1"
-Copy-Item "apps/wordpress-plugin/release/navai-voice.zip" "dist/navai-voice-wordpress.zip" -Force
 ```
 
-El ZIP final para instalar en WordPress queda en:
+Salida:
 
-- `dist/navai-voice-wordpress.zip`
+- `apps/wordpress-plugin/release/navai-voice.zip`
 
-## Prueba local rapida (Docker)
+El ZIP actualmente incluye:
 
-```powershell
-docker run --name navai-wp-db -e MYSQL_DATABASE=wordpress -e MYSQL_USER=wp -e MYSQL_PASSWORD=wp -e MYSQL_RANDOM_ROOT_PASSWORD=1 -d -p 3307:3306 mysql:8.0
-docker run --name navai-wp --link navai-wp-db:mysql -e WORDPRESS_DB_HOST=mysql:3306 -e WORDPRESS_DB_USER=wp -e WORDPRESS_DB_PASSWORD=wp -e WORDPRESS_DB_NAME=wordpress -p 8080:80 -d wordpress:6.8-php8.2-apache
-```
+- `navai-voice.php`
+- `README.md`
+- `README.es.md`
+- `assets/`
+- `includes/`
 
-Luego:
+## Troubleshooting / Problemas comunes
 
-1. Abre `http://localhost:8080` y completa setup.
-2. Instala `dist/navai-voice-wordpress.zip` desde `Plugins > Add New > Upload Plugin`.
-3. Activa plugin.
-4. Configura API key en `Settings > NAVAI Voice`.
-5. Agrega `[navai_voice]` en una pagina y prueba el flujo de voz.
+### El panel admin se ve roto o viejo despues de actualizar
 
-## Notas
+- Limpia cache del navegador
+- Limpia cache de plugin/pagina
+- Limpia OPcache / reinicia PHP-FPM si tu hosting cachea PHP agresivamente
 
-- Produccion: no expongas la API key en frontend.
-- Si desactivas `allow_public_client_secret`, solo admins podran pedir `client_secret`.
-- Si desactivas `allow_public_functions`, solo admins podran listar/ejecutar funciones backend.
+### WordPress admin se rompe al subir una actualizacion
+
+Si actualizas entre versiones que agregaron o movieron archivos internos, haz reemplazo limpio:
+
+1. Desactiva el plugin
+2. Borra `wp-content/plugins/navai-voice`
+3. Sube/instala el ZIP mas reciente
+4. Activa nuevamente
+
+### El widget de voz no inicia
+
+Revisa:
+
+- API key de OpenAI configurada
+- Permiso de microfono en el navegador
+- Modelo/voz Realtime validos
+- Endpoints REST accesibles
+- Toggles de seguridad no bloqueando tu usuario/sesion
+
