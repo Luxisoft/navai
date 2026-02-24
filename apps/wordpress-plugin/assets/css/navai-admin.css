@@ -19,6 +19,15 @@
   overflow: hidden;
   background: linear-gradient(145deg, #ffffff, #f3f8ff);
   margin: 14px 0 12px;
+  padding: 12px 20px;
+}
+
+.navai-admin-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .navai-admin-brand {
@@ -49,15 +58,40 @@
 }
 
 .navai-admin-banner-wrap {
-  background: #f9fbff;
-  padding: 12px 20px 16px;
+  background: transparent;
+  padding: 0;
+  flex: 1 1 auto;
+  min-width: 260px;
 }
 
 .navai-admin-banner {
   display: block;
-  max-width: min(560px, 100%);
-  width: 100%;
-  height: auto;
+  width: auto;
+  max-width: 100%;
+  height: 60px;
+}
+
+.navai-admin-header-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.navai-admin-language-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navai-admin-language-select > span {
+  font-weight: 600;
+  color: #2f3e55;
+}
+
+.navai-admin-language-select select {
+  min-width: 130px;
 }
 
 .navai-admin-divider {
@@ -67,8 +101,11 @@
 
 .navai-admin-tab-buttons {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
-  margin: 0 0 16px;
+  margin: 0;
 }
 
 .navai-admin-tab-button.button {
@@ -235,7 +272,7 @@
 
 .navai-plugin-function-row {
   display: grid;
-  grid-template-columns: minmax(170px, 1fr) minmax(160px, 1fr) minmax(170px, 1fr) minmax(170px, 1fr) minmax(240px, 2fr) auto;
+  grid-template-columns: minmax(170px, 1fr) minmax(160px, 1fr) minmax(340px, 2fr) auto;
   gap: 10px;
   align-items: end;
   border: 1px solid #e2e9f4;
@@ -257,6 +294,22 @@
 .navai-plugin-function-row select,
 .navai-plugin-function-row input[type="text"] {
   width: 100%;
+}
+
+.navai-plugin-function-code-wrap {
+  grid-column: 1 / span 3;
+}
+
+.navai-plugin-function-description {
+  grid-column: 1 / span 3;
+}
+
+.navai-plugin-function-code {
+  width: 100%;
+  min-height: 180px;
+  font-family: Consolas, "Courier New", monospace;
+  line-height: 1.4;
+  resize: vertical;
 }
 
 .navai-plugin-function-remove {
@@ -555,6 +608,19 @@
 }
 
 @media (max-width: 782px) {
+  .navai-admin-hero {
+    padding: 12px;
+  }
+
+  .navai-admin-hero-top {
+    align-items: flex-start;
+  }
+
+  .navai-admin-header-controls {
+    width: 100%;
+    align-items: flex-start;
+  }
+
   .navai-admin-brand {
     align-items: flex-start;
     flex-direction: column;
@@ -562,6 +628,11 @@
 
   .navai-admin-tab-buttons {
     flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .navai-admin-language-select {
+    justify-content: flex-start;
   }
 
   .navai-nav-tabs {

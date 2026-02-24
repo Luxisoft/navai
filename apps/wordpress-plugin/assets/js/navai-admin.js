@@ -592,7 +592,7 @@
           nextIndex += 1;
           builder.setAttribute("data-next-index", String(nextIndex));
 
-          var firstInput = row.querySelector('input[type="text"]');
+          var firstInput = row.querySelector("textarea, input[type='text']");
           if (firstInput && typeof firstInput.focus === "function") {
             firstInput.focus();
           }

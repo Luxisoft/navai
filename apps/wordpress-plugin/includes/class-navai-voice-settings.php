@@ -76,6 +76,9 @@ class Navai_Voice_Settings
         if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
             $activeTab = 'navigation';
         }
+        $dashboardLanguage = $this->sanitize_dashboard_language(
+            $source['dashboard_language'] ?? ($previous['dashboard_language'] ?? $defaults['dashboard_language'])
+        );
 
         $frontendDisplayMode = isset($source['frontend_display_mode'])
             ? sanitize_key((string) $source['frontend_display_mode'])
@@ -184,6 +187,7 @@ class Navai_Voice_Settings
             'private_custom_routes' => $privateCustomRoutes,
             'route_descriptions' => $routeDescriptions,
             'frontend_allowed_roles' => $this->sanitize_frontend_roles($source['frontend_allowed_roles'] ?? []),
+            'dashboard_language' => $dashboardLanguage,
             'active_tab' => $activeTab,
         ];
     }
@@ -278,7 +282,7 @@ class Navai_Voice_Settings
      * @return array<int, array{
      *   key: string,
      *   function_name: string,
-     *   plugin_function: string,
+     *   function_code: string,
      *   plugin_key: string,
      *   plugin_label: string,
      *   role: string,
@@ -322,11 +326,14 @@ class Navai_Voice_Settings
             }
 
             $functionName = $this->sanitize_plugin_function_name((string) ($item['function_name'] ?? ''));
-            $pluginFunction = $this->sanitize_plugin_function_action((string) ($item['plugin_function'] ?? ''));
+            if ($functionName === '') {
+                $functionName = $this->build_plugin_custom_function_name($id);
+            }
+            $functionCode = $this->sanitize_plugin_function_code((string) ($item['function_code'] ?? ''));
             $pluginKey = $this->sanitize_private_plugin_key((string) ($item['plugin_key'] ?? 'wp-core'));
             $pluginLabel = sanitize_text_field((string) ($item['plugin_label'] ?? ''));
             $description = sanitize_text_field((string) ($item['description'] ?? ''));
-            if ($functionName === '' || $pluginFunction === '' || $pluginKey === '') {
+            if ($functionName === '' || $functionCode === '' || $pluginKey === '') {
                 continue;
             }
             if ($pluginLabel === '') {
@@ -339,7 +346,7 @@ class Navai_Voice_Settings
             $items[] = [
                 'key' => $itemKey,
                 'function_name' => $functionName,
-                'plugin_function' => $pluginFunction,
+                'function_code' => $functionCode,
                 'plugin_key' => $pluginKey,
                 'plugin_label' => $pluginLabel,
                 'role' => $role,
@@ -365,14 +372,15 @@ class Navai_Voice_Settings
         $frontendButtonColorIdle = $this->sanitize_color_value($settings['frontend_button_color_idle'] ?? null, '#1263dc');
         $frontendButtonColorActive = $this->sanitize_color_value($settings['frontend_button_color_active'] ?? null, '#10883f');
         $frontendShowButtonText = !empty($settings['frontend_show_button_text']);
-        $frontendButtonTextIdle = sanitize_text_field((string) ($settings['frontend_button_text_idle'] ?? 'Hablar con NAVAI'));
+        $frontendButtonTextIdle = sanitize_text_field((string) ($settings['frontend_button_text_idle'] ?? 'Talk to NAVAI'));
         if (trim($frontendButtonTextIdle) === '') {
-            $frontendButtonTextIdle = 'Hablar con NAVAI';
+            $frontendButtonTextIdle = 'Talk to NAVAI';
         }
-        $frontendButtonTextActive = sanitize_text_field((string) ($settings['frontend_button_text_active'] ?? 'Detener NAVAI'));
+        $frontendButtonTextActive = sanitize_text_field((string) ($settings['frontend_button_text_active'] ?? 'Stop NAVAI'));
         if (trim($frontendButtonTextActive) === '') {
-            $frontendButtonTextActive = 'Detener NAVAI';
+            $frontendButtonTextActive = 'Stop NAVAI';
         }
+        $dashboardLanguage = $this->sanitize_dashboard_language($settings['dashboard_language'] ?? 'en');
         if (!in_array($activeTab, ['navigation', 'plugins', 'settings'], true)) {
             $activeTab = 'navigation';
         }
@@ -404,18 +412,6 @@ class Navai_Voice_Settings
         $pluginFunctionRoleOptions = $this->build_plugin_function_role_options($pluginCustomFunctions, $availableRoles);
         ?>
         <div class="wrap navai-admin-wrap">
-            <div class="navai-admin-hero">
-                <div class="navai-admin-banner-wrap">
-                    <img
-                        class="navai-admin-banner"
-                        src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/navai.png'); ?>"
-                        alt="<?php echo esc_attr__('NAVAI', 'navai-voice'); ?>"
-                    />
-                </div>
-            </div>
-
-            <hr class="navai-admin-divider" />
-
             <form action="options.php" method="post" class="navai-admin-form">
                 <?php settings_fields('navai_voice_settings_group'); ?>
                 <input
@@ -425,17 +421,47 @@ class Navai_Voice_Settings
                     value="<?php echo esc_attr($activeTab); ?>"
                 />
 
-                <div class="navai-admin-tab-buttons" role="tablist" aria-label="<?php echo esc_attr__('NAVAI sections', 'navai-voice'); ?>">
-                    <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="navigation">
-                        <?php echo esc_html__('Navegacion', 'navai-voice'); ?>
-                    </button>
-                    <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="plugins">
-                        <?php echo esc_html__('Plugins', 'navai-voice'); ?>
-                    </button>
-                    <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="settings">
-                        <?php echo esc_html__('Ajustes', 'navai-voice'); ?>
-                    </button>
+                <div class="navai-admin-hero">
+                    <div class="navai-admin-hero-top">
+                        <div class="navai-admin-banner-wrap">
+                            <img
+                                class="navai-admin-banner"
+                                src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/navai.png'); ?>"
+                                alt="<?php echo esc_attr__('NAVAI', 'navai-voice'); ?>"
+                            />
+                        </div>
+                        <div class="navai-admin-header-controls">
+                            <div class="navai-admin-tab-buttons" role="tablist" aria-label="<?php echo esc_attr__('NAVAI sections', 'navai-voice'); ?>">
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="navigation">
+                                    <?php echo esc_html__('Navegacion', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="plugins">
+                                    <?php echo esc_html__('Plugins', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="settings">
+                                    <?php echo esc_html__('Ajustes', 'navai-voice'); ?>
+                                </button>
+                                <a
+                                    class="button button-secondary navai-admin-doc-link"
+                                    href="https://navai.luxisoft.com/documentation/installation-wordpress"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <?php echo esc_html__('Documentacion', 'navai-voice'); ?>
+                                </a>
+                            </div>
+                            <label class="navai-admin-language-select">
+                                <span><?php echo esc_html__('Idioma del panel', 'navai-voice'); ?></span>
+                                <select name="<?php echo esc_attr(self::OPTION_KEY); ?>[dashboard_language]" id="navai-dashboard-language">
+                                    <option value="en" <?php selected($dashboardLanguage, 'en'); ?>>English</option>
+                                    <option value="es" <?php selected($dashboardLanguage, 'es'); ?>>Spanish</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
                 </div>
+
+                <hr class="navai-admin-divider" />
 
                 <section class="navai-admin-panel" data-navai-panel="navigation">
                     <h2><?php echo esc_html__('Navegacion', 'navai-voice'); ?></h2>
@@ -543,7 +569,7 @@ class Navai_Voice_Settings
                                                     $routeSynonyms = is_array($item['synonyms'] ?? null) ? $item['synonyms'] : [];
                                                     $routeDescription = isset($routeDescriptions[$routeKey])
                                                         ? sanitize_text_field((string) $routeDescriptions[$routeKey])
-                                                        : sanitize_text_field((string) ($item['description'] ?? ''));
+                                                        : '';
                                                     $isChecked = in_array($routeKey, $allowedRouteKeys, true);
                                                     $searchText = trim(implode(' ', array_filter([
                                                         $routeTitle,
@@ -572,7 +598,7 @@ class Navai_Voice_Settings
                                                                 class="regular-text navai-nav-route-description"
                                                                 name="<?php echo esc_attr(self::OPTION_KEY); ?>[route_descriptions][<?php echo esc_attr($routeKey); ?>]"
                                                                 value="<?php echo esc_attr($routeDescription); ?>"
-                                                                placeholder="<?php echo esc_attr__('Descripcion para el agente IA', 'navai-voice'); ?>"
+                                                                placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
                                                             />
                                                         </span>
                                                         <button
@@ -660,7 +686,7 @@ class Navai_Voice_Settings
                                                     type="text"
                                                     name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][<?php echo esc_attr((string) $routeIndex); ?>][description]"
                                                     value="<?php echo esc_attr($rowDescription); ?>"
-                                                    placeholder="<?php echo esc_attr__('Ayuda al agente a identificar esta ruta', 'navai-voice'); ?>"
+                                                    placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
                                                 />
                                             </label>
 
@@ -721,7 +747,7 @@ class Navai_Voice_Settings
                                                 type="text"
                                                 name="<?php echo esc_attr(self::OPTION_KEY); ?>[private_custom_routes][__INDEX__][description]"
                                                 value=""
-                                                placeholder="<?php echo esc_attr__('Ayuda al agente a identificar esta ruta', 'navai-voice'); ?>"
+                                                placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
                                             />
                                         </label>
 
@@ -851,7 +877,7 @@ class Navai_Voice_Settings
                                                         : [];
                                                     $routeDescription = isset($routeDescriptions[$routeKey])
                                                         ? sanitize_text_field((string) $routeDescriptions[$routeKey])
-                                                        : sanitize_text_field((string) ($item['description'] ?? ''));
+                                                        : '';
                                                     $routeRoleLabels = [];
                                                     $routeRoleBadges = [];
                                                     foreach ($routeRoles as $routeRole) {
@@ -895,7 +921,7 @@ class Navai_Voice_Settings
                                                                 class="regular-text navai-nav-route-description"
                                                                 name="<?php echo esc_attr(self::OPTION_KEY); ?>[route_descriptions][<?php echo esc_attr($routeKey); ?>]"
                                                                 value="<?php echo esc_attr($routeDescription); ?>"
-                                                                placeholder="<?php echo esc_attr__('Descripcion para el agente IA', 'navai-voice'); ?>"
+                                                                placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
                                                             />
                                                             <?php if (count($routeRoleBadges) > 0) : ?>
                                                                 <small class="navai-nav-route-roles">
@@ -939,7 +965,7 @@ class Navai_Voice_Settings
                         <div class="navai-plugin-functions-builder" data-next-index="<?php echo esc_attr((string) count($pluginCustomFunctions)); ?>">
                             <h3><?php echo esc_html__('Funciones personalizadas', 'navai-voice'); ?></h3>
                             <p class="navai-admin-description">
-                                <?php echo esc_html__('Selecciona plugin, rol, nombre de funcion, accion del plugin y descripcion para guiar al agente IA.', 'navai-voice'); ?>
+                                <?php echo esc_html__('Selecciona plugin y rol. Luego agrega codigo (PHP o JavaScript) y una descripcion para guiar al agente IA.', 'navai-voice'); ?>
                             </p>
 
                             <div class="navai-plugin-functions-list">
@@ -952,7 +978,10 @@ class Navai_Voice_Settings
                                     }
                                     $rowRole = sanitize_key((string) ($functionConfig['role'] ?? ''));
                                     $rowFunctionName = $this->sanitize_plugin_function_name((string) ($functionConfig['function_name'] ?? ''));
-                                    $rowPluginFunction = $this->sanitize_plugin_function_action((string) ($functionConfig['plugin_function'] ?? ''));
+                                    if ($rowFunctionName === '' && $rowId !== '') {
+                                        $rowFunctionName = $this->build_plugin_custom_function_name($rowId);
+                                    }
+                                    $rowFunctionCode = $this->sanitize_plugin_function_code((string) ($functionConfig['function_code'] ?? ''));
                                     $rowDescription = sanitize_text_field((string) ($functionConfig['description'] ?? ''));
                                     ?>
                                     <div class="navai-plugin-function-row">
@@ -960,6 +989,11 @@ class Navai_Voice_Settings
                                             type="hidden"
                                             name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][id]"
                                             value="<?php echo esc_attr($rowId); ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][function_name]"
+                                            value="<?php echo esc_attr($rowFunctionName); ?>"
                                         />
 
                                         <label>
@@ -984,24 +1018,14 @@ class Navai_Voice_Settings
                                             </select>
                                         </label>
 
-                                        <label>
+                                        <label class="navai-plugin-function-code-wrap">
                                             <span><?php echo esc_html__('Funcion NAVAI', 'navai-voice'); ?></span>
-                                            <input
-                                                type="text"
-                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][function_name]"
-                                                value="<?php echo esc_attr($rowFunctionName); ?>"
-                                                placeholder="<?php echo esc_attr__('ej: consultar_pedidos', 'navai-voice'); ?>"
-                                            />
-                                        </label>
-
-                                        <label>
-                                            <span><?php echo esc_html__('Funcion del plugin', 'navai-voice'); ?></span>
-                                            <input
-                                                type="text"
-                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][plugin_function]"
-                                                value="<?php echo esc_attr($rowPluginFunction); ?>"
-                                                placeholder="<?php echo esc_attr__('ej: list_orders', 'navai-voice'); ?>"
-                                            />
+                                            <textarea
+                                                class="navai-plugin-function-code"
+                                                rows="8"
+                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][function_code]"
+                                                placeholder="<?php echo esc_attr__('Pega codigo PHP o JavaScript para NAVAI. Para JavaScript usa prefijo js:.', 'navai-voice'); ?>"
+                                            ><?php echo esc_textarea($rowFunctionCode); ?></textarea>
                                         </label>
 
                                         <label class="navai-plugin-function-description">
@@ -1010,7 +1034,7 @@ class Navai_Voice_Settings
                                                 type="text"
                                                 name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][description]"
                                                 value="<?php echo esc_attr($rowDescription); ?>"
-                                                placeholder="<?php echo esc_attr__('Cuando debe ejecutar esta funcion', 'navai-voice'); ?>"
+                                                placeholder="<?php echo esc_attr__('Describe when NAVAI should execute this function', 'navai-voice'); ?>"
                                             />
                                         </label>
 
@@ -1030,6 +1054,11 @@ class Navai_Voice_Settings
                                     <input
                                         type="hidden"
                                         name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][id]"
+                                        value=""
+                                    />
+                                    <input
+                                        type="hidden"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][function_name]"
                                         value=""
                                     />
 
@@ -1055,24 +1084,14 @@ class Navai_Voice_Settings
                                         </select>
                                     </label>
 
-                                    <label>
+                                    <label class="navai-plugin-function-code-wrap">
                                         <span><?php echo esc_html__('Funcion NAVAI', 'navai-voice'); ?></span>
-                                        <input
-                                            type="text"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][function_name]"
-                                            value=""
-                                            placeholder="<?php echo esc_attr__('ej: consultar_pedidos', 'navai-voice'); ?>"
-                                        />
-                                    </label>
-
-                                    <label>
-                                        <span><?php echo esc_html__('Funcion del plugin', 'navai-voice'); ?></span>
-                                        <input
-                                            type="text"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][plugin_function]"
-                                            value=""
-                                            placeholder="<?php echo esc_attr__('ej: list_orders', 'navai-voice'); ?>"
-                                        />
+                                        <textarea
+                                            class="navai-plugin-function-code"
+                                            rows="8"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][function_code]"
+                                            placeholder="<?php echo esc_attr__('Pega codigo PHP o JavaScript para NAVAI. Para JavaScript usa prefijo js:.', 'navai-voice'); ?>"
+                                        ></textarea>
                                     </label>
 
                                     <label class="navai-plugin-function-description">
@@ -1081,7 +1100,7 @@ class Navai_Voice_Settings
                                             type="text"
                                             name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][description]"
                                             value=""
-                                            placeholder="<?php echo esc_attr__('Cuando debe ejecutar esta funcion', 'navai-voice'); ?>"
+                                            placeholder="<?php echo esc_attr__('Describe when NAVAI should execute this function', 'navai-voice'); ?>"
                                         />
                                     </label>
 
@@ -1198,14 +1217,21 @@ class Navai_Voice_Settings
                                                 }
                                                 $functionKey = 'pluginfn:' . $functionId;
                                                 $functionName = $this->sanitize_plugin_function_name((string) ($item['function_name'] ?? ''));
-                                                $pluginFunction = $this->sanitize_plugin_function_action((string) ($item['plugin_function'] ?? ''));
+                                                if ($functionName === '') {
+                                                    $functionName = $this->build_plugin_custom_function_name($functionId);
+                                                }
+                                                $functionCode = $this->sanitize_plugin_function_code((string) ($item['function_code'] ?? ''));
+                                                $codePreview = $functionCode;
+                                                if (strlen($codePreview) > 220) {
+                                                    $codePreview = substr($codePreview, 0, 220) . '...';
+                                                }
                                                 $functionDescription = sanitize_text_field((string) ($item['description'] ?? ''));
                                                 $functionRole = sanitize_key((string) ($item['role'] ?? ''));
                                                 $functionRoleLabel = isset($availableRoles[$functionRole]) ? (string) $availableRoles[$functionRole] : $functionRole;
                                                 $isChecked = in_array($functionKey, $allowedPluginFunctionKeys, true);
                                                 $searchText = trim(implode(' ', array_filter([
                                                     $functionName,
-                                                    $pluginFunction,
+                                                    $functionCode,
                                                     $functionDescription,
                                                     $functionRoleLabel,
                                                     $groupLabel,
@@ -1225,12 +1251,9 @@ class Navai_Voice_Settings
                                                     />
                                                     <span class="navai-plugin-func-main">
                                                         <strong><?php echo esc_html($functionName); ?></strong>
-                                                        <small>
-                                                            <?php
-                                                            echo esc_html__('Funcion del plugin: ', 'navai-voice');
-                                                            echo esc_html($pluginFunction);
-                                                            ?>
-                                                        </small>
+                                                        <?php if ($codePreview !== '') : ?>
+                                                            <small><?php echo esc_html($codePreview); ?></small>
+                                                        <?php endif; ?>
                                                         <small><?php echo esc_html($functionDescription); ?></small>
                                                         <?php if ($functionRoleLabel !== '') : ?>
                                                             <small class="navai-nav-route-roles">
@@ -1650,6 +1673,19 @@ class Navai_Voice_Settings
                 continue;
             }
 
+            // Ignore legacy auto-filled descriptions from older UI versions.
+            $normalizedDescription = strtolower(trim($description));
+            $legacyAutoDescriptions = [
+                strtolower('Ruta publica seleccionada en menus de WordPress.'),
+                strtolower('Ruta privada seleccionada en WordPress.'),
+                strtolower('Ruta de menu seleccionada en WordPress.'),
+                strtolower('Ruta publica seleccionada en WordPress.'),
+                strtolower('Ruta privada personalizada.'),
+            ];
+            if (in_array($normalizedDescription, $legacyAutoDescriptions, true)) {
+                continue;
+            }
+
             $items[$key] = $description;
         }
 
@@ -1716,6 +1752,19 @@ class Navai_Voice_Settings
         }
 
         return array_values(array_unique($clean));
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_dashboard_language($value): string
+    {
+        $lang = sanitize_key((string) $value);
+        if (!in_array($lang, ['en', 'es'], true)) {
+            return 'en';
+        }
+
+        return $lang;
     }
 
     /**
@@ -2107,7 +2156,7 @@ class Navai_Voice_Settings
      *   plugin_label: string,
      *   role: string,
      *   function_name: string,
-     *   plugin_function: string,
+     *   function_code: string,
      *   description: string
      * }>
      */
@@ -2256,8 +2305,12 @@ class Navai_Voice_Settings
             usort(
                 $functions,
                 function (array $a, array $b): int {
-                    $left = $this->sanitize_plugin_function_name((string) ($a['function_name'] ?? ''));
-                    $right = $this->sanitize_plugin_function_name((string) ($b['function_name'] ?? ''));
+                    $left = sanitize_text_field((string) ($a['description'] ?? ''));
+                    $right = sanitize_text_field((string) ($b['description'] ?? ''));
+                    if ($left === '' || $right === '') {
+                        $left = $this->sanitize_plugin_function_name((string) ($a['function_name'] ?? ''));
+                        $right = $this->sanitize_plugin_function_name((string) ($b['function_name'] ?? ''));
+                    }
                     return strcasecmp($left, $right);
                 }
             );
@@ -2348,7 +2401,7 @@ class Navai_Voice_Settings
      *   plugin_label: string,
      *   role: string,
      *   function_name: string,
-     *   plugin_function: string,
+     *   function_code: string,
      *   description: string
      * }>
      */
@@ -2376,9 +2429,28 @@ class Navai_Voice_Settings
             }
 
             $functionName = $this->sanitize_plugin_function_name((string) ($item['function_name'] ?? ''));
-            $pluginFunction = $this->sanitize_plugin_function_action((string) ($item['plugin_function'] ?? ''));
-            if ($functionName === '' || $pluginFunction === '') {
+            $functionCode = $this->sanitize_plugin_function_code((string) ($item['function_code'] ?? ''));
+
+            // Backwards compatibility for old rows that stored plugin_function action names.
+            if ($functionCode === '') {
+                $legacyAction = $this->sanitize_plugin_function_action((string) ($item['plugin_function'] ?? ''));
+                if ($legacyAction !== '') {
+                    $functionCode = '@action:' . $legacyAction;
+                }
+            }
+
+            if ($functionCode === '') {
                 continue;
+            }
+
+            $rawId = (string) ($item['id'] ?? '');
+            $rowId = $this->sanitize_plugin_custom_function_id($rawId);
+            if ($rowId === '') {
+                $rowId = $this->generate_plugin_custom_function_id($pluginKey, $role, $functionName, (string) $index);
+            }
+
+            if ($functionName === '') {
+                $functionName = $this->build_plugin_custom_function_name($rowId);
             }
 
             $dedupeKey = $pluginKey . '|' . $role . '|' . $functionName;
@@ -2386,12 +2458,6 @@ class Navai_Voice_Settings
                 continue;
             }
             $dedupe[$dedupeKey] = true;
-
-            $rawId = (string) ($item['id'] ?? '');
-            $rowId = $this->sanitize_plugin_custom_function_id($rawId);
-            if ($rowId === '') {
-                $rowId = $this->generate_plugin_custom_function_id($pluginKey, $role, $functionName, (string) $index);
-            }
 
             $description = sanitize_text_field((string) ($item['description'] ?? ''));
             if ($description === '') {
@@ -2408,7 +2474,7 @@ class Navai_Voice_Settings
                 ),
                 'role' => $role,
                 'function_name' => $functionName,
-                'plugin_function' => $pluginFunction,
+                'function_code' => $functionCode,
                 'description' => $description,
             ];
         }
@@ -2519,6 +2585,28 @@ class Navai_Voice_Settings
         }
 
         return substr($name, 0, 64);
+    }
+
+    private function sanitize_plugin_function_code(string $value): string
+    {
+        $raw = function_exists('wp_unslash') ? (string) wp_unslash($value) : $value;
+        $normalized = str_replace(["\r\n", "\r"], "\n", $raw);
+        $normalized = trim($normalized);
+        if ($normalized === '') {
+            return '';
+        }
+
+        return $normalized;
+    }
+
+    private function build_plugin_custom_function_name(string $rowId): string
+    {
+        $cleanId = $this->sanitize_plugin_custom_function_id($rowId);
+        if ($cleanId === '') {
+            $cleanId = substr(md5((string) microtime(true)), 0, 12);
+        }
+
+        return 'navai_custom_' . substr($cleanId, 0, 20);
     }
 
     private function sanitize_plugin_function_action(string $value): string
@@ -3508,8 +3596,8 @@ class Navai_Voice_Settings
             'default_model' => 'gpt-realtime',
             'default_voice' => 'marin',
             'default_instructions' => 'You are a helpful assistant.',
-            'default_language' => 'Spanish',
-            'default_voice_accent' => 'neutral Latin American Spanish',
+            'default_language' => 'English',
+            'default_voice_accent' => 'neutral',
             'default_voice_tone' => 'friendly and professional',
             'client_secret_ttl' => 600,
             'allow_public_client_secret' => true,
@@ -3525,11 +3613,12 @@ class Navai_Voice_Settings
             'frontend_button_color_idle' => '#1263dc',
             'frontend_button_color_active' => '#10883f',
             'frontend_show_button_text' => true,
-            'frontend_button_text_idle' => 'Hablar con NAVAI',
-            'frontend_button_text_active' => 'Detener NAVAI',
+            'frontend_button_text_idle' => 'Talk to NAVAI',
+            'frontend_button_text_active' => 'Stop NAVAI',
             'private_custom_routes' => [],
             'route_descriptions' => [],
             'frontend_allowed_roles' => $this->get_default_frontend_roles(),
+            'dashboard_language' => 'en',
             'active_tab' => 'navigation',
         ];
     }
