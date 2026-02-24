@@ -340,6 +340,41 @@ trait Navai_Voice_Settings_Internals_Values_Trait
     }
 
     /**
+     * Preloaded OpenAI Realtime model IDs suitable for NAVAI voice agent usage.
+     *
+     * @return array<int, string>
+     */
+    private function get_realtime_model_options(): array
+    {
+        return [
+            'gpt-realtime-1.5',
+            'gpt-4o-realtime-preview',
+            'gpt-4o-mini-realtime-preview',
+        ];
+    }
+
+    /**
+     * Preloaded OpenAI Realtime built-in voices.
+     *
+     * @return array<int, string>
+     */
+    private function get_realtime_voice_options(): array
+    {
+        return [
+            'alloy',
+            'ash',
+            'ballad',
+            'cedar',
+            'coral',
+            'echo',
+            'marin',
+            'sage',
+            'shimmer',
+            'verse',
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     private function get_available_roles(): array

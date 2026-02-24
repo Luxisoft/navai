@@ -854,6 +854,10 @@
   gap: 8px;
 }
 
+.navai-searchable-select-dropdown[hidden] {
+  display: none !important;
+}
+
 .navai-searchable-select-search {
   width: 100%;
 }

@@ -19,7 +19,7 @@
                                 <div class="navai-plugin-functions-builder-head-copy">
                                     <h3><?php echo esc_html__('Funciones personalizadas', 'navai-voice'); ?></h3>
                                     <p class="navai-admin-description">
-                                        <?php echo esc_html__('Selecciona plugin y rol. Luego agrega codigo (PHP o JavaScript) y una descripcion para guiar al agente IA.', 'navai-voice'); ?>
+                                        <?php echo esc_html__('Selecciona plugin y rol. Luego agrega codigo JavaScript y una descripcion para guiar al agente IA.', 'navai-voice'); ?>
                                     </p>
                                 </div>
                                 <div class="navai-plugin-functions-builder-head-actions">
@@ -47,7 +47,7 @@
                                                 <?php echo esc_html__('Crear funcion', 'navai-voice'); ?>
                                             </h4>
                                             <p class="navai-admin-description">
-                                                <?php echo esc_html__('Selecciona plugin y rol. Luego agrega codigo (PHP o JavaScript) y una descripcion para guiar al agente IA.', 'navai-voice'); ?>
+                                                <?php echo esc_html__('Selecciona plugin y rol. Luego agrega codigo JavaScript y una descripcion para guiar al agente IA.', 'navai-voice'); ?>
                                             </p>
                                         </div>
                                         <button

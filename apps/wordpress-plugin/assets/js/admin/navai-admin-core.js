@@ -45,7 +45,7 @@
     ["No hay rutas privadas personalizadas. Usa el formulario de arriba para agregarlas.", "No custom private routes yet. Use the form above to add them."],
     ["Define funciones personalizadas por plugin y rol para que NAVAI las ejecute.", "Define custom functions by plugin and role for NAVAI to execute."],
     ["Funciones personalizadas", "Custom functions"],
-    ["Selecciona plugin y rol. Luego agrega codigo (PHP o JavaScript) y una descripcion para guiar al agente IA.", "Select plugin and role. Then add code (PHP or JavaScript) and a description to guide the AI agent."],
+    ["Selecciona plugin y rol. Luego agrega codigo JavaScript y una descripcion para guiar al agente IA.", "Select plugin and role. Then add JavaScript code and a description to guide the AI agent."],
     ["Funcion NAVAI", "NAVAI Function"],
     ["No hay funciones personalizadas. Usa el boton Crear funcion para agregarlas.", "No custom functions yet. Use the Create function button to add them."],
     ["Anadir funcion", "Add function"],
@@ -94,6 +94,10 @@
     ["Describe when NAVAI should use this route", "Describe when NAVAI should use this route"],
     ["Describe when NAVAI should execute this function", "Describe when NAVAI should execute this function"],
     ["Pega codigo PHP o JavaScript para NAVAI. Para JavaScript usa prefijo js:.", "Paste PHP or JavaScript code for NAVAI. For JavaScript use the js: prefix."],
+    ["Buscar modelo...", "Search model..."],
+    ["No se encontraron modelos.", "No models found."],
+    ["Buscar voz...", "Search voice..."],
+    ["No se encontraron voces.", "No voices found."],
     ["Buscar idioma...", "Search language..."],
     ["No se encontraron idiomas.", "No languages found."],
     ["Pagina principal del sitio.", "Main site page."],
@@ -107,6 +111,11 @@
   }
 
   function readInitialTab() {
+    var fromHash = window.location.hash.replace("#", "").trim().toLowerCase();
+    if (VALID_TABS[fromHash]) {
+      return fromHash;
+    }
+
     return "navigation";
   }
 

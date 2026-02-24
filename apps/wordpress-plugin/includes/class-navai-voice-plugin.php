@@ -106,6 +106,7 @@ class Navai_Voice_Plugin
     public function inject_admin_menu_icon_css(): void
     {
         $menuId = 'toplevel_page_' . Navai_Voice_Settings::PAGE_SLUG;
+        $documentationUrl = 'https://navai.luxisoft.com/documentation/installation-wordpress';
         ?>
         <style>
             #<?php echo esc_attr($menuId); ?> .wp-menu-image img {
@@ -117,6 +118,18 @@ class Navai_Voice_Plugin
                 object-fit: contain !important;
             }
         </style>
+        <script>
+            (function () {
+                var selector = '#<?php echo esc_js($menuId); ?> .wp-submenu a[href="<?php echo esc_js($documentationUrl); ?>"]';
+                var docLink = document.querySelector(selector);
+                if (!docLink) {
+                    return;
+                }
+
+                docLink.setAttribute('target', '_blank');
+                docLink.setAttribute('rel', 'noopener noreferrer');
+            })();
+        </script>
         <?php
     }
 

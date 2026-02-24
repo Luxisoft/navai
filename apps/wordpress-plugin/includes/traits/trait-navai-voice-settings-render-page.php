@@ -30,18 +30,33 @@ trait Navai_Voice_Settings_Render_Page_Trait
             $frontendButtonTextActive = 'Stop NAVAI';
         }
         $dashboardLanguage = $this->sanitize_dashboard_language($settings['dashboard_language'] ?? 'en');
+        $normalizeSearchableOptions = static function (array $options, string $selected): array {
+            $cleanOptions = array_values(array_unique(array_filter(array_map(
+                static fn($value): string => sanitize_text_field((string) $value),
+                $options
+            ))));
+            if ($selected !== '' && !in_array($selected, $cleanOptions, true)) {
+                array_unshift($cleanOptions, $selected);
+                $cleanOptions = array_values(array_unique($cleanOptions));
+            }
+
+            return $cleanOptions;
+        };
+        $defaultModel = sanitize_text_field((string) ($settings['default_model'] ?? 'gpt-realtime'));
+        if (trim($defaultModel) === '') {
+            $defaultModel = 'gpt-realtime';
+        }
+        $defaultVoice = sanitize_text_field((string) ($settings['default_voice'] ?? 'marin'));
+        if (trim($defaultVoice) === '') {
+            $defaultVoice = 'marin';
+        }
         $defaultLanguage = sanitize_text_field((string) ($settings['default_language'] ?? ''));
         if (trim($defaultLanguage) === '') {
             $defaultLanguage = 'English';
         }
-        $realtimeLanguageOptions = $this->get_realtime_language_options();
-        if (!in_array($defaultLanguage, $realtimeLanguageOptions, true)) {
-            array_unshift($realtimeLanguageOptions, $defaultLanguage);
-            $realtimeLanguageOptions = array_values(array_unique(array_filter(array_map(
-                static fn($value): string => sanitize_text_field((string) $value),
-                $realtimeLanguageOptions
-            ))));
-        }
+        $realtimeModelOptions = $normalizeSearchableOptions($this->get_realtime_model_options(), $defaultModel);
+        $realtimeVoiceOptions = $normalizeSearchableOptions($this->get_realtime_voice_options(), $defaultVoice);
+        $realtimeLanguageOptions = $normalizeSearchableOptions($this->get_realtime_language_options(), $defaultLanguage);
 
         if (!in_array($frontendDisplayMode, ['global', 'shortcode'], true)) {
             $frontendDisplayMode = 'global';
@@ -644,24 +659,126 @@ trait Navai_Voice_Settings_Render_Page_Trait
                             />
                         </label>
 
-                        <label>
+                        <label class="navai-admin-searchable-field">
                             <span><?php echo esc_html__('Modelo Realtime', 'navai-voice'); ?></span>
-                            <input
-                                class="regular-text"
-                                type="text"
-                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_model]"
-                                value="<?php echo esc_attr((string) ($settings['default_model'] ?? 'gpt-realtime')); ?>"
-                            />
+                            <div class="navai-searchable-select" data-navai-searchable-select>
+                                <button
+                                    type="button"
+                                    class="navai-searchable-select-toggle"
+                                    aria-expanded="false"
+                                >
+                                    <span class="navai-searchable-select-value"><?php echo esc_html($defaultModel); ?></span>
+                                </button>
+                                <div class="navai-searchable-select-dropdown" hidden>
+                                    <input
+                                        type="search"
+                                        class="regular-text navai-searchable-select-search"
+                                        placeholder="<?php echo esc_attr__('Buscar modelo...', 'navai-voice'); ?>"
+                                        autocomplete="off"
+                                    />
+                                    <div class="navai-searchable-select-options">
+                                        <?php foreach ($realtimeModelOptions as $modelOption) : ?>
+                                            <?php
+                                            $modelId = sanitize_text_field((string) $modelOption);
+                                            if ($modelId === '') {
+                                                continue;
+                                            }
+                                            $isSelectedModel = $modelId === $defaultModel;
+                                            ?>
+                                            <button
+                                                type="button"
+                                                class="navai-searchable-select-option<?php echo $isSelectedModel ? ' is-selected' : ''; ?>"
+                                                data-navai-searchable-option
+                                                data-value="<?php echo esc_attr($modelId); ?>"
+                                                data-label="<?php echo esc_attr($modelId); ?>"
+                                            >
+                                                <?php echo esc_html($modelId); ?>
+                                            </button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <p class="navai-searchable-select-empty" hidden>
+                                        <?php echo esc_html__('No se encontraron modelos.', 'navai-voice'); ?>
+                                    </p>
+                                </div>
+                                <select
+                                    class="navai-searchable-select-native"
+                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_model]"
+                                    hidden
+                                >
+                                    <?php foreach ($realtimeModelOptions as $modelOption) : ?>
+                                        <?php
+                                        $modelId = sanitize_text_field((string) $modelOption);
+                                        if ($modelId === '') {
+                                            continue;
+                                        }
+                                        ?>
+                                        <option value="<?php echo esc_attr($modelId); ?>" <?php selected($defaultModel, $modelId); ?>>
+                                            <?php echo esc_html($modelId); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </label>
 
-                        <label>
+                        <label class="navai-admin-searchable-field">
                             <span><?php echo esc_html__('Voz', 'navai-voice'); ?></span>
-                            <input
-                                class="regular-text"
-                                type="text"
-                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_voice]"
-                                value="<?php echo esc_attr((string) ($settings['default_voice'] ?? 'marin')); ?>"
-                            />
+                            <div class="navai-searchable-select" data-navai-searchable-select>
+                                <button
+                                    type="button"
+                                    class="navai-searchable-select-toggle"
+                                    aria-expanded="false"
+                                >
+                                    <span class="navai-searchable-select-value"><?php echo esc_html($defaultVoice); ?></span>
+                                </button>
+                                <div class="navai-searchable-select-dropdown" hidden>
+                                    <input
+                                        type="search"
+                                        class="regular-text navai-searchable-select-search"
+                                        placeholder="<?php echo esc_attr__('Buscar voz...', 'navai-voice'); ?>"
+                                        autocomplete="off"
+                                    />
+                                    <div class="navai-searchable-select-options">
+                                        <?php foreach ($realtimeVoiceOptions as $voiceOption) : ?>
+                                            <?php
+                                            $voiceId = sanitize_text_field((string) $voiceOption);
+                                            if ($voiceId === '') {
+                                                continue;
+                                            }
+                                            $isSelectedVoice = $voiceId === $defaultVoice;
+                                            ?>
+                                            <button
+                                                type="button"
+                                                class="navai-searchable-select-option<?php echo $isSelectedVoice ? ' is-selected' : ''; ?>"
+                                                data-navai-searchable-option
+                                                data-value="<?php echo esc_attr($voiceId); ?>"
+                                                data-label="<?php echo esc_attr($voiceId); ?>"
+                                            >
+                                                <?php echo esc_html($voiceId); ?>
+                                            </button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <p class="navai-searchable-select-empty" hidden>
+                                        <?php echo esc_html__('No se encontraron voces.', 'navai-voice'); ?>
+                                    </p>
+                                </div>
+                                <select
+                                    class="navai-searchable-select-native"
+                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_voice]"
+                                    hidden
+                                >
+                                    <?php foreach ($realtimeVoiceOptions as $voiceOption) : ?>
+                                        <?php
+                                        $voiceId = sanitize_text_field((string) $voiceOption);
+                                        if ($voiceId === '') {
+                                            continue;
+                                        }
+                                        ?>
+                                        <option value="<?php echo esc_attr($voiceId); ?>" <?php selected($defaultVoice, $voiceId); ?>>
+                                            <?php echo esc_html($voiceId); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </label>
 
                         <label class="navai-admin-full-width">

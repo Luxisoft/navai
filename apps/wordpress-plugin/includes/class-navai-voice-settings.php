@@ -42,6 +42,21 @@ class Navai_Voice_Settings
             $this->resolve_admin_menu_icon_url(),
             58
         );
+
+        $baseSettingsUrl = admin_url('admin.php?page=' . self::PAGE_SLUG);
+        $documentationUrl = 'https://navai.luxisoft.com/documentation/installation-wordpress';
+
+        global $submenu;
+        if (!is_array($submenu)) {
+            $submenu = [];
+        }
+
+        $submenu[self::PAGE_SLUG] = [
+            [__('Navegacion', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#navigation'],
+            [__('Funciones', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#plugins'],
+            [__('Ajustes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#settings'],
+            [__('Documentacion', 'navai-voice'), 'manage_options', $documentationUrl],
+        ];
     }
 
     public function register_settings(): void
