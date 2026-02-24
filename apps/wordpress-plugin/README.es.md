@@ -134,12 +134,8 @@ add_filter('navai_voice_routes', function (array $routes): array {
 Desde la raiz del repo (PowerShell):
 
 ```powershell
-$stageRoot = "dist/wp-package"
-$stagePlugin = Join-Path $stageRoot "navai-voice"
-Remove-Item $stageRoot -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Path $stagePlugin -Force | Out-Null
-Copy-Item "apps/wordpress-plugin/*" $stagePlugin -Recurse -Force
-Compress-Archive -Path $stagePlugin -DestinationPath "dist/navai-voice-wordpress.zip" -Force
+& "apps/wordpress-plugin/release/build-zip.ps1"
+Copy-Item "apps/wordpress-plugin/release/navai-voice.zip" "dist/navai-voice-wordpress.zip" -Force
 ```
 
 El ZIP final para instalar en WordPress queda en:
