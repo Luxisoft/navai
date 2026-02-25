@@ -26,7 +26,7 @@ This plugin is implemented in PHP (server side) and vanilla JS (browser side) fo
 - `Install`: [WordPress admin install](#installation-wordpress-admin) | [Manual install](#installation-manual--filesystem)
 - `Configure`: [Quick configuration](#quick-configuration-recommended)
 - `Use`: [Global floating button](#option-a-global-floating-button) | [Shortcode](#option-b-shortcode)
-- `Admin tabs`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Functions](#functions-tab-custom-functions) | [Safety](#safety-tab-guardrails-phase-1) | [Approvals](#integrated-phases-phase-2-to-phase-7) | [Traces](#integrated-phases-phase-2-to-phase-7) | [History](#integrated-phases-phase-2-to-phase-7) | [Agents](#integrated-phases-phase-2-to-phase-7) | [MCP](#integrated-phases-phase-2-to-phase-7)
+- `Admin sections`: [Navigation](#navigation-tab-allowed-routes-for-ai) | [Functions](#functions-tab-custom-functions) | [Settings > Safety](#settings--safety-tab-guardrails-phase-1) | [Settings > Approvals/Traces/History](#integrated-phases-phase-2-to-phase-7) | [Agents](#integrated-phases-phase-2-to-phase-7) | [MCP](#integrated-phases-phase-2-to-phase-7)
 - `Developer`: [REST endpoints](#rest-endpoints-current) | [Backend extensibility](#backend-extensibility-filters)
 - `Ops`: [Build ZIP](#build-installable-zip-powershell) | [Troubleshooting](#troubleshooting)
 
@@ -105,23 +105,30 @@ This helps prevent NAVAI from executing destructive backend actions.
 - Define allowed navigation routes for the `navigate_to` tool.
 - Create private custom routes by plugin + role + URL.
 - Add route descriptions (to guide the AI when to use each route).
-- Create custom plugin functions from the dashboard (by plugin + role):
-  - PHP code execution (server side)
-  - JavaScript code execution (`js:` prefix, client side)
-  - Legacy plugin action bridge (`@action:...`)
+- Create custom plugin functions from the dashboard (by plugin + role) using a responsive modal (JavaScript-only editor).
+- Configure per-function runtime metadata:
+  - `function_name` (tool name)
+  - execution scope (`frontend`, `admin`, `both`)
+  - `timeout`, `retries`
+  - `requires approval`
+  - optional `JSON Schema`
+- Test custom functions from the admin panel with a JSON payload before saving.
+- Import/export custom functions as `.js` packs from the `Functions` panel.
+- Assign existing custom functions to AI agents directly from the `Functions` modal (`Agentes IA permitidos`) using `function_name` sync.
 - Enable/disable custom functions individually with checkboxes.
 - Edit/delete custom functions directly from the list.
 - Filter routes/functions by text, plugin, and role in the admin UI.
-- Switch admin panel language (English/Spanish) from the NAVAI dashboard.
-- Configure guardrails (Phase 1) in the `Safety` tab for `input`, `tool`, and `output` using `keyword`/`regex` rules.
+- Switch admin panel language from the NAVAI dashboard (`English`, `Español`, `Português`, `Français`, `Русский`, `한국어`, `日本語`, `中文`, `हिंदी`).
+- Apply full dashboard translations in `English`/`Spanish` and fallback to English for the additional language selector options.
+- Configure guardrails (Phase 1) in `Settings > Safety` for `input`, `tool`, and `output` using `keyword`/`regex` rules.
 - Block function calls (`/functions/execute`) when a guardrail rule matches.
-- Test guardrail rules from the admin panel (`Safety > Test rules`).
+- Test guardrail rules from the admin panel (`Settings > Safety > Test rules`).
 - Store minimal guardrail block events (`guardrail_blocked`) in the database for basic traceability.
-- Manage human approvals (HITL) for sensitive functions (`pending`, `approved`, `rejected`) and execute pending actions from the admin panel.
-- Inspect runtime traces (tools, guardrails, approvals, handoffs, MCP policy blocks) for debugging.
-- Persist sessions, transcripts, and tool calls with retention/cleanup controls.
-- Configure specialist agents with tool/route allowlists and handoff rules.
-- Integrate MCP servers (HTTP JSON-RPC), sync remote tools, and restrict them by role and/or agent.
+- Manage human approvals (HITL) for sensitive functions (`pending`, `approved`, `rejected`) and execute pending actions from `Settings > Approvals`.
+- Inspect runtime traces (tools, guardrails, approvals, handoffs, MCP policy blocks) from `Settings > Traces`.
+- Persist sessions, transcripts, and tool calls with retention/cleanup controls in `Settings > History`.
+- Configure specialist agents and handoff rules with modal CRUD UI and internal tabs (`Agents` / `Handoffs`).
+- Integrate MCP servers (HTTP JSON-RPC), sync remote tools, and restrict them by role and/or agent with modal CRUD for servers/policies.
 - Use built-in REST endpoints for client secret, routes, function listing, and execution.
 
 ## Requirements
@@ -136,7 +143,7 @@ The plugin adds a left menu item:
 
 - `NAVAI Voice`
 
-The dashboard has operational tabs by phase plus utility controls:
+The dashboard uses top-level operational tabs plus nested sub-tabs inside `Settings`:
 
 - `Navigation`
   - Public menu routes
@@ -145,44 +152,38 @@ The dashboard has operational tabs by phase plus utility controls:
   - Filters and bulk selection actions
 - `Functions`
   - Custom function editor in a responsive modal (create/edit)
+  - JavaScript-only function code editor
+  - Function metadata (`function_name`, scope, timeout, retries, approval, JSON Schema)
+  - Test payload + `Test function`
+  - Agent assignment (`Agentes IA permitidos`) synced to agent `allowed_tools`
   - Custom function list with activation checkboxes
   - Edit/Delete actions
   - Filters by text/plugin/role
-- `Safety` (Phase 1)
-  - `Enable realtime guardrails` toggle
-  - Rule CRUD (`keyword` / `regex`)
-  - `input`, `tool`, `output` scopes
-  - Role and plugin/function scope filters
-  - Rule tester (`Test rules`) with text and JSON payload
-- `Approvals` (Phase 2)
-  - Pending request queue
-  - Approve/reject sensitive function calls
-  - Request detail + execution result
-- `Traces` (Phase 2)
-  - Trace timeline by `trace_id`
-  - Tool/guardrail/approval/handoff events
-  - Filters for event type and severity
-- `History` (Phase 3)
-  - Persisted sessions and transcripts
-  - Session clear action
-  - Retention/compaction controls
+  - Import/Export functions (`.js`) with selection/filtering
 - `Agents` (Phase 6)
-  - Specialist agent CRUD
-  - Tool/route allowlists
-  - Handoff rules by intent/context
+  - Toggle for multi-agent + handoffs
+  - Two internal tabs: `Agents` and `Configured handoff rules`
+  - Agent CRUD in modal (specialist profile + instructions)
+  - Handoff rule CRUD in modal (intent/function/payload/roles/context conditions)
+  - Function assignment is managed from the `Functions` panel (per `function_name`)
 - `MCP` (Phase 7)
-  - MCP server CRUD (URL, auth, timeouts)
+  - Toggle for MCP integrations
+  - MCP server CRUD in modal (URL, auth, timeouts, SSL, extra headers)
   - Health check + sync/list remote tools
-  - Allow/Deny policies by tool, role, and `agent_key`
+  - Remote tools cache viewer (`tool` -> runtime `function_name`)
+  - Allow/Deny policy CRUD in modal by tool, role, and `agent_key`
 - `Settings`
-  - Connection/runtime settings (API key, model, voice, instructions, searchable language selector, accent, tone, TTL)
-  - Global widget settings (mode, side, colors, labels)
-  - Visibility/shortcode settings (allowed roles, shortcode helper)
+  - Internal sub-tabs:
+    - `General`: connection/runtime, widget, visibility, shortcode, voice/text/VAD settings
+    - `Safety` (Phase 1): guardrails rules + tester
+    - `Approvals` (Phase 2): HITL queue + decisions
+    - `Traces` (Phase 2): runtime traces + timelines
+    - `History` (Phase 3): sessions, transcripts, retention/compaction
 
 Extra controls in the top header:
 
 - `Documentation` button (opens NAVAI WordPress documentation)
-- `Panel language` selector (`English`, `Spanish`)
+- `Panel language` selector (`English`, `Español`, `Português`, `Français`, `Русский`, `한국어`, `日本語`, `中文`, `हिंदी`) without code prefixes (`en`, `es`, etc.)
 - Sticky header (logo + menu) while scrolling inside the NAVAI settings page
 - Dashboard opens in `Navigation` by default (first tab) when entering NAVAI settings
 
@@ -274,88 +275,50 @@ This is useful for role-based admin pages or protected pages.
 
 ## Functions tab (custom functions)
 
-Use this tab to define custom functions per plugin and role.
+Use this tab to define custom functions per plugin and role with a modal-based editor.
 
 Workflow:
 
 1. Click `Create function` (opens the responsive modal).
-2. Select plugin and role.
-3. Add code in `NAVAI Function`.
-4. Add a description.
-5. Click `Add function`.
+2. Select `Plugin` and `Role`.
+3. Set `Function name (tool)` (normalized to `snake_case` on save).
+4. Paste JavaScript in `NAVAI Function (JavaScript)`.
+5. Add a clear `Description` (recommended for tool selection).
+6. Optionally configure:
+   - `Execution scope` (`Frontend and admin`, `Frontend only`, `Admin only`)
+   - `Timeout (seconds)`
+   - `Retries`
+   - `Requires approval`
+   - `Argument JSON Schema`
+   - `Allowed AI agents` (syncs with agent `allowed_tools` by `function_name`)
+7. Optionally run `Test function` with a JSON payload.
+8. Click `Add function` / `Save changes`.
 
 After creating:
 
-- The function is added to the list
-- It is marked active by default
+- The function is added to the list.
+- It is active by default.
 - You can later:
-  - Edit
+  - Edit (reopens the same modal prefilled)
   - Delete
   - Activate/deactivate via checkbox
-- Editing reopens the same modal prefilled with the selected function data
+- You can import/export `.js` function packs from the same panel.
 
-### Code modes for "NAVAI Function"
+### Dashboard custom function format
 
-### 1) PHP (server-side execution)
+- The dashboard editor accepts custom JavaScript functions (no PHP mode in the panel editor).
+- The UI validates the code as JavaScript and blocks PHP snippets.
+- Use the function `Description` + route descriptions to improve tool selection by NAVAI.
 
-- Default mode (no prefix required)
-- Optional `php:` prefix is accepted
-- Code runs on the server through `eval()` (trusted admin code only)
+### Recommended function design
 
-Available variables inside your PHP code:
+- Keep one function focused on one job (`search_products`, `list_orders`, `get_form_entries`).
+- Validate expected payloads with `JSON Schema`.
+- Use `Timeout` and `Retries` for external calls.
+- Mark write/sensitive actions with `Requires approval`.
+- Assign each function to the relevant specialist agents from the same modal.
 
-- `$payloadData`
-- `$contextData`
-- `$plugin`
-- `$request`
-
-Example:
-
-```php
-return [
-    'ok' => true,
-    'message' => 'Hello from PHP custom function',
-    'payload' => $payloadData,
-];
-```
-
-### 2) JavaScript (client-side execution)
-
-Use the `js:` prefix.
-
-The backend returns the code to the browser, and the widget runs it on the client side.
-
-Example:
-
-```js
-js:
-return {
-  ok: true,
-  current_url: context.current_url,
-  page_title: context.page_title
-};
-```
-
-The JS function receives:
-
-- `payload`
-- `context`
-- `widget`
-- `config`
-- `window`
-- `document`
-
-### 3) Legacy plugin action bridge (`@action:`)
-
-For compatibility with plugin actions registered through `navai_voice_plugin_actions`.
-
-Example value in dashboard:
-
-```txt
-@action:list_recent_orders
-```
-
-## Safety tab (Guardrails, Phase 1)
+## Settings > Safety tab (Guardrails, Phase 1)
 
 Use this section to create rules that block or warn when NAVAI attempts to execute functions with inputs, payloads, or results you do not want to allow.
 
@@ -412,7 +375,7 @@ Usage:
 
 ### Test rules before enabling in real flows
 
-In `Safety > Test rules`, you can send:
+In `Settings > Safety > Test rules`, you can send:
 
 - `Scope`
 - `Function name`
@@ -437,9 +400,9 @@ This release already includes the advanced roadmap phases. The summary below exp
 #### Approvals: how to use
 
 1. In `Functions`, mark the function as `Requires approval`.
-2. In `Approvals`, enable `Enable approvals for sensitive functions`.
+2. In `Settings > Approvals`, enable `Enable approvals for sensitive functions`.
 3. When NAVAI tries to run it, a `pending` request is created.
-4. Open `Approvals > View details`.
+4. Open `Settings > Approvals > View details`.
 5. Review function, payload, and trace.
 6. Click `Approve` or `Reject`.
 
@@ -460,9 +423,9 @@ By default, approving can execute the pending function immediately.
 
 #### Traces: how to use
 
-1. Enable tracing in `Traces`.
+1. Enable tracing in `Settings > Traces`.
 2. Run a test via widget/admin.
-3. Open `Traces`.
+3. Open `Settings > Traces`.
 4. Filter by event/severity.
 5. Open a `trace_id` timeline.
 
@@ -482,10 +445,10 @@ By default, approving can execute the pending function immediately.
 
 #### How to use
 
-1. Enable session persistence/memory in `History`.
+1. Enable session persistence/memory in `Settings > History`.
 2. Configure TTL/retention/compaction.
 3. Use the widget normally.
-4. Review sessions and transcripts in `History`.
+4. Review sessions and transcripts in `Settings > History`.
 5. Clear sessions or run retention cleanup when needed.
 
 #### WordPress use cases
@@ -514,20 +477,22 @@ By default, approving can execute the pending function immediately.
 - Backoffice environments where text is preferred
 - Faster voice interactions for internal teams
 
-### Phase 5: Robust JS/PHP functions (schema, timeout, retries, test)
+### Phase 5: Robust custom functions (JavaScript, schema, timeout, retries, test)
 
 #### What it is for
 
 - Validates payload shape before execution.
 - Controls runtime behavior (timeout/retries).
 - Adds a safe test workflow before production use.
+- Lets you assign functions to specialist agents from the `Functions` modal.
 
 #### How to use
 
 1. In `Functions`, define an optional `JSON Schema`.
 2. Configure `Timeout`, `Retries`, `Scope`, and `Requires approval`.
 3. Use `Test function` with a payload.
-4. Save only after validation passes.
+4. (Optional) assign allowed AI agents for that function.
+5. Save only after validation passes.
 
 #### WordPress use cases
 
@@ -540,15 +505,16 @@ By default, approving can execute the pending function immediately.
 #### What it is for
 
 - Splits responsibilities across specialist agents.
-- Restricts tools/routes per agent.
+- Splits orchestration (agents + handoffs) from function authoring.
+- Uses existing `Functions` entries (`function_name`) as the source of truth for agent tool access.
 - Delegates automatically using handoff rules.
 
 #### How to use
 
-1. Create agents in `Agents`.
-2. Define `allowed_tools` and `allowed_routes`.
-3. Add handoff rules by intent/tool/payload/roles/context.
-4. Validate behavior in `Traces`.
+1. Create specialist agents in `Agents` (modal CRUD).
+2. Assign function access from `Functions` (`Allowed AI agents`) for each `function_name`.
+3. Add handoff rules in `Agents > Configured handoff rules` by intent/function/payload/roles/context.
+4. Validate behavior in `Settings > Traces`.
 
 #### WordPress use cases
 
@@ -572,7 +538,7 @@ By default, approving can execute the pending function immediately.
 3. Run `Health` or `Sync tools`.
 4. Review cached remote tools and their runtime function names.
 5. Create `allow`/`deny` policies by `tool_name` (or `*`), role, and `agent_key`.
-6. Test and inspect `Traces` if a call is blocked.
+6. Test and inspect `Settings > Traces` if a call is blocked.
 
 Current MCP compatibility implemented in the plugin:
 
@@ -662,7 +628,7 @@ add_filter('navai_voice_functions_registry', function (array $items): array {
 });
 ```
 
-### Register plugin action callbacks (used by `@action:`)
+### Register plugin action callbacks (legacy `@action:` integrations / backend compatibility)
 
 ```php
 add_filter('navai_voice_plugin_actions', function (array $actions): array {
@@ -704,7 +670,8 @@ add_filter('navai_voice_frontend_config', function (array $config, array $settin
 - If `Allow public client_secret` is disabled, only admins can request a client secret.
 - If `Allow public backend functions` is disabled, only admins can list/execute backend functions.
 - `Safety` (Phase 1) can block `functions/execute` calls by `input`, `tool`, and `output`.
-- Custom PHP code in the Functions tab is trusted admin code and runs on your server. Use carefully.
+- The dashboard `Functions` editor is JavaScript-only.
+- PHP/backend callbacks can still be registered via filters (`navai_voice_functions_registry`, `navai_voice_plugin_actions`) and should be treated as trusted admin code.
 - Restrict routes/functions to only what NAVAI should be allowed to use.
 
 ## Build installable ZIP (PowerShell)

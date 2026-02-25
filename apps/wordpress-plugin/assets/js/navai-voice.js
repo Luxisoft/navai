@@ -19,6 +19,7 @@
   var getGlobalConfig = runtime.getGlobalConfig;
   var getMessage = runtime.getMessage;
   var normalizeRoutes = runtime.normalizeRoutes;
+  var normalizeRoadmapPhases = runtime.normalizeRoadmapPhases;
   var resolveAllowedRoute = runtime.resolveAllowedRoute;
   var buildToolDefinitions = runtime.buildToolDefinitions;
   var buildAssistantInstructions = runtime.buildAssistantInstructions;
@@ -87,12 +88,17 @@
     this.textSendButton = container.querySelector(".navai-voice-text-send");
     this.statusEl = container.querySelector(".navai-voice-status");
     this.logEl = container.querySelector(".navai-voice-log");
+    this.logCopyButton = container.querySelector(".navai-voice-log-copy");
+    this.logFilterInputs = Array.prototype.slice.call(container.querySelectorAll("[data-navai-log-filter]"));
     this.globalConfig = getGlobalConfig();
 
     this.routes = normalizeRoutes(this.globalConfig.routes || []);
+    this.roadmapPhases = normalizeRoadmapPhases(this.globalConfig.roadmapPhases || []);
     this.backendFunctions = [];
     this.directAliases = [];
     this.handledCalls = {};
+    this.logEntries = [];
+    this.logFilterState = this.createDefaultLogFilterState();
 
     this.state = "idle";
     this.activityState = "idle";
@@ -174,6 +180,8 @@
     this.updatePttButton();
     this.updateTextControlsDisabledState(false);
     this.updateStatusIndicator();
+    this.bindLogControls();
+    this.renderLog();
 
     if (this.persistActive && this.shouldAutoResume()) {
       this.appendLog("Auto-resuming global voice widget from previous page.", "info");
@@ -715,7 +723,237 @@
     this.storeSessionKey(clean);
   };
 
-  NavaiVoiceWidget.prototype.appendLog = function (message, level) {
+  NavaiVoiceWidget.prototype.createDefaultLogFilterState = function () {
+    return {
+      agent_response: true,
+      function_response: true,
+      functions_loaded: true,
+      routes_loaded: true,
+      realtime_sent: true,
+      realtime_recv: true,
+      connection: true,
+      phases_loaded: true,
+      other: true,
+      warn: true,
+      error: true
+    };
+  };
+
+  NavaiVoiceWidget.prototype.bindLogControls = function () {
+    if (!this.debugEnabled) {
+      return;
+    }
+
+    var widget = this;
+    if (this.logCopyButton) {
+      this.logCopyButton.addEventListener("click", function () {
+        widget.copyVisibleLog();
+      });
+    }
+
+    for (var i = 0; i < this.logFilterInputs.length; i += 1) {
+      var input = this.logFilterInputs[i];
+      var key = asTrimmedString(input && input.getAttribute("data-navai-log-filter")).toLowerCase();
+      if (!key) {
+        continue;
+      }
+      input.checked = widget.logFilterState[key] !== false;
+      input.addEventListener("change", function (event) {
+        var target = event && event.target ? event.target : null;
+        if (!target) {
+          return;
+        }
+        var filterKey = asTrimmedString(target.getAttribute("data-navai-log-filter")).toLowerCase();
+        if (!filterKey) {
+          return;
+        }
+        widget.logFilterState[filterKey] = !!target.checked;
+        widget.renderLog();
+      });
+    }
+  };
+
+  NavaiVoiceWidget.prototype.copyVisibleLog = function () {
+    if (!this.logEl) {
+      return;
+    }
+
+    var text = this.logEl.textContent || "";
+    var widget = this;
+    var onCopied = function () {
+      if (widget.logCopyButton) {
+        var original = widget.logCopyButton.textContent;
+        widget.logCopyButton.textContent = "Copiado";
+        window.setTimeout(function () {
+          if (widget.logCopyButton) {
+            widget.logCopyButton.textContent = original || "Copiar log";
+          }
+        }, 1200);
+      }
+    };
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(text).then(onCopied).catch(function () {
+        widget.copyVisibleLogFallback(text);
+      });
+      return;
+    }
+
+    this.copyVisibleLogFallback(text);
+  };
+
+  NavaiVoiceWidget.prototype.copyVisibleLogFallback = function (text) {
+    try {
+      var helper = document.createElement("textarea");
+      helper.value = text;
+      helper.setAttribute("readonly", "readonly");
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      helper.style.pointerEvents = "none";
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand("copy");
+      document.body.removeChild(helper);
+      if (this.logCopyButton) {
+        var original = this.logCopyButton.textContent;
+        this.logCopyButton.textContent = "Copiado";
+        var button = this.logCopyButton;
+        window.setTimeout(function () {
+          if (button) {
+            button.textContent = original || "Copiar log";
+          }
+        }, 1200);
+      }
+    } catch (_error) {
+      // noop
+    }
+  };
+
+  NavaiVoiceWidget.prototype.classifyRealtimeLogEntry = function (direction, event) {
+    var type = asTrimmedString(event && event.type).toLowerCase();
+    var item = isRecord(event) && isRecord(event.item) ? event.item : null;
+    var itemType = item && typeof item.type === "string" ? item.type.toLowerCase() : "";
+    var itemRole = item && typeof item.role === "string" ? item.role.toLowerCase() : "";
+
+    if (type === "error") {
+      return "error";
+    }
+
+    if (type === "response.function_call_arguments.done" || type === "response.function_call_arguments.delta") {
+      return "function_response";
+    }
+
+    if ((type.indexOf("conversation.item.") === 0 || type.indexOf("response.output_item.") === 0) && itemType === "function_call_output") {
+      return "function_response";
+    }
+
+    if (direction === "sent" && type === "conversation.item.create" && isRecord(event.item) && event.item.type === "function_call_output") {
+      return "function_response";
+    }
+
+    if (
+      type.indexOf("response.output_audio_transcript.") === 0 ||
+      type.indexOf("response.audio_transcript.") === 0 ||
+      type.indexOf("response.output_text.") === 0 ||
+      type.indexOf("response.text.") === 0
+    ) {
+      return "agent_response";
+    }
+
+    if ((type === "conversation.item.added" || type === "conversation.item.done" || type === "response.output_item.done") && itemType === "message" && itemRole === "assistant") {
+      return "agent_response";
+    }
+
+    if (
+      type === "session.created" ||
+      type === "session.updated" ||
+      type === "response.created" ||
+      type === "response.done" ||
+      type === "session.update"
+    ) {
+      return direction === "sent" ? "realtime_sent" : "realtime_recv";
+    }
+
+    return direction === "sent" ? "realtime_sent" : "realtime_recv";
+  };
+
+  NavaiVoiceWidget.prototype.classifyLogEntry = function (message, level, meta) {
+    var cleanLevel = asTrimmedString(level).toLowerCase();
+    if (cleanLevel === "error") {
+      return "error";
+    }
+    if (cleanLevel === "warn") {
+      return "warn";
+    }
+
+    if (isRecord(meta) && typeof meta.category === "string" && meta.category.trim() !== "") {
+      return meta.category;
+    }
+
+    if (typeof meta === "string" && meta.trim() !== "") {
+      return meta;
+    }
+
+    var text = asTrimmedString(message);
+    if (!text) {
+      return "other";
+    }
+
+    if (text.indexOf("Loaded routes (") === 0) {
+      return "routes_loaded";
+    }
+    if (text.indexOf("Loaded functions (") === 0) {
+      return "functions_loaded";
+    }
+    if (text.indexOf("Loaded roadmap phases (") === 0) {
+      return "phases_loaded";
+    }
+    if (
+      text.indexOf("Peer connection state:") === 0 ||
+      text.indexOf("Realtime data channel ") === 0 ||
+      text.indexOf("Auto-resuming global voice widget") === 0
+    ) {
+      return "connection";
+    }
+    if (text.indexOf("sent: ") === 0 || text.indexOf("recv: ") === 0) {
+      return text.indexOf("sent: ") === 0 ? "realtime_sent" : "realtime_recv";
+    }
+
+    return "other";
+  };
+
+  NavaiVoiceWidget.prototype.shouldShowLogEntry = function (entry) {
+    if (!entry || !entry.category) {
+      return !!this.logFilterState.other;
+    }
+    if (Object.prototype.hasOwnProperty.call(this.logFilterState, entry.category)) {
+      return this.logFilterState[entry.category] !== false;
+    }
+    return this.logFilterState.other !== false;
+  };
+
+  NavaiVoiceWidget.prototype.renderLog = function () {
+    if (!this.logEl) {
+      return;
+    }
+    if (!this.debugEnabled) {
+      this.logEl.textContent = "";
+      return;
+    }
+
+    var visible = [];
+    for (var i = 0; i < this.logEntries.length; i += 1) {
+      var entry = this.logEntries[i];
+      if (!this.shouldShowLogEntry(entry)) {
+        continue;
+      }
+      visible.push(entry.line);
+    }
+    this.logEl.textContent = visible.join("\n");
+    this.logEl.scrollTop = this.logEl.scrollHeight;
+  };
+
+  NavaiVoiceWidget.prototype.appendLog = function (message, level, meta) {
     var cleanLevel = asTrimmedString(level) || "info";
     var line = "[" + cleanLevel + "] " + message;
 
@@ -731,14 +969,15 @@
       return;
     }
 
-    var existing = this.logEl.textContent ? this.logEl.textContent.split("\n") : [];
-    existing.push(line);
-    if (existing.length > MAX_LOG_LINES) {
-      existing = existing.slice(existing.length - MAX_LOG_LINES);
+    this.logEntries.push({
+      level: cleanLevel,
+      category: this.classifyLogEntry(message, cleanLevel, meta),
+      line: line
+    });
+    if (this.logEntries.length > MAX_LOG_LINES) {
+      this.logEntries = this.logEntries.slice(this.logEntries.length - MAX_LOG_LINES);
     }
-
-    this.logEl.textContent = existing.join("\n");
-    this.logEl.scrollTop = this.logEl.scrollHeight;
+    this.renderLog();
   };
 
   NavaiVoiceWidget.prototype.refreshButton = function () {
@@ -829,11 +1068,13 @@
         "Loaded routes (" +
           this.routes.length +
           "): " +
-          this.routes
-            .map(function (item) {
-              return item.name;
-            })
-            .join(", "),
+          (this.routes.length
+            ? this.routes
+                .map(function (item) {
+                  return item.name;
+                })
+                .join(", ")
+            : "none"),
         "info"
       );
 
@@ -842,6 +1083,65 @@
       for (var i = 0; i < functionResult.warnings.length; i += 1) {
         this.appendLog(functionResult.warnings[i], "warn");
       }
+      this.appendLog(
+        "Loaded functions (" +
+          this.backendFunctions.length +
+          "): " +
+          (this.backendFunctions.length
+            ? this.backendFunctions
+                .map(function (item) {
+                  return item && item.name ? item.name : "";
+                })
+                .filter(function (name) {
+                  return !!name;
+                })
+                .join(", ")
+            : "none"),
+        "info"
+      );
+
+      var customJsFunctionsCount = 0;
+      var mcpFunctionsCount = 0;
+      for (var bf = 0; bf < this.backendFunctions.length; bf += 1) {
+        var backendFn = this.backendFunctions[bf];
+        var source = backendFn && backendFn.source ? String(backendFn.source).toLowerCase() : "";
+        if (source === "navai-dashboard-custom") {
+          customJsFunctionsCount += 1;
+        } else if (source.indexOf("mcp:") === 0) {
+          mcpFunctionsCount += 1;
+        }
+      }
+
+      var phaseLabels = [];
+      for (var p = 0; p < this.roadmapPhases.length; p += 1) {
+        var phase = this.roadmapPhases[p];
+        if (!phase) {
+          continue;
+        }
+
+        var label = "Fase " + String(phase.phase || p + 1) + " " + (phase.label || "");
+        var details = Array.isArray(phase.details) ? phase.details.slice(0) : [];
+        if ((phase.phase || 0) === 5) {
+          details.push("loaded_js_functions:" + String(customJsFunctionsCount));
+        } else if ((phase.phase || 0) === 7) {
+          details.push("loaded_mcp_functions:" + String(mcpFunctionsCount));
+        }
+
+        label += " [" + (phase.enabled ? "enabled" : "disabled");
+        if (details.length) {
+          label += "; " + details.join(", ");
+        }
+        label += "]";
+        phaseLabels.push(label);
+      }
+
+      this.appendLog(
+        "Loaded roadmap phases (" +
+          this.roadmapPhases.length +
+          "): " +
+          (phaseLabels.length ? phaseLabels.join(" | ") : "none"),
+        "info"
+      );
 
       var secretInput = this.resolveClientSecretInput();
       var model = asTrimmedString(secretInput.model) || DEFAULT_MODEL;
@@ -1131,7 +1431,12 @@
       this.appendLog(toolsResult.warnings[i], "warn");
     }
 
-    var instructions = buildAssistantInstructions(baseInstructions, this.routes, this.backendFunctions);
+    var instructions = buildAssistantInstructions(
+      baseInstructions,
+      this.routes,
+      this.backendFunctions,
+      this.roadmapPhases
+    );
     var session = {
       type: "realtime",
       instructions: instructions,
@@ -1139,15 +1444,21 @@
       tool_choice: "auto"
     };
 
+    if (voice || turnDetection !== undefined) {
+      session.audio = {};
+    }
+
     if (voice) {
-      session.audio = {
-        output: {
-          voice: voice
-        }
+      session.audio.output = {
+        voice: voice
       };
     }
 
-    session.turn_detection = turnDetection;
+    if (turnDetection !== undefined) {
+      session.audio.input = {
+        turn_detection: turnDetection
+      };
+    }
 
     this.sendRealtimeEvent({
       type: "session.update",
@@ -1162,7 +1473,9 @@
 
     var payload = safeJsonStringify(event);
     this.eventsChannel.send(payload);
-    this.appendLog("sent: " + payload, "info");
+    this.appendLog("sent: " + payload, "info", {
+      category: this.classifyRealtimeLogEntry("sent", event)
+    });
   };
 
   NavaiVoiceWidget.prototype.updateRealtimeActivityFromEvent = function (type, event) {
@@ -1241,7 +1554,9 @@
       return;
     }
 
-    this.appendLog("recv: " + safeJsonStringify(parsed), "info");
+    this.appendLog("recv: " + safeJsonStringify(parsed), "info", {
+      category: this.classifyRealtimeLogEntry("recv", parsed)
+    });
     var type = asTrimmedString(parsed.type);
     if (!type) {
       return;
@@ -1636,12 +1951,19 @@
       return backendResult;
     }
 
-    var mode = asTrimmedString(backendResult.execution_mode).toLowerCase();
+    var executionSource = backendResult;
+    var wrappedBackendResult = null;
+    if (!asTrimmedString(backendResult.execution_mode) && isRecord(backendResult.result)) {
+      executionSource = backendResult.result;
+      wrappedBackendResult = backendResult;
+    }
+
+    var mode = asTrimmedString(executionSource.execution_mode).toLowerCase();
     if (mode !== "client_js") {
       return backendResult;
     }
 
-    var code = asTrimmedString(backendResult.code);
+    var code = asTrimmedString(executionSource.code);
     if (!code) {
       return {
         ok: false,
@@ -1652,11 +1974,16 @@
 
     try {
       var payloadData = isRecord(payload) ? payload : {};
+      if (isRecord(executionSource.payload)) {
+        payloadData = executionSource.payload;
+      }
       var context = {
         function_name: functionName,
         current_url: window.location.href,
         widget_mode: this.widgetMode,
-        page_title: document && typeof document.title === "string" ? document.title : ""
+        page_title: document && typeof document.title === "string" ? document.title : "",
+        trace_id: wrappedBackendResult && typeof wrappedBackendResult.trace_id === "string" ? wrappedBackendResult.trace_id : "",
+        backend_result: wrappedBackendResult || backendResult
       };
 
       var fn = new Function(
@@ -1674,20 +2001,37 @@
         result = await result;
       }
 
-      return {
+      var output = {
         ok: true,
         execution_mode: "client_js",
         function_name: functionName,
         result: result
       };
+      if (typeof executionSource.plugin === "string" && executionSource.plugin) {
+        output.plugin = executionSource.plugin;
+      }
+      if (wrappedBackendResult && typeof wrappedBackendResult.trace_id === "string" && wrappedBackendResult.trace_id) {
+        output.trace_id = wrappedBackendResult.trace_id;
+      }
+      if (wrappedBackendResult && wrappedBackendResult.metadata) {
+        output.metadata = wrappedBackendResult.metadata;
+      }
+      return output;
     } catch (error) {
-      return {
+      var failed = {
         ok: false,
         execution_mode: "client_js",
         function_name: functionName,
         error: "Client JavaScript execution failed.",
         details: String(error)
       };
+      if (typeof executionSource.plugin === "string" && executionSource.plugin) {
+        failed.plugin = executionSource.plugin;
+      }
+      if (wrappedBackendResult && typeof wrappedBackendResult.trace_id === "string" && wrappedBackendResult.trace_id) {
+        failed.trace_id = wrappedBackendResult.trace_id;
+      }
+      return failed;
     }
   };
 

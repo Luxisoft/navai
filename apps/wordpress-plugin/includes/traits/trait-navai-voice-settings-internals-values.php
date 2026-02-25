@@ -255,7 +255,7 @@ trait Navai_Voice_Settings_Internals_Values_Trait
     private function sanitize_dashboard_language($value): string
     {
         $lang = sanitize_key((string) $value);
-        if (!in_array($lang, ['en', 'es'], true)) {
+        if (!in_array($lang, ['en', 'es', 'pt', 'fr', 'ru', 'ko', 'ja', 'zh', 'hi'], true)) {
             return 'en';
         }
 

@@ -313,13 +313,11 @@ class Navai_Voice_Settings
         $isAdministrator = in_array('administrator', $currentRoles, true);
 
         $selectedRouteKeys = $this->get_selected_route_keys($settings);
-        if (!$isAdministrator && count($selectedRouteKeys) === 0) {
+        if (count($selectedRouteKeys) === 0) {
             return [];
         }
 
-        $routeKeys = $isAdministrator
-            ? array_values(array_filter(array_keys($index), static fn($key): bool => is_string($key) && trim((string) $key) !== ''))
-            : $selectedRouteKeys;
+        $routeKeys = $selectedRouteKeys;
 
         $routes = [];
         $dedupe = [];
@@ -419,6 +417,7 @@ class Navai_Voice_Settings
 
         $selectedLookup = array_fill_keys($selectedKeys, true);
         $currentRoles = $this->get_current_user_roles();
+        $isGuest = !is_user_logged_in();
         $isAdministrator = in_array('administrator', $currentRoles, true);
 
         $items = [];
@@ -435,7 +434,16 @@ class Navai_Voice_Settings
 
             $role = sanitize_key((string) ($item['role'] ?? ''));
             if (!$isAdministrator) {
-                if ($role === '' || !in_array($role, $currentRoles, true)) {
+                if ($role === '') {
+                    continue;
+                }
+                if ($role === 'all') {
+                    // Applies to all roles, including visitors.
+                } elseif ($role === 'guest') {
+                    if (!$isGuest) {
+                        continue;
+                    }
+                } elseif (!in_array($role, $currentRoles, true)) {
                     continue;
                 }
             }

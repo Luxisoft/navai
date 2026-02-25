@@ -157,6 +157,25 @@ class Navai_Voice_Plugin
             NAVAI_VOICE_VERSION
         );
 
+        $functionCodeEditorSettings = null;
+        if (function_exists('wp_enqueue_code_editor')) {
+            $functionCodeEditorSettings = wp_enqueue_code_editor([
+                'type' => 'application/javascript',
+            ]);
+            if (is_array($functionCodeEditorSettings)) {
+                if (!isset($functionCodeEditorSettings['codemirror']) || !is_array($functionCodeEditorSettings['codemirror'])) {
+                    $functionCodeEditorSettings['codemirror'] = [];
+                }
+                $functionCodeEditorSettings['codemirror']['mode'] = 'javascript';
+                $functionCodeEditorSettings['codemirror']['lineNumbers'] = true;
+                $functionCodeEditorSettings['codemirror']['indentUnit'] = 2;
+                $functionCodeEditorSettings['codemirror']['tabSize'] = 2;
+                $functionCodeEditorSettings['codemirror']['indentWithTabs'] = false;
+                $functionCodeEditorSettings['codemirror']['lineWrapping'] = false;
+                wp_enqueue_style('code-editor');
+            }
+        }
+
         wp_enqueue_script(
             'navai-voice-admin-core',
             NAVAI_VOICE_URL . 'assets/js/admin/navai-admin-core.js',
@@ -165,10 +184,15 @@ class Navai_Voice_Plugin
             true
         );
 
+        $adminScriptDeps = ['navai-voice-admin-core'];
+        if (is_array($functionCodeEditorSettings)) {
+            $adminScriptDeps[] = 'code-editor';
+        }
+
         wp_enqueue_script(
             'navai-voice-admin',
             NAVAI_VOICE_URL . 'assets/js/navai-admin.js',
-            ['navai-voice-admin-core'],
+            $adminScriptDeps,
             NAVAI_VOICE_VERSION,
             true
         );
@@ -194,6 +218,7 @@ class Navai_Voice_Plugin
                 'sessionMemoryEnabled' => !array_key_exists('enable_session_memory', $settings) || !empty($settings['enable_session_memory']),
                 'agentsEnabled' => !array_key_exists('enable_agents', $settings) || !empty($settings['enable_agents']),
                 'mcpEnabled' => !array_key_exists('enable_mcp', $settings) || !empty($settings['enable_mcp']),
+                'functionCodeEditor' => is_array($functionCodeEditorSettings) ? $functionCodeEditorSettings : null,
             ]
         );
     }
@@ -251,6 +276,7 @@ class Navai_Voice_Plugin
                 'textPlaceholder' => sanitize_text_field((string) ($settings['frontend_text_placeholder'] ?? 'Escribe un mensaje...')),
             ],
             'routes' => $this->resolve_public_routes(),
+            'roadmapPhases' => $this->build_frontend_roadmap_phases($settings),
             'messages' => [
                 'idle' => __('Idle', 'navai-voice'),
                 'requestingSecret' => __('Requesting client secret...', 'navai-voice'),

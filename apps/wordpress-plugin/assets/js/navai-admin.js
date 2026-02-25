@@ -7,6 +7,7 @@
   var translateValue = runtime.translateValue;
   var readInitialTab = runtime.readInitialTab;
   var activateTab = runtime.activateTab;
+  var normalizeDashboardLanguage = runtime.normalizeDashboardLanguage;
   var readDashboardLanguage = runtime.readDashboardLanguage;
   var applyDashboardLanguage = runtime.applyDashboardLanguage;
   var initSearchableSelects = runtime.initSearchableSelects;
@@ -26,8 +27,12 @@
   function currentDashboardLanguage() {
     var wrap = document.querySelector(".navai-admin-wrap");
     var lang = wrap ? String(wrap.getAttribute("data-navai-dashboard-language") || "") : "";
+    var fallbackLang = typeof readDashboardLanguage === "function" ? readDashboardLanguage() : "en";
+    if (typeof normalizeDashboardLanguage === "function") {
+      return normalizeDashboardLanguage(lang || fallbackLang, "en");
+    }
     if (lang !== "es" && lang !== "en") {
-      lang = typeof readDashboardLanguage === "function" ? readDashboardLanguage() : "en";
+      lang = fallbackLang;
     }
     return lang === "es" ? "es" : "en";
   }
@@ -91,6 +96,14 @@
     var pluginNeedle = normalizeText(pluginSelect ? pluginSelect.value : "");
     var roleNeedle = normalizeText(roleSelect ? roleSelect.value : "");
 
+    function matchesRole(itemRolesValue, selectedRole) {
+      if (selectedRole === "") {
+        return true;
+      }
+      var roleTokens = itemRolesValue === "" ? [] : itemRolesValue.split("|");
+      return roleTokens.indexOf(selectedRole) !== -1 || roleTokens.indexOf("all") !== -1;
+    }
+
     var groups = pluginPanel.querySelectorAll(".navai-plugin-func-group");
     for (var i = 0; i < groups.length; i += 1) {
       var group = groups[i];
@@ -106,11 +119,7 @@
         var matchText = textNeedle === "" || searchHaystack.indexOf(textNeedle) !== -1;
         var matchPlugin = pluginNeedle === "" || pluginNeedle === itemPlugin;
 
-        var matchRole = true;
-        if (roleNeedle !== "") {
-          var roleTokens = itemRoles === "" ? [] : itemRoles.split("|");
-          matchRole = roleTokens.indexOf(roleNeedle) !== -1;
-        }
+        var matchRole = matchesRole(itemRoles, roleNeedle);
 
         var visible = matchText && matchPlugin && matchRole;
         item.classList.toggle("is-hidden", !visible);
@@ -154,7 +163,7 @@
       if (typeof roleNeedle === "string" && roleNeedle !== "") {
         var itemRoles = normalizeText(item.getAttribute("data-plugin-func-roles") || "");
         var roleTokens = itemRoles === "" ? [] : itemRoles.split("|");
-        if (roleTokens.indexOf(roleNeedle) === -1) {
+        if (roleTokens.indexOf(roleNeedle) === -1 && roleTokens.indexOf("all") === -1) {
           continue;
         }
       }
@@ -226,6 +235,7 @@
 
         var pluginEditorSelect = editor.querySelector(".navai-plugin-function-editor-plugin");
         var roleEditorSelect = editor.querySelector(".navai-plugin-function-editor-role");
+        var nameEditorInput = editor.querySelector(".navai-plugin-function-editor-name");
         var codeEditorInput = editor.querySelector(".navai-plugin-function-editor-code");
         var descriptionEditorInput = editor.querySelector(".navai-plugin-function-editor-description");
         var scopeEditorSelect = editor.querySelector(".navai-plugin-function-editor-scope");
@@ -233,6 +243,8 @@
         var retriesEditorInput = editor.querySelector(".navai-plugin-function-editor-retries");
         var requiresApprovalEditorInput = editor.querySelector(".navai-plugin-function-editor-requires-approval");
         var schemaEditorInput = editor.querySelector(".navai-plugin-function-editor-schema");
+        var agentAssignmentsEditorSelect = editor.querySelector(".navai-plugin-function-editor-agents");
+        var agentAssignmentsEditorStatusNode = editor.querySelector(".navai-plugin-function-editor-agents-status");
         var testPayloadEditorInput = editor.querySelector(".navai-plugin-function-editor-test-payload");
         var testButton = editor.querySelector(".navai-plugin-function-test");
         var editorStatusNode = editor.querySelector(".navai-plugin-function-editor-status");
@@ -241,9 +253,39 @@
         var editorIndexInput = editor.querySelector(".navai-plugin-function-editor-index");
         var saveButton = editor.querySelector(".navai-plugin-function-save");
         var cancelButton = editor.querySelector(".navai-plugin-function-cancel");
-        if (!pluginEditorSelect || !roleEditorSelect || !codeEditorInput || !descriptionEditorInput || !scopeEditorSelect || !timeoutEditorInput || !retriesEditorInput || !requiresApprovalEditorInput || !schemaEditorInput || !testPayloadEditorInput || !testButton || !editorStatusNode || !testResultNode || !editorIdInput || !editorIndexInput || !saveButton || !cancelButton) {
+        var exportOpenButton = builder.querySelector(".navai-plugin-function-export-open");
+        var importOpenButton = builder.querySelector(".navai-plugin-function-import-open");
+        var exportModal = builder.querySelector(".navai-plugin-function-export-modal");
+        var exportPluginSelect = builder.querySelector(".navai-plugin-function-export-plugin");
+        var exportRoleSelect = builder.querySelector(".navai-plugin-function-export-role");
+        var exportModeInputs = builder.querySelectorAll(".navai-plugin-function-export-mode");
+        var exportSelectVisibleButton = builder.querySelector(".navai-plugin-function-export-select-visible");
+        var exportDeselectVisibleButton = builder.querySelector(".navai-plugin-function-export-deselect-visible");
+        var exportListNode = builder.querySelector(".navai-plugin-function-export-list");
+        var exportCountNode = builder.querySelector(".navai-plugin-function-export-count");
+        var exportStatusNode = builder.querySelector(".navai-plugin-function-export-status");
+        var exportDownloadButton = builder.querySelector(".navai-plugin-function-export-download");
+        var importModal = builder.querySelector(".navai-plugin-function-import-modal");
+        var importPluginSelect = builder.querySelector(".navai-plugin-function-import-plugin");
+        var importRoleSelect = builder.querySelector(".navai-plugin-function-import-role");
+        var importFileInput = builder.querySelector(".navai-plugin-function-import-file");
+        var importPreviewNode = builder.querySelector(".navai-plugin-function-import-preview");
+        var importStatusNode = builder.querySelector(".navai-plugin-function-import-status");
+        var importRunButton = builder.querySelector(".navai-plugin-function-import-run");
+        if (!pluginEditorSelect || !roleEditorSelect || !nameEditorInput || !codeEditorInput || !descriptionEditorInput || !scopeEditorSelect || !timeoutEditorInput || !retriesEditorInput || !requiresApprovalEditorInput || !editorStatusNode || !editorIdInput || !editorIndexInput || !saveButton || !cancelButton) {
           return;
         }
+        var editorArgumentSchemaJson = "";
+        var functionCodeEditor = null;
+        var functionSaveInFlight = false;
+        var exportSelectionById = {};
+        var importFileCache = null;
+        var importInFlight = false;
+        var functionAgentsCache = [];
+        var functionAgentsLoaded = false;
+        var functionAgentsLoadPromise = null;
+        var functionAgentsLoadError = "";
+        var functionAgentPickerRequestId = 0;
 
         var nextIndex = parseInt(builder.getAttribute("data-next-index") || "0", 10);
         if (!Number.isFinite(nextIndex) || nextIndex < 0) {
@@ -259,6 +301,608 @@
           return activeLang;
         }
 
+        function getFunctionCodeEditorSettings() {
+          var config = typeof getAdminConfig === "function" ? getAdminConfig() : (window.NAVAI_VOICE_ADMIN_CONFIG || {});
+          var rawSettings = config && typeof config === "object" ? config.functionCodeEditor : null;
+          var settings = {};
+
+          if (rawSettings && Object.prototype.toString.call(rawSettings) === "[object Object]") {
+            try {
+              settings = JSON.parse(JSON.stringify(rawSettings));
+            } catch (_cloneError) {
+              settings = rawSettings;
+            }
+          }
+
+          if (!settings || Object.prototype.toString.call(settings) !== "[object Object]") {
+            settings = {};
+          }
+          if (!settings.codemirror || Object.prototype.toString.call(settings.codemirror) !== "[object Object]") {
+            settings.codemirror = {};
+          }
+
+          settings.codemirror.mode = "javascript";
+          if (typeof settings.codemirror.lineNumbers !== "boolean") {
+            settings.codemirror.lineNumbers = true;
+          }
+          if (typeof settings.codemirror.indentUnit !== "number") {
+            settings.codemirror.indentUnit = 2;
+          }
+          if (typeof settings.codemirror.tabSize !== "number") {
+            settings.codemirror.tabSize = 2;
+          }
+          if (typeof settings.codemirror.indentWithTabs !== "boolean") {
+            settings.codemirror.indentWithTabs = false;
+          }
+          if (typeof settings.codemirror.lineWrapping !== "boolean") {
+            settings.codemirror.lineWrapping = false;
+          }
+
+          return settings;
+        }
+
+        function ensureFunctionCodeEditor() {
+          if (functionCodeEditor || !codeEditorInput) {
+            return functionCodeEditor;
+          }
+          if (!window.wp || !wp.codeEditor || typeof wp.codeEditor.initialize !== "function") {
+            return null;
+          }
+
+          try {
+            var editorInstance = wp.codeEditor.initialize(codeEditorInput, getFunctionCodeEditorSettings());
+            if (!editorInstance || !editorInstance.codemirror) {
+              return null;
+            }
+
+            functionCodeEditor = editorInstance.codemirror;
+            if (typeof functionCodeEditor.on === "function") {
+              functionCodeEditor.on("change", function (cm) {
+                if (cm && typeof cm.save === "function") {
+                  cm.save();
+                }
+              });
+              functionCodeEditor.on("blur", function (cm) {
+                if (cm && typeof cm.save === "function") {
+                  cm.save();
+                }
+              });
+            }
+            if (typeof functionCodeEditor.setOption === "function") {
+              functionCodeEditor.setOption("mode", "javascript");
+            }
+            codeEditorInput.setAttribute("data-navai-code-editor", "codemirror");
+            return functionCodeEditor;
+          } catch (_codeEditorError) {
+            return null;
+          }
+        }
+
+        function refreshFunctionCodeEditor() {
+          var cm = ensureFunctionCodeEditor();
+          if (!cm || typeof cm.refresh !== "function") {
+            return;
+          }
+          window.setTimeout(function () {
+            if (functionCodeEditor && typeof functionCodeEditor.refresh === "function") {
+              functionCodeEditor.refresh();
+            }
+          }, 0);
+        }
+
+        function setFunctionCodeValue(value) {
+          var text = String(value || "");
+          var cm = ensureFunctionCodeEditor();
+          if (cm && typeof cm.setValue === "function") {
+            cm.setValue(text);
+            if (typeof cm.save === "function") {
+              cm.save();
+            }
+            refreshFunctionCodeEditor();
+            return;
+          }
+          codeEditorInput.value = text;
+        }
+
+        function getFunctionCodeValue() {
+          var cm = ensureFunctionCodeEditor();
+          if (cm && typeof cm.save === "function") {
+            cm.save();
+          }
+          return String(codeEditorInput.value || "");
+        }
+
+        function focusFunctionCodeInput() {
+          var cm = ensureFunctionCodeEditor();
+          if (cm && typeof cm.focus === "function") {
+            cm.focus();
+            refreshFunctionCodeEditor();
+            return;
+          }
+          if (codeEditorInput && typeof codeEditorInput.focus === "function") {
+            codeEditorInput.focus();
+          }
+        }
+
+        function setFunctionSaveBusy(isBusy) {
+          functionSaveInFlight = !!isBusy;
+          if (saveButton) {
+            saveButton.disabled = !!isBusy;
+          }
+          if (cancelButton) {
+            cancelButton.disabled = !!isBusy;
+          }
+        }
+
+        function sanitizeAgentKeyValue(value) {
+          var normalized = String(value || "").toLowerCase().trim().replace(/[^a-z0-9_-]/g, "");
+          if (normalized.length > 64) {
+            normalized = normalized.substring(0, 64);
+          }
+          return normalized;
+        }
+
+        function normalizeAgentKeyList(value) {
+          var items = Array.isArray(value) ? value : [value];
+          var normalized = [];
+          var seen = {};
+          for (var itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
+            var item = sanitizeAgentKeyValue(items[itemIndex]);
+            if (!item || seen[item]) {
+              continue;
+            }
+            seen[item] = true;
+            normalized.push(item);
+          }
+          return normalized;
+        }
+
+        function normalizeAgentAllowedToolsList(value) {
+          if (!Array.isArray(value)) {
+            return [];
+          }
+          var items = [];
+          var seen = {};
+          for (var itemIndex = 0; itemIndex < value.length; itemIndex += 1) {
+            var item = String(value[itemIndex] || "").trim();
+            if (!item || seen[item]) {
+              continue;
+            }
+            seen[item] = true;
+            items.push(item);
+          }
+          return items;
+        }
+
+        function areStringListsEqual(left, right) {
+          if (!Array.isArray(left) || !Array.isArray(right)) {
+            return false;
+          }
+          if (left.length !== right.length) {
+            return false;
+          }
+          for (var index = 0; index < left.length; index += 1) {
+            if (String(left[index]) !== String(right[index])) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        function setAgentAssignmentEditorStatus(message, tone) {
+          setInlineStatus(agentAssignmentsEditorStatusNode, message, tone);
+        }
+
+        function renderFunctionAgentAssignmentOptions(selectedAgentKeys) {
+          if (!agentAssignmentsEditorSelect) {
+            return;
+          }
+
+          var selectedLookup = {};
+          var normalizedSelected = normalizeAgentKeyList(selectedAgentKeys || []);
+          for (var selectedIndex = 0; selectedIndex < normalizedSelected.length; selectedIndex += 1) {
+            selectedLookup[normalizedSelected[selectedIndex]] = true;
+          }
+
+          agentAssignmentsEditorSelect.innerHTML = "";
+
+          if (!functionAgentsCache.length) {
+            var emptyOption = document.createElement("option");
+            emptyOption.value = "";
+            emptyOption.textContent = tAdmin("No hay agentes disponibles");
+            emptyOption.disabled = true;
+            emptyOption.selected = true;
+            agentAssignmentsEditorSelect.appendChild(emptyOption);
+            agentAssignmentsEditorSelect.disabled = true;
+            return;
+          }
+
+          var hasOptions = false;
+          for (var agentIndex = 0; agentIndex < functionAgentsCache.length; agentIndex += 1) {
+            var agent = functionAgentsCache[agentIndex];
+            var agentKey = sanitizeAgentKeyValue(agent && agent.agent_key ? agent.agent_key : "");
+            if (!agentKey) {
+              continue;
+            }
+
+            var option = document.createElement("option");
+            option.value = agentKey;
+            var agentName = String(agent && agent.name ? agent.name : "").trim();
+            option.textContent = agentName && agentName !== agentKey
+              ? (agentName + " (" + agentKey + ")")
+              : agentKey;
+            if (agent && agent.enabled === false) {
+              option.textContent += " [" + tAdmin("deshabilitado") + "]";
+            }
+            option.selected = !!selectedLookup[agentKey];
+            agentAssignmentsEditorSelect.appendChild(option);
+            hasOptions = true;
+          }
+
+          if (!hasOptions) {
+            var invalidOption = document.createElement("option");
+            invalidOption.value = "";
+            invalidOption.textContent = tAdmin("No hay agentes disponibles");
+            invalidOption.disabled = true;
+            invalidOption.selected = true;
+            agentAssignmentsEditorSelect.appendChild(invalidOption);
+            agentAssignmentsEditorSelect.disabled = true;
+            return;
+          }
+
+          agentAssignmentsEditorSelect.disabled = false;
+        }
+
+        function getSelectedFunctionAgentKeys() {
+          if (!agentAssignmentsEditorSelect || agentAssignmentsEditorSelect.disabled) {
+            return [];
+          }
+
+          var selectedKeys = [];
+          var options = agentAssignmentsEditorSelect.options || [];
+          for (var optionIndex = 0; optionIndex < options.length; optionIndex += 1) {
+            var option = options[optionIndex];
+            if (!option || option.disabled || !option.selected) {
+              continue;
+            }
+            selectedKeys.push(option.value);
+          }
+
+          return normalizeAgentKeyList(selectedKeys);
+        }
+
+        function getAgentKeysAssignedToFunction(functionName) {
+          var toolName = sanitizeFunctionNameValue(functionName || "");
+          if (!toolName || !functionAgentsCache.length) {
+            return [];
+          }
+
+          var assigned = [];
+          var seen = {};
+          for (var agentIndex = 0; agentIndex < functionAgentsCache.length; agentIndex += 1) {
+            var agent = functionAgentsCache[agentIndex];
+            var agentKey = sanitizeAgentKeyValue(agent && agent.agent_key ? agent.agent_key : "");
+            if (!agentKey || seen[agentKey]) {
+              continue;
+            }
+
+            var allowedTools = normalizeAgentAllowedToolsList(agent && agent.allowed_tools ? agent.allowed_tools : []);
+            if (allowedTools.indexOf(toolName) !== -1) {
+              seen[agentKey] = true;
+              assigned.push(agentKey);
+            }
+          }
+
+          return assigned;
+        }
+
+        function upsertFunctionAgentCacheItem(updatedItem) {
+          if (!updatedItem || typeof updatedItem !== "object") {
+            return;
+          }
+
+          var updatedId = String(updatedItem.id || "");
+          if (!updatedId) {
+            return;
+          }
+
+          for (var agentIndex = 0; agentIndex < functionAgentsCache.length; agentIndex += 1) {
+            if (String((functionAgentsCache[agentIndex] && functionAgentsCache[agentIndex].id) || "") === updatedId) {
+              functionAgentsCache[agentIndex] = updatedItem;
+              return;
+            }
+          }
+
+          functionAgentsCache.push(updatedItem);
+        }
+
+        async function loadFunctionAgentsCatalog(forceReload) {
+          if (!agentAssignmentsEditorSelect) {
+            return [];
+          }
+          if (!forceReload && functionAgentsLoaded) {
+            return functionAgentsCache;
+          }
+          if (!forceReload && functionAgentsLoadPromise) {
+            return functionAgentsLoadPromise;
+          }
+
+          functionAgentsLoadPromise = adminApiRequest("/agents" + buildAdminQuery({ limit: 500 }), "GET")
+            .then(function (response) {
+              var items = response && Array.isArray(response.items) ? response.items : [];
+              functionAgentsCache = items.slice();
+              functionAgentsLoaded = true;
+              functionAgentsLoadError = "";
+              return functionAgentsCache;
+            })
+            .catch(function (error) {
+              functionAgentsLoadError = error && error.message ? String(error.message) : tAdmin("No se pudieron cargar los agentes.");
+              throw error;
+            })
+            .finally(function () {
+              functionAgentsLoadPromise = null;
+            });
+
+          return functionAgentsLoadPromise;
+        }
+
+        async function refreshFunctionAgentAssignmentEditor(functionName, forceReload) {
+          if (!agentAssignmentsEditorSelect) {
+            return [];
+          }
+
+          var requestId = ++functionAgentPickerRequestId;
+          agentAssignmentsEditorSelect.disabled = true;
+          setAgentAssignmentEditorStatus(tAdmin("Cargando agentes..."), "info");
+
+          try {
+            await loadFunctionAgentsCatalog(!!forceReload);
+            if (requestId !== functionAgentPickerRequestId) {
+              return [];
+            }
+
+            var assignedAgentKeys = getAgentKeysAssignedToFunction(functionName);
+            renderFunctionAgentAssignmentOptions(assignedAgentKeys);
+
+            if (!functionAgentsCache.length) {
+              setAgentAssignmentEditorStatus(tAdmin("No hay agentes configurados. Crea agentes en la pestaña Agents."), "info");
+            } else if (assignedAgentKeys.length) {
+              setAgentAssignmentEditorStatus(tAdmin("Seleccion cargada desde las tools permitidas actuales del agente."), "info");
+            } else {
+              setAgentAssignmentEditorStatus(tAdmin("Selecciona los agentes que podran usar esta funcion. Usa Ctrl/Cmd para seleccion multiple."), "info");
+            }
+
+            return assignedAgentKeys;
+          } catch (error) {
+            if (requestId !== functionAgentPickerRequestId) {
+              return [];
+            }
+
+            if (functionAgentsCache.length) {
+              renderFunctionAgentAssignmentOptions(getAgentKeysAssignedToFunction(functionName));
+            } else {
+              renderFunctionAgentAssignmentOptions([]);
+            }
+
+            setAgentAssignmentEditorStatus(
+              (error && error.message) ? String(error.message) : (functionAgentsLoadError || tAdmin("No se pudieron cargar los agentes.")),
+              "error"
+            );
+            return [];
+          }
+        }
+
+        async function syncFunctionAgentAssignmentsAfterSave(saveRequest, saveResponse) {
+          if (!agentAssignmentsEditorSelect) {
+            return { updatedCount: 0 };
+          }
+
+          var previousFunctionName = sanitizeFunctionNameValue(saveRequest && saveRequest.previousFunctionName ? saveRequest.previousFunctionName : "");
+          var requestedFunction = saveRequest && saveRequest.requestBody && saveRequest.requestBody.function
+            ? saveRequest.requestBody.function
+            : {};
+          var responseItem = saveResponse && saveResponse.item && typeof saveResponse.item === "object"
+            ? saveResponse.item
+            : {};
+          var nextFunctionName = sanitizeFunctionNameValue(responseItem.function_name || requestedFunction.function_name || "");
+          var selectedAgentKeys = normalizeAgentKeyList(saveRequest && saveRequest.agentKeys ? saveRequest.agentKeys : []);
+
+          if (!previousFunctionName && !nextFunctionName) {
+            return { updatedCount: 0 };
+          }
+
+          await loadFunctionAgentsCatalog(true);
+
+          var selectedLookup = {};
+          for (var selectedIndex = 0; selectedIndex < selectedAgentKeys.length; selectedIndex += 1) {
+            selectedLookup[selectedAgentKeys[selectedIndex]] = true;
+          }
+
+          var updates = [];
+          for (var agentIndex = 0; agentIndex < functionAgentsCache.length; agentIndex += 1) {
+            var agent = functionAgentsCache[agentIndex];
+            var agentId = String((agent && agent.id) || "");
+            var agentKey = sanitizeAgentKeyValue(agent && agent.agent_key ? agent.agent_key : "");
+            if (!agentId || !agentKey) {
+              continue;
+            }
+
+            var currentTools = normalizeAgentAllowedToolsList(agent && agent.allowed_tools ? agent.allowed_tools : []);
+            var nextTools = currentTools.slice();
+
+            if (previousFunctionName) {
+              nextTools = nextTools.filter(function (tool) {
+                return String(tool || "") !== previousFunctionName;
+              });
+            }
+
+            if (nextFunctionName) {
+              nextTools = nextTools.filter(function (tool) {
+                return String(tool || "") !== nextFunctionName;
+              });
+              if (selectedLookup[agentKey]) {
+                nextTools.push(nextFunctionName);
+              }
+            }
+
+            nextTools = normalizeAgentAllowedToolsList(nextTools);
+
+            if (areStringListsEqual(currentTools, nextTools)) {
+              continue;
+            }
+
+            updates.push({
+              id: agentId,
+              allowed_tools: nextTools
+            });
+          }
+
+          for (var updateIndex = 0; updateIndex < updates.length; updateIndex += 1) {
+            var updatePayload = updates[updateIndex];
+            var updateResponse = await adminApiRequest(
+              "/agents/" + encodeURIComponent(String(updatePayload.id)),
+              "PUT",
+              { allowed_tools: updatePayload.allowed_tools }
+            );
+            if (updateResponse && updateResponse.item) {
+              upsertFunctionAgentCacheItem(updateResponse.item);
+            }
+          }
+
+          return {
+            updatedCount: updates.length
+          };
+        }
+
+        function buildPluginFunctionSaveRequest() {
+          var draft = collectEditorDraft();
+          if (!draft) {
+            return null;
+          }
+
+          var mode = getEditorMode();
+          var rowId = sanitizeFunctionId(editorIdInput.value || "");
+          if (!rowId) {
+            rowId = generateFunctionId();
+          }
+
+          var existingItem = rowId ? findListItemById(rowId) : null;
+          var existingRowNode = rowId ? getStorageRowById(rowId) : null;
+          var existingRowData = existingRowNode ? readStorageRowData(existingRowNode) : null;
+          var checkedState = existingItem ? !!((existingItem.querySelector('input[type="checkbox"]') || {}).checked) : false;
+          var selected = mode === "edit" ? checkedState : true;
+
+          return {
+            rowId: rowId,
+            selected: selected,
+            previousFunctionName: existingRowData ? String(existingRowData.functionName || "") : "",
+            agentKeys: Array.isArray(draft.agentKeys) ? draft.agentKeys.slice() : [],
+            agentAssignmentsEditable: !!draft.agentAssignmentsEditable,
+            requestBody: {
+              function: {
+                id: rowId,
+                plugin_key: draft.pluginKey,
+                plugin_label: getSelectLabel(pluginEditorSelect, draft.pluginKey),
+                role: draft.roleKey,
+                function_name: draft.functionName || buildFunctionNameFromId(rowId),
+                function_code: draft.functionCode,
+                description: draft.description,
+                requires_approval: draft.requiresApproval,
+                timeout_seconds: draft.timeoutSeconds,
+                execution_scope: draft.executionScope,
+                retries: draft.retries,
+                argument_schema_json: draft.argumentSchemaJson
+              },
+              selected: selected
+            }
+          };
+        }
+
+        function buildSelectedFunctionLookup(selectedKeys) {
+          var lookup = {};
+          if (!Array.isArray(selectedKeys)) {
+            return lookup;
+          }
+          for (var i = 0; i < selectedKeys.length; i += 1) {
+            var key = String(selectedKeys[i] || "").trim();
+            if (key) {
+              lookup[key] = true;
+            }
+          }
+          return lookup;
+        }
+
+        function syncPluginFunctionBuilderState(state) {
+          var serverState = isPlainRecord(state) ? state : {};
+          var serverItems = Array.isArray(serverState.plugin_custom_functions) ? serverState.plugin_custom_functions : [];
+          var selectedLookup = buildSelectedFunctionLookup(serverState.allowed_plugin_function_keys);
+          var groupsContainer = getGroupsContainer();
+
+          storageList.innerHTML = "";
+          if (groupsContainer) {
+            groupsContainer.innerHTML = "";
+          }
+
+          nextIndex = 0;
+          builder.setAttribute("data-next-index", "0");
+
+          for (var itemIndex = 0; itemIndex < serverItems.length; itemIndex += 1) {
+            var item = serverItems[itemIndex];
+            if (!isPlainRecord(item)) {
+              continue;
+            }
+
+            var rowId = sanitizeFunctionId(item.id || "");
+            if (!rowId) {
+              continue;
+            }
+
+            var rowNode = createStorageRow(nextIndex);
+            if (!rowNode) {
+              continue;
+            }
+
+            var pluginKey = String(item.plugin_key || "").trim();
+            var roleKey = String(item.role || "").trim();
+            var roleLabel = getSelectLabel(roleEditorSelect, roleKey);
+            if (!roleLabel && roleKey === "all") {
+              roleLabel = tAdmin("Todos los roles");
+            }
+            if (!roleLabel && roleKey === "guest") {
+              roleLabel = tAdmin("Visitantes");
+            }
+
+            var data = {
+              index: String(nextIndex),
+              id: rowId,
+              functionName: String(item.function_name || "") || buildFunctionNameFromId(rowId),
+              pluginKey: pluginKey,
+              pluginLabel: String(item.plugin_label || "") || getSelectLabel(pluginEditorSelect, pluginKey),
+              role: roleKey,
+              roleLabel: roleLabel,
+              functionCode: String(item.function_code || ""),
+              codePreview: getCodePreview(String(item.function_code || "")),
+              description: String(item.description || ""),
+              requiresApproval: item.requires_approval === true || item.requires_approval === 1 || String(item.requires_approval || "") === "1",
+              timeoutSeconds: parseInt(String(item.timeout_seconds || "0"), 10) || 0,
+              executionScope: String(item.execution_scope || "both"),
+              retries: parseInt(String(item.retries || "0"), 10) || 0,
+              argumentSchemaJson: String(item.argument_schema_json || "")
+            };
+
+            writeStorageRowData(rowNode, data);
+            upsertListItem(data, !!selectedLookup["pluginfn:" + rowId]);
+            nextIndex += 1;
+          }
+
+          builder.setAttribute("data-next-index", String(nextIndex));
+          updateEmptyStateVisibility();
+          applyPluginFunctionFilters(pluginPanel);
+          if (exportModal && !exportModal.hasAttribute("hidden")) {
+            renderExportFunctionList();
+          }
+        }
+
         function setModalOpenState(isOpen) {
           if (isOpen) {
             modal.removeAttribute("hidden");
@@ -271,6 +915,7 @@
 
         function openEditorModal() {
           setModalOpenState(true);
+          refreshFunctionCodeEditor();
         }
 
         function closeEditorModal(shouldReset) {
@@ -326,6 +971,34 @@
           return "navai_custom_" + cleanId.substring(0, 20);
         }
 
+        function sanitizeFunctionNameValue(value) {
+          var normalized = normalizeText
+            ? normalizeText(String(value || ""))
+            : String(value || "").toLowerCase().trim();
+
+          normalized = normalized.replace(/[^a-z0-9_\s-]+/g, "_");
+          normalized = normalized.replace(/[\s-]+/g, "_");
+          normalized = normalized.replace(/_+/g, "_");
+          normalized = normalized.replace(/^_+|_+$/g, "");
+
+          if (normalized.length > 64) {
+            normalized = normalized.substring(0, 64).replace(/_+$/g, "");
+          }
+
+          return normalized;
+        }
+
+        function normalizeEditorFunctionNameInput() {
+          if (!nameEditorInput) {
+            return "";
+          }
+          var nextValue = sanitizeFunctionNameValue(nameEditorInput.value || "");
+          if (String(nameEditorInput.value || "") !== nextValue) {
+            nameEditorInput.value = nextValue;
+          }
+          return nextValue;
+        }
+
         function getSelectLabel(selectEl, value) {
           if (!selectEl || !selectEl.options) {
             return "";
@@ -355,6 +1028,740 @@
           } catch (_error) {
             return typeof fallback === "string" ? fallback : "";
           }
+        }
+
+        function setInlineStatus(node, message, tone) {
+          if (!node) {
+            return;
+          }
+          var text = String(message || "").trim();
+          node.classList.remove("is-error", "is-success", "is-info");
+          if (!text) {
+            node.textContent = "";
+            node.setAttribute("hidden", "hidden");
+            return;
+          }
+          node.textContent = text;
+          if (tone === "error" || tone === "success" || tone === "info") {
+            node.classList.add("is-" + tone);
+          }
+          node.removeAttribute("hidden");
+        }
+
+        function setTransferModalOpenState(modalNode, isOpen) {
+          if (!modalNode) {
+            return;
+          }
+          if (isOpen) {
+            modalNode.removeAttribute("hidden");
+            modalNode.classList.add("is-open");
+          } else {
+            modalNode.classList.remove("is-open");
+            modalNode.setAttribute("hidden", "hidden");
+          }
+        }
+
+        function closeTransferModal(modalNode) {
+          setTransferModalOpenState(modalNode, false);
+        }
+
+        function readAllStoredFunctionsData() {
+          var rows = storageList.querySelectorAll(".navai-plugin-function-storage-row");
+          var items = [];
+          for (var rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+            var rowData = readStorageRowData(rows[rowIndex]);
+            if (rowData && rowData.id) {
+              items.push(rowData);
+            }
+          }
+          return items;
+        }
+
+        function getExportModeValue() {
+          if (!exportModeInputs || !exportModeInputs.length) {
+            return "all";
+          }
+          for (var i = 0; i < exportModeInputs.length; i += 1) {
+            if (exportModeInputs[i] && exportModeInputs[i].checked) {
+              return String(exportModeInputs[i].value || "all");
+            }
+          }
+          return "all";
+        }
+
+        function getExportFilters() {
+          return {
+            pluginKey: exportPluginSelect ? String(exportPluginSelect.value || "").trim() : "",
+            roleKey: exportRoleSelect ? String(exportRoleSelect.value || "").trim() : ""
+          };
+        }
+
+        function exportItemMatchesRole(itemRole, roleNeedle) {
+          var itemRoleValue = normalizeText(itemRole || "");
+          var filterRole = normalizeText(roleNeedle || "");
+          if (!filterRole) {
+            return true;
+          }
+          if (itemRoleValue === "all" && filterRole !== "") {
+            return true;
+          }
+          return itemRoleValue === filterRole;
+        }
+
+        function getExportVisibleItems() {
+          var filters = getExportFilters();
+          var items = readAllStoredFunctionsData();
+          var visible = [];
+          for (var i = 0; i < items.length; i += 1) {
+            var item = items[i];
+            if (!item) {
+              continue;
+            }
+            if (filters.pluginKey && String(item.pluginKey || "") !== filters.pluginKey) {
+              continue;
+            }
+            if (!exportItemMatchesRole(item.role, filters.roleKey)) {
+              continue;
+            }
+            visible.push(item);
+          }
+          return visible;
+        }
+
+        function createTransferListItemNode(item, options) {
+          var opts = isPlainRecord(options) ? options : {};
+          var selected = !!opts.selected;
+          var disabled = !!opts.disabled;
+          var showCheckbox = opts.showCheckbox !== false;
+
+          var label = document.createElement("label");
+          label.className = "navai-plugin-function-transfer-item";
+          label.setAttribute("data-plugin-function-export-id", String(item.id || ""));
+
+          var checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.className = "navai-plugin-function-export-item-check";
+          checkbox.value = String(item.id || "");
+          checkbox.checked = selected;
+          checkbox.disabled = disabled || !showCheckbox;
+          if (!showCheckbox) {
+            checkbox.setAttribute("hidden", "hidden");
+          }
+          label.appendChild(checkbox);
+
+          var main = document.createElement("span");
+          main.className = "navai-plugin-function-transfer-item-main";
+
+          var title = document.createElement("span");
+          title.className = "navai-plugin-function-transfer-item-title";
+          title.textContent = String(item.functionName || "");
+          main.appendChild(title);
+
+          var meta = document.createElement("small");
+          meta.className = "navai-plugin-function-transfer-item-meta";
+          meta.textContent =
+            String(item.pluginLabel || item.pluginKey || "") +
+            " | " +
+            String(item.roleLabel || item.role || "");
+          main.appendChild(meta);
+
+          if (String(item.description || "").trim()) {
+            var desc = document.createElement("small");
+            desc.className = "navai-plugin-function-transfer-item-meta";
+            desc.textContent = String(item.description || "");
+            main.appendChild(desc);
+          }
+
+          if (String(item.codePreview || "").trim()) {
+            var preview = document.createElement("small");
+            preview.className = "navai-plugin-function-transfer-item-preview";
+            preview.textContent = String(item.codePreview || "");
+            main.appendChild(preview);
+          }
+
+          label.appendChild(main);
+          return label;
+        }
+
+        function renderExportFunctionList() {
+          if (!exportListNode) {
+            return;
+          }
+
+          var mode = getExportModeValue();
+          var isManualMode = mode === "selected";
+          var visibleItems = getExportVisibleItems();
+          exportListNode.innerHTML = "";
+
+          if (!visibleItems.length) {
+            exportListNode.classList.add("is-empty");
+            exportListNode.textContent = tAdmin("No hay funciones para exportar con los filtros actuales.");
+            if (exportCountNode) {
+              exportCountNode.textContent = tAdmin("0 funciones visibles");
+            }
+            return;
+          }
+
+          exportListNode.classList.remove("is-empty");
+          var selectedCount = 0;
+
+          for (var i = 0; i < visibleItems.length; i += 1) {
+            var item = visibleItems[i];
+            if (typeof exportSelectionById[item.id] !== "boolean") {
+              exportSelectionById[item.id] = true;
+            }
+            if (exportSelectionById[item.id]) {
+              selectedCount += 1;
+            }
+
+            exportListNode.appendChild(
+              createTransferListItemNode(item, {
+                selected: !!exportSelectionById[item.id],
+                disabled: !isManualMode,
+                showCheckbox: true
+              })
+            );
+          }
+
+          if (exportCountNode) {
+            var countMessage =
+              String(visibleItems.length) +
+              " " +
+              tAdmin("funciones visibles") +
+              " | " +
+              String(selectedCount) +
+              " " +
+              tAdmin("seleccionadas");
+            exportCountNode.textContent = countMessage;
+          }
+        }
+
+        function setExportVisibleSelection(shouldSelect) {
+          var visibleItems = getExportVisibleItems();
+          for (var i = 0; i < visibleItems.length; i += 1) {
+            var item = visibleItems[i];
+            if (item && item.id) {
+              exportSelectionById[item.id] = !!shouldSelect;
+            }
+          }
+          renderExportFunctionList();
+        }
+
+        function collectExportTargetItems() {
+          var visibleItems = getExportVisibleItems();
+          if (getExportModeValue() !== "selected") {
+            return visibleItems;
+          }
+
+          var selected = [];
+          for (var i = 0; i < visibleItems.length; i += 1) {
+            var item = visibleItems[i];
+            if (!item || !item.id) {
+              continue;
+            }
+            if (exportSelectionById[item.id]) {
+              selected.push(item);
+            }
+          }
+          return selected;
+        }
+
+        function sanitizeExportFileToken(value, fallback) {
+          var token = String(value || "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+          if (!token) {
+            token = String(fallback || "all");
+          }
+          return token;
+        }
+
+        function buildExportFileObject(items) {
+          var filters = getExportFilters();
+          return {
+            format: "navai-function-export",
+            version: 1,
+            exported_at: new Date().toISOString(),
+            export_mode: getExportModeValue(),
+            filters: {
+              plugin_key: filters.pluginKey || "",
+              role: filters.roleKey || ""
+            },
+            functions: items.map(function (item) {
+              return {
+                id: String(item.id || ""),
+                function_name: String(item.functionName || ""),
+                plugin_key: String(item.pluginKey || ""),
+                plugin_label: String(item.pluginLabel || ""),
+                role: String(item.role || ""),
+                role_label: String(item.roleLabel || ""),
+                description: String(item.description || ""),
+                function_code: String(item.functionCode || ""),
+                requires_approval: !!item.requiresApproval,
+                timeout_seconds: parseInt(String(item.timeoutSeconds || "0"), 10) || 0,
+                execution_scope: String(item.executionScope || "both"),
+                retries: parseInt(String(item.retries || "0"), 10) || 0,
+                argument_schema_json: String(item.argumentSchemaJson || "")
+              };
+            })
+          };
+        }
+
+        function buildExportFileContent(exportObject) {
+          return (
+            "/**\n" +
+            " * NAVAI function export\n" +
+            " * format: navai-function-export v1\n" +
+            " */\n" +
+            "globalThis.NAVAI_FUNCTION_EXPORT = " +
+            safePrettyJson(exportObject, "{}") +
+            ";\n"
+          );
+        }
+
+        function downloadTextFile(filename, text, mimeType) {
+          var blob = new Blob([String(text || "")], {
+            type: String(mimeType || "text/plain;charset=utf-8")
+          });
+          var objectUrl = window.URL && typeof window.URL.createObjectURL === "function"
+            ? window.URL.createObjectURL(blob)
+            : "";
+          if (!objectUrl) {
+            throw new Error(tAdmin("No se pudo crear el archivo para descarga."));
+          }
+
+          var link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = String(filename || "navai-functions.js");
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.setTimeout(function () {
+            if (window.URL && typeof window.URL.revokeObjectURL === "function") {
+              window.URL.revokeObjectURL(objectUrl);
+            }
+          }, 0);
+        }
+
+        function buildExportFilename() {
+          var filters = getExportFilters();
+          var pluginToken = sanitizeExportFileToken(filters.pluginKey || "all", "all");
+          var roleToken = sanitizeExportFileToken(filters.roleKey || "all", "all");
+          var now = new Date();
+          var pad = function (value) {
+            return String(value).length < 2 ? "0" + String(value) : String(value);
+          };
+          var stamp =
+            now.getFullYear() +
+            pad(now.getMonth() + 1) +
+            pad(now.getDate()) +
+            "-" +
+            pad(now.getHours()) +
+            pad(now.getMinutes()) +
+            pad(now.getSeconds());
+          return "navai-functions-" + pluginToken + "-" + roleToken + "-" + stamp + ".js";
+        }
+
+        function setExportStatus(message, tone) {
+          setInlineStatus(exportStatusNode, message, tone);
+        }
+
+        function runExportDownload() {
+          var items = collectExportTargetItems();
+          if (!items.length) {
+            setExportStatus(tAdmin("No hay funciones seleccionadas para exportar."), "error");
+            return false;
+          }
+
+          try {
+            var exportObject = buildExportFileObject(items);
+            var content = buildExportFileContent(exportObject);
+            downloadTextFile(buildExportFilename(), content, "application/javascript;charset=utf-8");
+            setExportStatus(
+              String(items.length) + " " + tAdmin("funciones exportadas correctamente."),
+              "success"
+            );
+            return true;
+          } catch (error) {
+            setExportStatus(error && error.message ? String(error.message) : tAdmin("No se pudo exportar el archivo."), "error");
+            return false;
+          }
+        }
+
+        function extractImportJsonText(rawText) {
+          var text = String(rawText || "");
+          var assignmentMatch = text.match(/NAVAI_FUNCTION_EXPORT\s*=\s*({[\s\S]*})\s*;?\s*$/);
+          if (assignmentMatch && assignmentMatch[1]) {
+            return String(assignmentMatch[1]);
+          }
+          var objectTailMatch = text.match(/({[\s\S]*})\s*;?\s*$/);
+          if (objectTailMatch && objectTailMatch[1] && objectTailMatch[1].indexOf('"functions"') !== -1) {
+            return String(objectTailMatch[1]);
+          }
+          return "";
+        }
+
+        function normalizeImportedFunctionRows(rawFunctions) {
+          var rows = [];
+          var skipped = 0;
+          if (!Array.isArray(rawFunctions)) {
+            return { rows: rows, skipped: skipped };
+          }
+
+          for (var i = 0; i < rawFunctions.length; i += 1) {
+            var item = rawFunctions[i];
+            if (!isPlainRecord(item)) {
+              skipped += 1;
+              continue;
+            }
+
+            var code = "";
+            if (typeof item.function_code === "string") {
+              code = item.function_code;
+            } else if (typeof item.code === "string") {
+              code = item.code;
+            }
+            code = String(code || "");
+            if (!code.trim()) {
+              skipped += 1;
+              continue;
+            }
+            if (/^\s*(<\?(php)?|php\s*:)/i.test(code)) {
+              skipped += 1;
+              continue;
+            }
+
+            var scope = String(item.execution_scope || item.scope || "both").toLowerCase();
+            if (scope !== "frontend" && scope !== "admin" && scope !== "both") {
+              scope = "both";
+            }
+
+            var timeoutSeconds = parseInt(String(item.timeout_seconds || item.timeoutSeconds || "0"), 10);
+            if (!Number.isFinite(timeoutSeconds) || timeoutSeconds < 0) {
+              timeoutSeconds = 0;
+            }
+            if (timeoutSeconds > 600) {
+              timeoutSeconds = 600;
+            }
+
+            var retries = parseInt(String(item.retries || "0"), 10);
+            if (!Number.isFinite(retries) || retries < 0) {
+              retries = 0;
+            }
+            if (retries > 5) {
+              retries = 5;
+            }
+
+            var argumentSchemaJson = "";
+            if (typeof item.argument_schema_json === "string") {
+              argumentSchemaJson = String(item.argument_schema_json || "");
+            } else if (isPlainRecord(item.argument_schema)) {
+              try {
+                argumentSchemaJson = JSON.stringify(item.argument_schema);
+              } catch (_schemaError) {
+                argumentSchemaJson = "";
+              }
+            }
+
+            rows.push({
+              exportedId: String(item.id || ""),
+              exportedFunctionName: String(item.function_name || item.name || "").trim(),
+              description: String(item.description || "").trim(),
+              functionCode: code,
+              requiresApproval:
+                item.requires_approval === true ||
+                item.requiresApproval === true ||
+                String(item.requires_approval || item.requiresApproval || "") === "1",
+              timeoutSeconds: timeoutSeconds,
+              executionScope: scope,
+              retries: retries,
+              argumentSchemaJson: argumentSchemaJson
+            });
+          }
+
+          return { rows: rows, skipped: skipped };
+        }
+
+        function parseImportFileText(rawText) {
+          var jsonText = "";
+          var parsed = null;
+          var text = String(rawText || "");
+
+          try {
+            parsed = JSON.parse(text);
+            jsonText = text;
+          } catch (_jsonError) {
+            jsonText = extractImportJsonText(text);
+            if (!jsonText) {
+              return {
+                ok: false,
+                message: tAdmin("Archivo invalido. Debe ser un .js exportado desde NAVAI.")
+              };
+            }
+            try {
+              parsed = JSON.parse(jsonText);
+            } catch (_jsonExtractError) {
+              return {
+                ok: false,
+                message: tAdmin("No se pudo leer el JSON del archivo .js exportado.")
+              };
+            }
+          }
+
+          if (!isPlainRecord(parsed)) {
+            return {
+              ok: false,
+              message: tAdmin("Archivo de importacion invalido.")
+            };
+          }
+
+          var normalized = normalizeImportedFunctionRows(parsed.functions);
+          return {
+            ok: true,
+            parsed: parsed,
+            rows: normalized.rows,
+            skipped: normalized.skipped
+          };
+        }
+
+        function renderImportPreview() {
+          if (!importPreviewNode) {
+            return;
+          }
+
+          if (!importFileCache || !importFileCache.ok) {
+            importPreviewNode.innerHTML = "";
+            importPreviewNode.setAttribute("hidden", "hidden");
+            return;
+          }
+
+          var rows = Array.isArray(importFileCache.rows) ? importFileCache.rows : [];
+          var previewWrap = document.createElement("div");
+          var title = document.createElement("strong");
+          title.textContent =
+            tAdmin("Funciones detectadas:") +
+            " " +
+            String(rows.length) +
+            (importFileCache.skipped > 0
+              ? " (" + String(importFileCache.skipped) + " " + tAdmin("omitidas por formato invalido") + ")"
+              : "");
+          previewWrap.appendChild(title);
+
+          if (rows.length) {
+            var list = document.createElement("ol");
+            list.className = "navai-plugin-function-transfer-preview-list";
+            var maxItems = Math.min(rows.length, 8);
+            for (var i = 0; i < maxItems; i += 1) {
+              var li = document.createElement("li");
+              var row = rows[i];
+              li.textContent = (row.exportedFunctionName || tAdmin("Funcion sin nombre")) + " - " + (row.description || tAdmin("Sin descripcion"));
+              list.appendChild(li);
+            }
+            if (rows.length > maxItems) {
+              var more = document.createElement("li");
+              more.textContent = "+" + String(rows.length - maxItems) + " " + tAdmin("funciones adicionales");
+              list.appendChild(more);
+            }
+            previewWrap.appendChild(list);
+          }
+
+          importPreviewNode.innerHTML = "";
+          importPreviewNode.appendChild(previewWrap);
+          importPreviewNode.removeAttribute("hidden");
+        }
+
+        function resetImportCache() {
+          importFileCache = null;
+          renderImportPreview();
+        }
+
+        function readImportFileAsText(file) {
+          if (!file) {
+            return Promise.reject(new Error(tAdmin("Selecciona un archivo .js para importar.")));
+          }
+          if (typeof file.text === "function") {
+            return file.text();
+          }
+          return new Promise(function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function () {
+              resolve(String(reader.result || ""));
+            };
+            reader.onerror = function () {
+              reject(new Error(tAdmin("No se pudo leer el archivo seleccionado.")));
+            };
+            reader.readAsText(file);
+          });
+        }
+
+        function setImportStatus(message, tone) {
+          setInlineStatus(importStatusNode, message, tone);
+        }
+
+        function setImportBusy(isBusy) {
+          importInFlight = !!isBusy;
+          if (importRunButton) {
+            importRunButton.disabled = !!isBusy;
+          }
+          if (importFileInput) {
+            importFileInput.disabled = !!isBusy;
+          }
+          if (importPluginSelect) {
+            importPluginSelect.disabled = !!isBusy;
+          }
+          if (importRoleSelect) {
+            importRoleSelect.disabled = !!isBusy;
+          }
+        }
+
+        async function loadImportFileCache() {
+          if (!importFileInput || !importFileInput.files || !importFileInput.files.length) {
+            throw new Error(tAdmin("Selecciona un archivo .js para importar."));
+          }
+
+          var file = importFileInput.files[0];
+          if (importFileCache && importFileCache.fileName === String(file.name || "") && importFileCache.fileSize === Number(file.size || 0)) {
+            return importFileCache;
+          }
+
+          var fileText = await readImportFileAsText(file);
+          var parsed = parseImportFileText(fileText);
+          importFileCache = {
+            fileName: String(file.name || ""),
+            fileSize: Number(file.size || 0),
+            ok: !!parsed.ok,
+            rows: parsed.rows || [],
+            skipped: parsed.skipped || 0,
+            parsed: parsed.parsed || null,
+            error: parsed.ok ? "" : String(parsed.message || "")
+          };
+          renderImportPreview();
+          if (!parsed.ok) {
+            throw new Error(importFileCache.error || tAdmin("Archivo de importacion invalido."));
+          }
+          return importFileCache;
+        }
+
+        async function runImportFunctions() {
+          if (importInFlight) {
+            return false;
+          }
+          if (!importPluginSelect || !importRoleSelect) {
+            return false;
+          }
+
+          var pluginKey = String(importPluginSelect.value || "").trim();
+          var roleKey = String(importRoleSelect.value || "").trim();
+          if (!pluginKey) {
+            setImportStatus(tAdmin("Selecciona un plugin."), "error");
+            importPluginSelect.focus();
+            return false;
+          }
+          if (!roleKey) {
+            setImportStatus(tAdmin("Selecciona un rol."), "error");
+            importRoleSelect.focus();
+            return false;
+          }
+
+          setImportStatus(tAdmin("Leyendo archivo de importacion..."), "info");
+          setImportBusy(true);
+
+          try {
+            var cache = await loadImportFileCache();
+            var rows = Array.isArray(cache.rows) ? cache.rows : [];
+            if (!rows.length) {
+              throw new Error(tAdmin("El archivo no contiene funciones validas para importar."));
+            }
+
+            var pluginLabel = getSelectLabel(importPluginSelect, pluginKey);
+            var importedCount = 0;
+            var failedCount = 0;
+            var lastState = null;
+
+            for (var i = 0; i < rows.length; i += 1) {
+              var importedRow = rows[i];
+              var newRowId = generateFunctionId();
+              var requestBody = {
+                function: {
+                  id: newRowId,
+                  plugin_key: pluginKey,
+                  plugin_label: pluginLabel,
+                  role: roleKey,
+                  function_name: sanitizeFunctionNameValue(importedRow.exportedFunctionName || "") || buildFunctionNameFromId(newRowId),
+                  function_code: String(importedRow.functionCode || ""),
+                  description: String(importedRow.description || ""),
+                  requires_approval: !!importedRow.requiresApproval,
+                  timeout_seconds: parseInt(String(importedRow.timeoutSeconds || "0"), 10) || 0,
+                  execution_scope: String(importedRow.executionScope || "both"),
+                  retries: parseInt(String(importedRow.retries || "0"), 10) || 0,
+                  argument_schema_json: String(importedRow.argumentSchemaJson || "")
+                },
+                selected: true
+              };
+
+              setImportStatus(
+                tAdmin("Importando funciones...") + " " + String(i + 1) + "/" + String(rows.length),
+                "info"
+              );
+
+              try {
+                var saveResponse = await adminApiRequest("/plugin-functions/upsert", "POST", requestBody);
+                if (saveResponse && saveResponse.ok === true) {
+                  importedCount += 1;
+                  if (saveResponse.state) {
+                    lastState = saveResponse.state;
+                  }
+                } else {
+                  failedCount += 1;
+                }
+              } catch (_importRowError) {
+                failedCount += 1;
+              }
+            }
+
+            if (lastState) {
+              syncPluginFunctionBuilderState(lastState);
+            }
+
+            if (importedCount > 0 && failedCount === 0) {
+              setImportStatus(String(importedCount) + " " + tAdmin("funciones importadas correctamente."), "success");
+              return true;
+            }
+
+            if (importedCount > 0) {
+              setImportStatus(
+                String(importedCount) +
+                  " " +
+                  tAdmin("funciones importadas correctamente.") +
+                  " / " +
+                  String(failedCount) +
+                  " " +
+                  tAdmin("funciones no se pudieron importar."),
+                "info"
+              );
+              return true;
+            }
+
+            throw new Error(tAdmin("No se pudo importar ninguna funcion."));
+          } catch (error) {
+            setImportStatus(error && error.message ? String(error.message) : tAdmin("No se pudo importar el archivo."), "error");
+            return false;
+          } finally {
+            setImportBusy(false);
+          }
+        }
+
+        function openExportModal() {
+          setExportStatus("", "");
+          renderExportFunctionList();
+          setTransferModalOpenState(exportModal, true);
+        }
+
+        function openImportModal() {
+          setImportStatus("", "");
+          resetImportCache();
+          if (importFileInput) {
+            importFileInput.value = "";
+          }
+          setTransferModalOpenState(importModal, true);
         }
 
         function setEditorStatus(message, tone) {
@@ -520,6 +1927,32 @@
         }
 
         function parseSchemaInput() {
+          if (!schemaEditorInput) {
+            var preservedSchemaJson = String(editorArgumentSchemaJson || "").trim();
+            if (!preservedSchemaJson) {
+              return {
+                ok: true,
+                schema: null,
+                schemaJson: ""
+              };
+            }
+
+            try {
+              var preservedSchema = JSON.parse(preservedSchemaJson);
+              return {
+                ok: true,
+                schema: isPlainRecord(preservedSchema) ? preservedSchema : null,
+                schemaJson: preservedSchemaJson
+              };
+            } catch (_preservedSchemaError) {
+              return {
+                ok: true,
+                schema: null,
+                schemaJson: preservedSchemaJson
+              };
+            }
+          }
+
           var raw = String(schemaEditorInput.value || "").trim();
           if (!raw) {
             return {
@@ -563,6 +1996,13 @@
         }
 
         function parseTestPayloadInput() {
+          if (!testPayloadEditorInput) {
+            return {
+              ok: true,
+              payload: {}
+            };
+          }
+
           var raw = String(testPayloadEditorInput.value || "").trim();
           if (!raw) {
             return {
@@ -612,7 +2052,8 @@
             author: "#d07a10",
             contributor: "#7b52c8",
             subscriber: "#56657a",
-            guest: "#374151"
+            guest: "#374151",
+            all: "#0f4c81"
           };
           return colors[key] || "#526077";
         }
@@ -917,20 +2358,30 @@
           if (roleEditorSelect.options && roleEditorSelect.options.length > 0) {
             roleEditorSelect.selectedIndex = 0;
           }
-          codeEditorInput.value = "";
+          nameEditorInput.value = "";
+          setFunctionCodeValue("");
           descriptionEditorInput.value = "";
           scopeEditorSelect.value = "both";
           timeoutEditorInput.value = "0";
           retriesEditorInput.value = "0";
           requiresApprovalEditorInput.checked = false;
-          schemaEditorInput.value = "";
-          testPayloadEditorInput.value = "{}";
+          editorArgumentSchemaJson = "";
+          if (schemaEditorInput) {
+            schemaEditorInput.value = "";
+          }
+          if (testPayloadEditorInput) {
+            testPayloadEditorInput.value = "{}";
+          }
+          if (agentAssignmentsEditorSelect) {
+            renderFunctionAgentAssignmentOptions([]);
+          }
+          setAgentAssignmentEditorStatus("", "");
           setEditorStatus("", "");
           setTestResult(null, false);
           setEditorMode("create");
 
           if (shouldFocus && codeEditorInput && typeof codeEditorInput.focus === "function") {
-            codeEditorInput.focus();
+            focusFunctionCodeInput();
           }
         }
 
@@ -948,29 +2399,33 @@
           if (data.role !== "") {
             roleEditorSelect.value = data.role;
           }
-          codeEditorInput.value = data.functionCode || "";
+          nameEditorInput.value = String(data.functionName || "");
+          normalizeEditorFunctionNameInput();
+          setFunctionCodeValue(data.functionCode || "");
           descriptionEditorInput.value = data.description || "";
           scopeEditorSelect.value = data.executionScope || "both";
           timeoutEditorInput.value = String(parseInt(String(data.timeoutSeconds || "0"), 10) || 0);
           retriesEditorInput.value = String(parseInt(String(data.retries || "0"), 10) || 0);
           requiresApprovalEditorInput.checked = !!data.requiresApproval;
-          if (String(data.argumentSchemaJson || "").trim()) {
-            try {
-              schemaEditorInput.value = JSON.stringify(JSON.parse(data.argumentSchemaJson), null, 2);
-            } catch (_error) {
-              schemaEditorInput.value = String(data.argumentSchemaJson || "");
+          editorArgumentSchemaJson = String(data.argumentSchemaJson || "");
+          if (schemaEditorInput) {
+            if (String(data.argumentSchemaJson || "").trim()) {
+              try {
+                schemaEditorInput.value = JSON.stringify(JSON.parse(data.argumentSchemaJson), null, 2);
+              } catch (_error) {
+                schemaEditorInput.value = String(data.argumentSchemaJson || "");
+              }
+            } else {
+              schemaEditorInput.value = "";
             }
-          } else {
-            schemaEditorInput.value = "";
           }
           setEditorStatus("", "");
           setTestResult(null, false);
           setEditorMode("edit");
           openEditorModal();
+          void refreshFunctionAgentAssignmentEditor(data.functionName || "", true);
 
-          if (codeEditorInput && typeof codeEditorInput.focus === "function") {
-            codeEditorInput.focus();
-          }
+          focusFunctionCodeInput();
         }
 
         function createStorageRow(indexValue) {
@@ -986,7 +2441,9 @@
         function collectEditorDraft() {
           var pluginKey = String(pluginEditorSelect.value || "").trim();
           var roleKey = String(roleEditorSelect.value || "").trim();
-          var functionCode = String(codeEditorInput.value || "");
+          var rawFunctionName = String(nameEditorInput.value || "");
+          var functionName = sanitizeFunctionNameValue(rawFunctionName);
+          var functionCode = getFunctionCodeValue();
           var description = String(descriptionEditorInput.value || "").trim();
           var executionScope = String(scopeEditorSelect.value || "both").trim().toLowerCase();
           var timeoutSeconds = parseInt(String(timeoutEditorInput.value || "0"), 10);
@@ -1004,9 +2461,20 @@
             roleEditorSelect.focus();
             return null;
           }
+          if (rawFunctionName.trim() !== "" && functionName === "") {
+            setEditorStatus(tAdmin("El nombre de la funcion es invalido."), "error");
+            nameEditorInput.focus();
+            return null;
+          }
+          nameEditorInput.value = functionName;
           if (functionCode.replace(/\s+/g, "").trim() === "") {
             setEditorStatus(tAdmin("La funcion NAVAI no puede estar vacia."), "error");
-            codeEditorInput.focus();
+            focusFunctionCodeInput();
+            return null;
+          }
+          if (/^\s*(<\?(php)?|php\s*:)/i.test(functionCode)) {
+            setEditorStatus(tAdmin("Solo se permite codigo JavaScript en funciones personalizadas."), "error");
+            focusFunctionCodeInput();
             return null;
           }
           if (executionScope !== "frontend" && executionScope !== "admin" && executionScope !== "both") {
@@ -1028,13 +2496,16 @@
           var schemaParse = parseSchemaInput();
           if (!schemaParse.ok) {
             setEditorStatus(schemaParse.message || tAdmin("JSON Schema invalido."), "error");
-            schemaEditorInput.focus();
+            if (schemaEditorInput && typeof schemaEditorInput.focus === "function") {
+              schemaEditorInput.focus();
+            }
             return null;
           }
 
           return {
             pluginKey: pluginKey,
             roleKey: roleKey,
+            functionName: functionName,
             functionCode: functionCode,
             description: description,
             executionScope: executionScope,
@@ -1042,61 +2513,59 @@
             retries: retries,
             requiresApproval: requiresApproval,
             argumentSchema: schemaParse.schema,
-            argumentSchemaJson: schemaParse.schemaJson
+            argumentSchemaJson: schemaParse.schemaJson,
+            agentKeys: getSelectedFunctionAgentKeys(),
+            agentAssignmentsEditable: !!(agentAssignmentsEditorSelect && !agentAssignmentsEditorSelect.disabled && functionAgentsLoaded)
           };
         }
 
-        function saveEditorFunction() {
-          var draft = collectEditorDraft();
-          if (!draft) {
+        async function saveEditorFunction() {
+          if (functionSaveInFlight) {
             return false;
           }
 
-          var mode = getEditorMode();
-          var rowId = sanitizeFunctionId(editorIdInput.value || "");
-          var rowIndex = String(editorIndexInput.value || "");
-          var rowNode = rowId ? getStorageRowById(rowId) : null;
-          var existingItem = rowId ? findListItemById(rowId) : null;
-          var checkedState = existingItem ? !!((existingItem.querySelector('input[type="checkbox"]') || {}).checked) : false;
+          var saveRequest = buildPluginFunctionSaveRequest();
+          if (!saveRequest) {
+            return false;
+          }
 
-          if (!rowNode) {
-            rowIndex = String(nextIndex);
-            rowNode = createStorageRow(rowIndex);
-            if (!rowNode) {
-              return false;
+          setEditorStatus(tAdmin("Guardando funcion..."), "info");
+          setFunctionSaveBusy(true);
+
+          try {
+            var saveResponse = await adminApiRequest("/plugin-functions/upsert", "POST", saveRequest.requestBody);
+            if (!saveResponse || saveResponse.ok !== true) {
+              throw new Error(tAdmin("No se pudo guardar la funcion."));
             }
-            nextIndex += 1;
-            builder.setAttribute("data-next-index", String(nextIndex));
+
+            if (saveResponse.state) {
+              syncPluginFunctionBuilderState(saveResponse.state);
+            }
+
+            if (agentAssignmentsEditorSelect && saveRequest.agentAssignmentsEditable) {
+              try {
+                await syncFunctionAgentAssignmentsAfterSave(saveRequest, saveResponse);
+              } catch (agentSyncError) {
+                var syncErrorMessage = agentSyncError && agentSyncError.message
+                  ? String(agentSyncError.message)
+                  : tAdmin("No se pudieron sincronizar los agentes.");
+                setEditorStatus(
+                  tAdmin("La funcion se guardo, pero fallo la sincronizacion con agentes.") + " " + syncErrorMessage,
+                  "error"
+                );
+                return false;
+              }
+            }
+
+            closeEditorModal(true);
+            return true;
+          } catch (error) {
+            var errorMessage = error && error.message ? String(error.message) : tAdmin("No se pudo guardar la funcion.");
+            setEditorStatus(errorMessage, "error");
+            return false;
+          } finally {
+            setFunctionSaveBusy(false);
           }
-
-          if (!rowId) {
-            rowId = generateFunctionId();
-          }
-
-          var data = {
-            index: rowIndex,
-            id: rowId,
-            functionName: buildFunctionNameFromId(rowId),
-            pluginKey: draft.pluginKey,
-            pluginLabel: getSelectLabel(pluginEditorSelect, draft.pluginKey),
-            role: draft.roleKey,
-            roleLabel: getSelectLabel(roleEditorSelect, draft.roleKey),
-            functionCode: draft.functionCode,
-            codePreview: getCodePreview(draft.functionCode),
-            description: draft.description,
-            requiresApproval: draft.requiresApproval,
-            timeoutSeconds: draft.timeoutSeconds,
-            executionScope: draft.executionScope,
-            retries: draft.retries,
-            argumentSchemaJson: draft.argumentSchemaJson
-          };
-
-          writeStorageRowData(rowNode, data);
-          upsertListItem(data, mode === "edit" ? checkedState : true);
-          applyPluginFunctionFilters(pluginPanel);
-          setEditorStatus(tAdmin("Funcion validada y lista para guardar."), "success");
-          resetEditor(false);
-          return true;
         }
 
         async function testEditorFunction() {
@@ -1108,13 +2577,17 @@
           var testPayload = parseTestPayloadInput();
           if (!testPayload.ok) {
             setEditorStatus(testPayload.message || tAdmin("Test payload invalido."), "error");
-            testPayloadEditorInput.focus();
+            if (testPayloadEditorInput && typeof testPayloadEditorInput.focus === "function") {
+              testPayloadEditorInput.focus();
+            }
             return false;
           }
 
           setEditorStatus(tAdmin("Probando funcion..."), "info");
           setTestResult(null, false);
-          testButton.disabled = true;
+          if (testButton) {
+            testButton.disabled = true;
+          }
 
           try {
             var testResponse = await adminApiRequest("/functions/test", "POST", {
@@ -1123,7 +2596,7 @@
                 plugin_key: draft.pluginKey,
                 plugin_label: getSelectLabel(pluginEditorSelect, draft.pluginKey),
                 role: draft.roleKey,
-                function_name: buildFunctionNameFromId(sanitizeFunctionId(editorIdInput.value || "") || "temp"),
+                function_name: draft.functionName || buildFunctionNameFromId(sanitizeFunctionId(editorIdInput.value || "") || "temp"),
                 function_code: draft.functionCode,
                 description: draft.description,
                 requires_approval: draft.requiresApproval,
@@ -1148,7 +2621,9 @@
             setTestResult({ ok: false, error: errorMessage }, true);
             return false;
           } finally {
-            testButton.disabled = false;
+            if (testButton) {
+              testButton.disabled = false;
+            }
           }
         }
 
@@ -1184,9 +2659,7 @@
           var saveTarget = target.closest(".navai-plugin-function-save");
           if (saveTarget) {
             event.preventDefault();
-            if (saveEditorFunction()) {
-              closeEditorModal(false);
-            }
+            void saveEditorFunction();
             return;
           }
 
@@ -1203,10 +2676,130 @@
           event.preventDefault();
           resetEditor(false);
           openEditorModal();
-          if (codeEditorInput && typeof codeEditorInput.focus === "function") {
-            codeEditorInput.focus();
+          void refreshFunctionAgentAssignmentEditor("", true);
+          if (nameEditorInput && typeof nameEditorInput.focus === "function") {
+            nameEditorInput.focus();
+          } else {
+            focusFunctionCodeInput();
           }
         });
+
+        if (exportOpenButton) {
+          exportOpenButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            openExportModal();
+          });
+        }
+
+        if (importOpenButton) {
+          importOpenButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            openImportModal();
+          });
+        }
+
+        if (exportPluginSelect) {
+          exportPluginSelect.addEventListener("change", function () {
+            setExportStatus("", "");
+            renderExportFunctionList();
+          });
+        }
+
+        if (exportRoleSelect) {
+          exportRoleSelect.addEventListener("change", function () {
+            setExportStatus("", "");
+            renderExportFunctionList();
+          });
+        }
+
+        if (exportModeInputs && exportModeInputs.length) {
+          for (var exportModeIndex = 0; exportModeIndex < exportModeInputs.length; exportModeIndex += 1) {
+            if (!exportModeInputs[exportModeIndex]) {
+              continue;
+            }
+            exportModeInputs[exportModeIndex].addEventListener("change", function () {
+              renderExportFunctionList();
+            });
+          }
+        }
+
+        if (exportListNode) {
+          exportListNode.addEventListener("change", function (event) {
+            var target = event.target;
+            if (!target || !target.classList || !target.classList.contains("navai-plugin-function-export-item-check")) {
+              return;
+            }
+            exportSelectionById[String(target.value || "")] = !!target.checked;
+            renderExportFunctionList();
+          });
+        }
+
+        if (exportSelectVisibleButton) {
+          exportSelectVisibleButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            setExportVisibleSelection(true);
+          });
+        }
+
+        if (exportDeselectVisibleButton) {
+          exportDeselectVisibleButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            setExportVisibleSelection(false);
+          });
+        }
+
+        if (exportDownloadButton) {
+          exportDownloadButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            runExportDownload();
+          });
+        }
+
+        if (importFileInput) {
+          importFileInput.addEventListener("change", function () {
+            setImportStatus("", "");
+            resetImportCache();
+            if (!importFileInput.files || !importFileInput.files.length) {
+              return;
+            }
+            void loadImportFileCache().catch(function (error) {
+              setImportStatus(
+                error && error.message ? String(error.message) : tAdmin("No se pudo leer el archivo seleccionado."),
+                "error"
+              );
+            });
+          });
+        }
+
+        if (importRunButton) {
+          importRunButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            void runImportFunctions();
+          });
+        }
+
+        function bindTransferModalEvents(modalNode) {
+          if (!modalNode) {
+            return;
+          }
+          modalNode.addEventListener("click", function (event) {
+            var target = event.target;
+            if (target && target.closest) {
+              var dismissButton = target.closest(".navai-plugin-function-transfer-modal-dismiss");
+              if (dismissButton && modalNode.contains(dismissButton)) {
+                event.preventDefault();
+                closeTransferModal(modalNode);
+                return;
+              }
+            }
+            if (event.target === modalNode) {
+              closeTransferModal(modalNode);
+            }
+          });
+        }
+
+        bindTransferModalEvents(exportModal);
+        bindTransferModalEvents(importModal);
 
         modal.addEventListener("click", function (event) {
           var target = event.target;
@@ -1228,18 +2821,28 @@
           if (!event || event.key !== "Escape") {
             return;
           }
-          if (modal.hasAttribute("hidden")) {
+          if (modal && !modal.hasAttribute("hidden")) {
+            closeEditorModal(true);
             return;
           }
-          closeEditorModal(true);
+          if (exportModal && !exportModal.hasAttribute("hidden")) {
+            closeTransferModal(exportModal);
+            return;
+          }
+          if (importModal && !importModal.hasAttribute("hidden")) {
+            closeTransferModal(importModal);
+          }
         });
 
         builder.__navaiPluginEditorApi = {
           openCreate: function () {
             resetEditor(false);
             openEditorModal();
-            if (codeEditorInput && typeof codeEditorInput.focus === "function") {
-              codeEditorInput.focus();
+            void refreshFunctionAgentAssignmentEditor("", true);
+            if (nameEditorInput && typeof nameEditorInput.focus === "function") {
+              nameEditorInput.focus();
+            } else {
+              focusFunctionCodeInput();
             }
           },
           editById: function (rowId) {
@@ -2869,9 +4472,10 @@
     var agentEnabledInput = panel.querySelector(".navai-agent-form-enabled");
     var agentDefaultInput = panel.querySelector(".navai-agent-form-default");
     var agentInstructionsInput = panel.querySelector(".navai-agent-form-instructions");
-    var agentToolsInput = panel.querySelector(".navai-agent-form-tools");
-    var agentRoutesInput = panel.querySelector(".navai-agent-form-routes");
-    var agentContextInput = panel.querySelector(".navai-agent-form-context");
+    var agentOpenButton = panel.querySelector(".navai-agent-open");
+    var agentModal = panel.querySelector(".navai-agent-modal");
+    var agentModalTitle = panel.querySelector(".navai-agent-modal-title");
+    var agentModalDismissButtons = panel.querySelectorAll(".navai-agent-modal-dismiss");
     var agentSaveButton = panel.querySelector(".navai-agent-save");
     var agentResetButton = panel.querySelector(".navai-agent-reset");
     var agentsReloadButton = panel.querySelector(".navai-agents-reload");
@@ -2888,10 +4492,17 @@
     var handoffPayloadKeywordsInput = panel.querySelector(".navai-handoff-form-payload-keywords");
     var handoffRolesInput = panel.querySelector(".navai-handoff-form-roles");
     var handoffContextInput = panel.querySelector(".navai-handoff-form-context");
+    var handoffOpenButton = panel.querySelector(".navai-handoff-open");
+    var handoffModal = panel.querySelector(".navai-handoff-modal");
+    var handoffModalTitle = panel.querySelector(".navai-handoff-modal-title");
+    var handoffModalDismissButtons = panel.querySelectorAll(".navai-handoff-modal-dismiss");
     var handoffSaveButton = panel.querySelector(".navai-handoff-save");
     var handoffResetButton = panel.querySelector(".navai-handoff-reset");
     var handoffsReloadButton = panel.querySelector(".navai-handoffs-reload");
     var handoffsTbody = panel.querySelector(".navai-handoffs-table-body");
+
+    var subtabButtons = panel.querySelectorAll("[data-navai-agents-tab]");
+    var subtabPanels = panel.querySelectorAll("[data-navai-agents-subpanel]");
 
     var detailWrap = panel.querySelector(".navai-agents-detail");
     var detailClose = panel.querySelector(".navai-agents-detail-close");
@@ -2953,6 +4564,140 @@
       }
       if (detailJson) {
         detailJson.textContent = "";
+      }
+    }
+
+    function setInlineModalOpenState(modalNode, isOpen) {
+      if (!modalNode) {
+        return;
+      }
+      if (isOpen) {
+        modalNode.removeAttribute("hidden");
+        modalNode.classList.add("is-open");
+      } else {
+        modalNode.classList.remove("is-open");
+        modalNode.setAttribute("hidden", "hidden");
+      }
+    }
+
+    function updateInlineModalTitle(titleNode, mode) {
+      if (!titleNode) {
+        return;
+      }
+      var createLabel = String(titleNode.getAttribute("data-label-create") || "");
+      var editLabel = String(titleNode.getAttribute("data-label-edit") || "");
+      var nextLabel = mode === "edit" ? editLabel : createLabel;
+      titleNode.textContent = tAdmin(nextLabel || createLabel || editLabel || "");
+    }
+
+    function openServerModal(mode) {
+      updateInlineModalTitle(serverModalTitle, mode === "edit" ? "edit" : "create");
+      setInlineModalOpenState(serverModal, true);
+      if (serverNameInput && typeof serverNameInput.focus === "function") {
+        serverNameInput.focus();
+      }
+    }
+
+    function closeServerModal(shouldReset) {
+      setInlineModalOpenState(serverModal, false);
+      if (shouldReset) {
+        resetServerForm();
+      }
+    }
+
+    function openPolicyModal(mode) {
+      updateInlineModalTitle(policyModalTitle, mode === "edit" ? "edit" : "create");
+      setInlineModalOpenState(policyModal, true);
+      if (policyToolNameInput && typeof policyToolNameInput.focus === "function") {
+        policyToolNameInput.focus();
+      }
+    }
+
+    function closePolicyModal(shouldReset) {
+      setInlineModalOpenState(policyModal, false);
+      if (shouldReset) {
+        resetPolicyForm();
+      }
+    }
+
+    function setInlineModalOpenState(modalNode, isOpen) {
+      if (!modalNode) {
+        return;
+      }
+      if (isOpen) {
+        modalNode.removeAttribute("hidden");
+        modalNode.classList.add("is-open");
+      } else {
+        modalNode.classList.remove("is-open");
+        modalNode.setAttribute("hidden", "hidden");
+      }
+    }
+
+    function updateInlineModalTitle(titleNode, mode) {
+      if (!titleNode) {
+        return;
+      }
+      var createLabel = String(titleNode.getAttribute("data-label-create") || "");
+      var editLabel = String(titleNode.getAttribute("data-label-edit") || "");
+      var nextLabel = mode === "edit" ? editLabel : createLabel;
+      titleNode.textContent = tAdmin(nextLabel || createLabel || editLabel || "");
+    }
+
+    function setAgentsSubtab(tabKey) {
+      var nextTab = String(tabKey || "agents");
+      var hasMatch = false;
+      for (var buttonIndex = 0; buttonIndex < subtabButtons.length; buttonIndex += 1) {
+        var button = subtabButtons[buttonIndex];
+        if (!button) {
+          continue;
+        }
+        var isActive = String(button.getAttribute("data-navai-agents-tab") || "") === nextTab;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
+        if (isActive) {
+          hasMatch = true;
+        }
+      }
+      for (var panelIndex = 0; panelIndex < subtabPanels.length; panelIndex += 1) {
+        var subpanel = subtabPanels[panelIndex];
+        if (!subpanel) {
+          continue;
+        }
+        var panelActive = String(subpanel.getAttribute("data-navai-agents-subpanel") || "") === nextTab;
+        subpanel.classList.toggle("is-active", panelActive);
+      }
+      if (!hasMatch && nextTab !== "agents") {
+        setAgentsSubtab("agents");
+      }
+    }
+
+    function openAgentModal(mode) {
+      updateInlineModalTitle(agentModalTitle, mode === "edit" ? "edit" : "create");
+      setInlineModalOpenState(agentModal, true);
+      if (agentNameInput && typeof agentNameInput.focus === "function") {
+        agentNameInput.focus();
+      }
+    }
+
+    function closeAgentModal(shouldReset) {
+      setInlineModalOpenState(agentModal, false);
+      if (shouldReset) {
+        resetAgentForm();
+      }
+    }
+
+    function openHandoffModal(mode) {
+      updateInlineModalTitle(handoffModalTitle, mode === "edit" ? "edit" : "create");
+      setInlineModalOpenState(handoffModal, true);
+      if (handoffNameInput && typeof handoffNameInput.focus === "function") {
+        handoffNameInput.focus();
+      }
+    }
+
+    function closeHandoffModal(shouldReset) {
+      setInlineModalOpenState(handoffModal, false);
+      if (shouldReset) {
+        resetHandoffForm();
       }
     }
 
@@ -3208,9 +4953,6 @@
       if (agentEnabledInput) { agentEnabledInput.checked = true; }
       if (agentDefaultInput) { agentDefaultInput.checked = false; }
       if (agentInstructionsInput) { agentInstructionsInput.value = ""; }
-      if (agentToolsInput) { agentToolsInput.value = ""; }
-      if (agentRoutesInput) { agentRoutesInput.value = ""; }
-      if (agentContextInput) { agentContextInput.value = ""; }
     }
 
     function fillAgentForm(item) {
@@ -3226,9 +4968,6 @@
       if (agentEnabledInput) { agentEnabledInput.checked = !!item.enabled; }
       if (agentDefaultInput) { agentDefaultInput.checked = !!item.is_default; }
       if (agentInstructionsInput) { agentInstructionsInput.value = String(item.instructions_text || ""); }
-      if (agentToolsInput) { agentToolsInput.value = listToCsv(item.allowed_tools); }
-      if (agentRoutesInput) { agentRoutesInput.value = listToCsv(item.allowed_routes); }
-      if (agentContextInput) { agentContextInput.value = item.context && Object.keys(item.context).length ? prettyJson(item.context) : ""; }
     }
 
     function collectAgentPayload() {
@@ -3244,10 +4983,7 @@
         description: agentDescriptionInput ? String(agentDescriptionInput.value || "") : "",
         enabled: !!(agentEnabledInput && agentEnabledInput.checked),
         is_default: !!(agentDefaultInput && agentDefaultInput.checked),
-        instructions_text: agentInstructionsInput ? String(agentInstructionsInput.value || "") : "",
-        allowed_tools: csvToList(agentToolsInput ? agentToolsInput.value : ""),
-        allowed_routes: csvToList(agentRoutesInput ? agentRoutesInput.value : ""),
-        context: parseOptionalObjectJson(agentContextInput ? agentContextInput.value : "")
+        instructions_text: agentInstructionsInput ? String(agentInstructionsInput.value || "") : ""
       };
     }
 
@@ -3351,8 +5087,9 @@
           response = await adminApiRequest("/agents", "POST", payload);
         }
         showDetail({ message: tAdmin("Agente guardado correctamente."), item: response && response.item ? response.item : null });
-        resetAgentForm();
         await refreshAll();
+        setAgentsSubtab("agents");
+        closeAgentModal(true);
       } catch (error) {
         showDetail({ error: (error && error.message) ? error.message : tAdmin("No se pudo guardar el agente.") });
       }
@@ -3386,8 +5123,9 @@
           response = await adminApiRequest("/agents/handoffs", "POST", payload);
         }
         showDetail({ message: tAdmin("Regla de handoff guardada correctamente."), item: response && response.item ? response.item : null });
-        resetHandoffForm();
         await loadHandoffs();
+        setAgentsSubtab("handoffs");
+        closeHandoffModal(true);
       } catch (error) {
         showDetail({ error: (error && error.message) ? error.message : tAdmin("No se pudo guardar la regla de handoff.") });
       }
@@ -3408,6 +5146,74 @@
       } catch (error) {
         showDetail({ error: (error && error.message) ? error.message : tAdmin("No se pudo eliminar la regla de handoff.") });
       }
+    }
+
+    for (var subtabButtonIndex = 0; subtabButtonIndex < subtabButtons.length; subtabButtonIndex += 1) {
+      (function (tabButton) {
+        if (!tabButton) {
+          return;
+        }
+        tabButton.addEventListener("click", function (event) {
+          event.preventDefault();
+          setAgentsSubtab(String(tabButton.getAttribute("data-navai-agents-tab") || "agents"));
+        });
+      })(subtabButtons[subtabButtonIndex]);
+    }
+
+    if (agentOpenButton) {
+      agentOpenButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        setAgentsSubtab("agents");
+        resetAgentForm();
+        openAgentModal("create");
+      });
+    }
+    if (handoffOpenButton) {
+      handoffOpenButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        setAgentsSubtab("handoffs");
+        resetHandoffForm();
+        openHandoffModal("create");
+      });
+    }
+
+    for (var agentDismissIndex = 0; agentDismissIndex < agentModalDismissButtons.length; agentDismissIndex += 1) {
+      (function (dismissButton) {
+        if (!dismissButton) {
+          return;
+        }
+        dismissButton.addEventListener("click", function (event) {
+          event.preventDefault();
+          closeAgentModal(true);
+        });
+      })(agentModalDismissButtons[agentDismissIndex]);
+    }
+
+    for (var handoffDismissIndex = 0; handoffDismissIndex < handoffModalDismissButtons.length; handoffDismissIndex += 1) {
+      (function (dismissButton) {
+        if (!dismissButton) {
+          return;
+        }
+        dismissButton.addEventListener("click", function (event) {
+          event.preventDefault();
+          closeHandoffModal(true);
+        });
+      })(handoffModalDismissButtons[handoffDismissIndex]);
+    }
+
+    if (agentModal) {
+      agentModal.addEventListener("click", function (event) {
+        if (event.target === agentModal) {
+          closeAgentModal(true);
+        }
+      });
+    }
+    if (handoffModal) {
+      handoffModal.addEventListener("click", function (event) {
+        if (event.target === handoffModal) {
+          closeHandoffModal(true);
+        }
+      });
     }
 
     if (agentSaveButton) {
@@ -3441,6 +5247,8 @@
       if (editButton) {
         event.preventDefault();
         fillAgentForm(getAgentById(String(editButton.getAttribute("data-agent-id") || "")));
+        setAgentsSubtab("agents");
+        openAgentModal("edit");
         return;
       }
       var deleteButton = target.closest(".navai-agent-delete");
@@ -3459,6 +5267,8 @@
       if (editButton) {
         event.preventDefault();
         fillHandoffForm(getHandoffById(String(editButton.getAttribute("data-handoff-id") || "")));
+        setAgentsSubtab("handoffs");
+        openHandoffModal("edit");
         return;
       }
       var deleteButton = target.closest(".navai-handoff-delete");
@@ -3469,6 +5279,7 @@
     });
 
     hideDetail();
+    setAgentsSubtab("agents");
     resetAgentForm();
     resetHandoffForm();
     refreshAll();
@@ -3493,6 +5304,10 @@
     var serverEnabledInput = panel.querySelector(".navai-mcp-server-form-enabled");
     var serverVerifySslInput = panel.querySelector(".navai-mcp-server-form-verify-ssl");
     var serverHeadersInput = panel.querySelector(".navai-mcp-server-form-headers");
+    var serverOpenButton = panel.querySelector(".navai-mcp-server-open");
+    var serverModal = panel.querySelector(".navai-mcp-server-modal");
+    var serverModalTitle = panel.querySelector(".navai-mcp-server-modal-title");
+    var serverModalDismissButtons = panel.querySelectorAll(".navai-mcp-server-modal-dismiss");
     var serverSaveButton = panel.querySelector(".navai-mcp-server-save");
     var serverResetButton = panel.querySelector(".navai-mcp-server-reset");
     var serversReloadButton = panel.querySelector(".navai-mcp-servers-reload");
@@ -3510,6 +5325,10 @@
     var policyRolesInput = panel.querySelector(".navai-mcp-policy-form-roles");
     var policyAgentKeysInput = panel.querySelector(".navai-mcp-policy-form-agent-keys");
     var policyNotesInput = panel.querySelector(".navai-mcp-policy-form-notes");
+    var policyOpenButton = panel.querySelector(".navai-mcp-policy-open");
+    var policyModal = panel.querySelector(".navai-mcp-policy-modal");
+    var policyModalTitle = panel.querySelector(".navai-mcp-policy-modal-title");
+    var policyModalDismissButtons = panel.querySelectorAll(".navai-mcp-policy-modal-dismiss");
     var policySaveButton = panel.querySelector(".navai-mcp-policy-save");
     var policyResetButton = panel.querySelector(".navai-mcp-policy-reset");
     var policiesReloadButton = panel.querySelector(".navai-mcp-policies-reload");
@@ -3959,8 +5778,8 @@
           response = await adminApiRequest("/mcp/servers", "POST", payload);
         }
         showDetail({ message: tAdmin("Servidor MCP guardado correctamente."), item: response && response.item ? response.item : null });
-        resetServerForm();
         await loadServers();
+        closeServerModal(true);
       } catch (error) {
         showDetail({ error: (error && error.message) ? error.message : tAdmin("No se pudo guardar el servidor MCP.") });
       }
@@ -4043,8 +5862,8 @@
           response = await adminApiRequest("/mcp/policies", "POST", payload);
         }
         showDetail({ message: tAdmin("Politica MCP guardada correctamente."), item: response && response.item ? response.item : null });
-        resetPolicyForm();
         await loadPolicies();
+        closePolicyModal(true);
       } catch (error) {
         showDetail({ error: (error && error.message) ? error.message : tAdmin("No se pudo guardar la politica MCP.") });
       }
@@ -4066,6 +5885,57 @@
         showDetail({ error: (error && error.message) ? error.message : tAdmin("No se pudo eliminar la politica MCP.") });
       }
     }
+    if (serverOpenButton) {
+      serverOpenButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        resetServerForm();
+        openServerModal("create");
+      });
+    }
+    if (policyOpenButton) {
+      policyOpenButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        resetPolicyForm();
+        openPolicyModal("create");
+      });
+    }
+    for (var serverDismissIndex = 0; serverDismissIndex < serverModalDismissButtons.length; serverDismissIndex += 1) {
+      (function (dismissButton) {
+        if (!dismissButton) {
+          return;
+        }
+        dismissButton.addEventListener("click", function (event) {
+          event.preventDefault();
+          closeServerModal(true);
+        });
+      })(serverModalDismissButtons[serverDismissIndex]);
+    }
+    for (var policyDismissIndex = 0; policyDismissIndex < policyModalDismissButtons.length; policyDismissIndex += 1) {
+      (function (dismissButton) {
+        if (!dismissButton) {
+          return;
+        }
+        dismissButton.addEventListener("click", function (event) {
+          event.preventDefault();
+          closePolicyModal(true);
+        });
+      })(policyModalDismissButtons[policyDismissIndex]);
+    }
+    if (serverModal) {
+      serverModal.addEventListener("click", function (event) {
+        if (event.target === serverModal) {
+          closeServerModal(true);
+        }
+      });
+    }
+    if (policyModal) {
+      policyModal.addEventListener("click", function (event) {
+        if (event.target === policyModal) {
+          closePolicyModal(true);
+        }
+      });
+    }
+
     if (serverSaveButton) {
       serverSaveButton.addEventListener("click", function () { saveServer(); });
     }
@@ -4104,6 +5974,7 @@
       if (editButton) {
         event.preventDefault();
         fillServerForm(getServerById(String(editButton.getAttribute("data-mcp-server-id") || "")));
+        openServerModal("edit");
         return;
       }
 
@@ -4145,6 +6016,7 @@
       if (editButton) {
         event.preventDefault();
         fillPolicyForm(getPolicyById(String(editButton.getAttribute("data-mcp-policy-id") || "")));
+        openPolicyModal("edit");
         return;
       }
 
@@ -4180,19 +6052,22 @@
     hideDetail();
     resetServerForm();
     resetPolicyForm();
+    setInlineModalOpenState(serverModal, false);
+    setInlineModalOpenState(policyModal, false);
     renderToolsRows([], tAdmin("Selecciona un servidor para listar tools."));
     refreshAll();
   }
 
   function initDashboardTabs() {
     var tabButtons = document.querySelectorAll(".navai-admin-tab-button");
-    var tabPanels = document.querySelectorAll(".navai-admin-panel");
+    var tabPanels = document.querySelectorAll(".navai-admin-form > .navai-admin-panel");
     if (!tabButtons.length || !tabPanels.length) {
       return;
     }
 
     var hiddenInput = document.getElementById("navai-active-tab-input");
     var initialTab = readInitialTab();
+    var initialHashTab = window.location.hash.replace("#", "").trim().toLowerCase();
     activateTab(initialTab, tabButtons, tabPanels, hiddenInput);
 
     for (var i = 0; i < tabButtons.length; i += 1) {
@@ -4209,10 +6084,75 @@
         languageSelect.value = currentLang;
       }
       languageSelect.addEventListener("change", function () {
-        var nextLang = (this.value || "").toLowerCase() === "es" ? "es" : "en";
+        var nextLang = typeof normalizeDashboardLanguage === "function"
+          ? normalizeDashboardLanguage(this.value || "", currentDashboardLanguage())
+          : ((this.value || "").toLowerCase() === "es" ? "es" : "en");
+        if (this.value !== nextLang) {
+          this.value = nextLang;
+        }
         applyDashboardLanguage(nextLang);
       });
     }
+
+    (function initSettingsSubtabs() {
+      var settingsPanel = document.querySelector('.navai-admin-form > [data-navai-panel="settings"]');
+      if (!settingsPanel || settingsPanel.__navaiSettingsSubtabsReady) {
+        return;
+      }
+      settingsPanel.__navaiSettingsSubtabsReady = true;
+
+      var buttons = settingsPanel.querySelectorAll("[data-navai-settings-tab]");
+      var panels = settingsPanel.querySelectorAll("[data-navai-settings-subpanel]");
+      if (!buttons.length || !panels.length) {
+        return;
+      }
+
+      var validSubtabs = {
+        general: true,
+        safety: true,
+        approvals: true,
+        traces: true,
+        history: true
+      };
+
+      function setSettingsSubtab(tabKey) {
+        var target = validSubtabs[tabKey] ? tabKey : "general";
+
+        for (var buttonIndex = 0; buttonIndex < buttons.length; buttonIndex += 1) {
+          var button = buttons[buttonIndex];
+          if (!button) {
+            continue;
+          }
+          var isActiveButton = String(button.getAttribute("data-navai-settings-tab") || "") === target;
+          button.classList.toggle("is-active", isActiveButton);
+          button.setAttribute("aria-pressed", isActiveButton ? "true" : "false");
+        }
+
+        for (var panelIndex = 0; panelIndex < panels.length; panelIndex += 1) {
+          var panel = panels[panelIndex];
+          if (!panel) {
+            continue;
+          }
+          var isActivePanel = String(panel.getAttribute("data-navai-settings-subpanel") || "") === target;
+          panel.classList.toggle("is-active", isActivePanel);
+
+          var embeddedPanels = panel.querySelectorAll(".navai-admin-panel");
+          for (var embeddedIndex = 0; embeddedIndex < embeddedPanels.length; embeddedIndex += 1) {
+            embeddedPanels[embeddedIndex].classList.toggle("is-active", isActivePanel);
+          }
+        }
+      }
+
+      var initialHash = String(initialHashTab || "").toLowerCase();
+      setSettingsSubtab(validSubtabs[initialHash] ? initialHash : "general");
+
+      for (var i = 0; i < buttons.length; i += 1) {
+        buttons[i].addEventListener("click", function (event) {
+          event.preventDefault();
+          setSettingsSubtab(String(this.getAttribute("data-navai-settings-tab") || "general"));
+        });
+      }
+    })();
 
     initNavigationControls();
     initPluginFunctionsControls();

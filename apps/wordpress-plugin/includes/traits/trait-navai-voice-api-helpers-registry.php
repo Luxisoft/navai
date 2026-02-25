@@ -260,7 +260,9 @@ trait Navai_Voice_API_Helpers_Registry_Trait
             ],
         ];
 
-        return array_merge($builtinDefinitions, $customDefinitions);
+        // Do not expose plugin bridge helper functions to the AI runtime.
+        // The recommended path is custom dashboard functions (JavaScript) controlled by the user.
+        return $customDefinitions;
     }
 
     /**
@@ -495,31 +497,29 @@ trait Navai_Voice_API_Helpers_Registry_Trait
                         ];
                     }
 
-                    if (preg_match('/^\s*js\s*:/i', $normalizedCode) === 1) {
-                        $jsCode = preg_replace('/^\s*js\s*:/i', '', $normalizedCode, 1);
-                        $jsCode = is_string($jsCode) ? trim($jsCode) : '';
-                        if ($jsCode === '') {
-                            return [
-                                'ok' => false,
-                                'error' => 'Empty JavaScript code.',
-                            ];
-                        }
-
+                    if (preg_match('/^\s*(<\?(php)?|php\s*:)/i', $normalizedCode) === 1) {
                         return [
-                            'ok' => true,
-                            'plugin' => $pluginConfig['plugin_file'] ?? '',
-                            'execution_mode' => 'client_js',
-                            'code' => $jsCode,
-                            'payload' => $args,
+                            'ok' => false,
+                            'error' => 'Only JavaScript custom code is supported.',
                         ];
                     }
 
-                    return $this->execute_php_custom_function_code(
-                        $normalizedCode,
-                        $args,
-                        $context,
-                        $pluginConfig
-                    );
+                    $jsCode = preg_replace('/^\s*js\s*:/i', '', $normalizedCode, 1);
+                    $jsCode = is_string($jsCode) ? trim($jsCode) : '';
+                    if ($jsCode === '') {
+                        return [
+                            'ok' => false,
+                            'error' => 'Empty JavaScript code.',
+                        ];
+                    }
+
+                    return [
+                        'ok' => true,
+                        'plugin' => $pluginConfig['plugin_file'] ?? '',
+                        'execution_mode' => 'client_js',
+                        'code' => $jsCode,
+                        'payload' => $args,
+                    ];
                 },
             ];
         }

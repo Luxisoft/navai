@@ -906,7 +906,8 @@
   margin-top: 12px;
 }
 
-.navai-plugin-function-modal {
+.navai-plugin-function-modal,
+.navai-plugin-function-transfer-modal {
   position: fixed;
   inset: 0;
   z-index: 100000;
@@ -918,11 +919,13 @@
   backdrop-filter: blur(2px);
 }
 
-.navai-plugin-function-modal[hidden] {
+.navai-plugin-function-modal[hidden],
+.navai-plugin-function-transfer-modal[hidden] {
   display: none !important;
 }
 
-.navai-plugin-function-modal-dialog {
+.navai-plugin-function-modal-dialog,
+.navai-plugin-function-transfer-modal-dialog {
   width: min(960px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
   overflow: auto;
@@ -961,6 +964,142 @@
 .navai-plugin-function-modal .navai-plugin-function-row {
   background: #ffffff;
   border-color: #dae4f2;
+}
+
+.navai-plugin-function-transfer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.navai-plugin-function-transfer-mode {
+  grid-column: 1 / -1;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+  background: #ffffff;
+}
+
+.navai-plugin-function-transfer-mode > legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.navai-plugin-function-transfer-inline-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+}
+
+.navai-plugin-function-transfer-tools {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.navai-plugin-function-export-count {
+  margin: 0;
+}
+
+.navai-plugin-function-transfer-list {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.navai-plugin-function-transfer-list.is-empty {
+  display: block;
+  color: #526077;
+}
+
+.navai-plugin-function-transfer-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid #e2e9f4;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.navai-plugin-function-transfer-item input[type="checkbox"] {
+  margin-top: 4px;
+}
+
+.navai-plugin-function-transfer-item-main {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.navai-plugin-function-transfer-item-title {
+  font-weight: 600;
+  color: #243145;
+}
+
+.navai-plugin-function-transfer-item-meta {
+  color: #526077;
+  font-size: 12px;
+}
+
+.navai-plugin-function-transfer-item-preview {
+  color: #3f4d62;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.navai-plugin-function-transfer-file {
+  grid-column: 1 / -1;
+}
+
+.navai-plugin-function-transfer-file input[type="file"] {
+  width: 100%;
+}
+
+.navai-plugin-function-transfer-preview {
+  grid-column: 1 / -1;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #fbfdff;
+  padding: 10px;
+  color: #243145;
+}
+
+.navai-plugin-function-transfer-preview-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.navai-plugin-function-transfer-preview-list li {
+  margin: 0 0 4px;
+}
+
+.navai-plugin-function-export-status.is-error,
+.navai-plugin-function-import-status.is-error {
+  color: #b42318;
+}
+
+.navai-plugin-function-export-status.is-success,
+.navai-plugin-function-import-status.is-success {
+  color: #116329;
+}
+
+.navai-plugin-function-export-status.is-info,
+.navai-plugin-function-import-status.is-info {
+  color: #0f62d6;
 }
 
 .navai-plugin-functions-storage {
@@ -1007,12 +1146,53 @@
   grid-column: 1 / -1;
 }
 
+.navai-plugin-function-agent-assignment {
+  grid-column: 1 / -1;
+}
+
+.navai-plugin-function-agent-assignment select {
+  width: 100%;
+  min-height: 140px;
+}
+
+.navai-plugin-function-agent-assignment .navai-admin-description {
+  display: block;
+  margin-top: 6px;
+}
+
 .navai-plugin-function-code {
   width: 100%;
   min-height: 240px;
   font-family: Consolas, "Courier New", monospace;
   line-height: 1.4;
   resize: vertical;
+  tab-size: 2;
+}
+
+.navai-plugin-function-code-wrap .CodeMirror {
+  width: 100%;
+  min-height: 320px;
+  height: min(48vh, 440px);
+  border: 1px solid #cfd9e7;
+  border-radius: 8px;
+  background: #fbfdff;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.navai-plugin-function-code-wrap .CodeMirror-scroll {
+  min-height: 320px;
+}
+
+.navai-plugin-function-code-wrap .CodeMirror-focused {
+  border-color: #0f62d6;
+  box-shadow: 0 0 0 1px rgba(15, 98, 214, 0.18);
+}
+
+.navai-plugin-function-code-wrap .CodeMirror-gutters {
+  border-right: 1px solid #e4ebf6;
+  background: #f3f7fd;
 }
 
 .navai-plugin-function-remove {
@@ -1081,25 +1261,58 @@
 }
 
 .navai-plugin-func-item {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
   gap: 10px;
-  justify-content: space-between;
 }
 
 .navai-plugin-func-item input[type="checkbox"] {
-  margin-top: 4px;
+  margin-top: 0;
+  align-self: center;
 }
 
 .navai-plugin-func-main {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title title"
+    "description role";
+  align-items: center;
+  gap: 2px 8px;
   min-width: 0;
   flex: 1 1 auto;
 }
 
-.navai-plugin-func-main strong,
-.navai-plugin-func-main small {
+.navai-plugin-func-title {
+  grid-area: title;
   display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navai-plugin-func-description-text {
+  grid-area: description;
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navai-plugin-func-role-wrap {
+  grid-area: role;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Hide code snippets in the function list cards; keep code only inside the editor modal. */
+.navai-plugin-func-main .navai-plugin-func-code-preview {
+  display: none !important;
 }
 
 .navai-plugin-func-item-actions {
@@ -1108,6 +1321,7 @@
   gap: 6px;
   margin-left: auto;
   flex: 0 0 auto;
+  flex-wrap: nowrap;
 }
 
 .navai-plugin-func-item-actions .button {
@@ -1581,12 +1795,14 @@
     justify-content: center;
   }
 
-  .navai-plugin-function-modal {
+  .navai-plugin-function-modal,
+  .navai-plugin-function-transfer-modal {
     padding: 12px;
     align-items: flex-start;
   }
 
-  .navai-plugin-function-modal-dialog {
+  .navai-plugin-function-modal-dialog,
+  .navai-plugin-function-transfer-modal-dialog {
     width: 100%;
     max-height: calc(100vh - 24px);
     padding: 12px;

@@ -7,13 +7,16 @@
   var VALID_TABS = {
     navigation: true,
     plugins: true,
-    safety: true,
-    approvals: true,
-    traces: true,
-    history: true,
     agents: true,
     mcp: true,
     settings: true
+  };
+
+  var LEGACY_SETTINGS_HASH_TABS = {
+    safety: true,
+    approvals: true,
+    traces: true,
+    history: true
   };
 
   var VALID_NAV_TABS = {
@@ -21,9 +24,22 @@
     private: true
   };
 
+  var SUPPORTED_DASHBOARD_LANGUAGES = {
+    en: true,
+    es: true,
+    pt: true,
+    fr: true,
+    ru: true,
+    ko: true,
+    ja: true,
+    zh: true,
+    hi: true
+  };
+
   var DASHBOARD_TRANSLATIONS = [
     ["Navegacion", "Navigation"],
     ["Funciones", "Functions"],
+    ["General", "General"],
     ["Seguridad", "Safety"],
     ["Ajustes", "Settings"],
     ["Documentacion", "Documentation"],
@@ -46,6 +62,8 @@
     ["Todos", "All"],
     ["Plugin", "Plugin"],
     ["Rol", "Role"],
+    ["Todos los roles", "All roles"],
+    ["Visitantes", "Visitors"],
     ["URL", "URL"],
     ["Descripcion", "Description"],
     ["No se encontraron menus publicos de WordPress.", "No public WordPress menus were found."],
@@ -53,7 +71,7 @@
     ["Define funciones personalizadas por plugin y rol para que NAVAI las ejecute.", "Define custom functions by plugin and role for NAVAI to execute."],
     ["Funciones personalizadas", "Custom functions"],
     ["Selecciona plugin y rol. Luego agrega codigo JavaScript y una descripcion para guiar al agente IA.", "Select plugin and role. Then add JavaScript code and a description to guide the AI agent."],
-    ["Funcion NAVAI", "NAVAI Function"],
+    ["Funcion NAVAI (JavaScript)", "NAVAI Function (JavaScript)"],
     ["Scope de ejecucion", "Execution scope"],
     ["Frontend y admin", "Frontend and admin"],
     ["Solo frontend", "Frontend only"],
@@ -69,6 +87,40 @@
     ["Anadir funcion", "Add function"],
     ["Crear funcion", "Create function"],
     ["Editar funcion", "Edit function"],
+    ["Exportar funciones", "Export functions"],
+    ["Importar funciones", "Import functions"],
+    ["Filtra por plugin y rol. Puedes exportar todas las funciones visibles o seleccionar solo algunas.", "Filter by plugin and role. You can export all visible functions or only selected ones."],
+    ["Modo de exportacion", "Export mode"],
+    ["Exportar todas las visibles", "Export all visible"],
+    ["Seleccionar funciones a exportar", "Select functions to export"],
+    ["Seleccionar visibles", "Select visible"],
+    ["Deseleccionar visibles", "Deselect visible"],
+    ["Exportar archivo .js", "Export .js file"],
+    ["No hay funciones para exportar con los filtros actuales.", "No functions match the current export filters."],
+    ["funciones visibles", "visible functions"],
+    ["seleccionadas", "selected"],
+    ["No se pudo crear el archivo para descarga.", "Could not create the file for download."],
+    ["No hay funciones seleccionadas para exportar.", "No functions selected for export."],
+    ["funciones exportadas correctamente.", "functions exported successfully."],
+    ["No se pudo exportar el archivo.", "Could not export the file."],
+    ["Selecciona plugin y rol destino. Luego sube un archivo .js exportado desde NAVAI con las funciones a importar.", "Select target plugin and role. Then upload a .js file exported from NAVAI with the functions to import."],
+    ["Archivo .js", ".js file"],
+    ["Archivo invalido. Debe ser un .js exportado desde NAVAI.", "Invalid file. It must be a .js file exported from NAVAI."],
+    ["No se pudo leer el JSON del archivo .js exportado.", "Could not read JSON from the exported .js file."],
+    ["Archivo de importacion invalido.", "Invalid import file."],
+    ["Funciones detectadas:", "Detected functions:"],
+    ["omitidas por formato invalido", "skipped due to invalid format"],
+    ["Funcion sin nombre", "Unnamed function"],
+    ["Sin descripcion", "No description"],
+    ["funciones adicionales", "additional functions"],
+    ["Selecciona un archivo .js para importar.", "Select a .js file to import."],
+    ["No se pudo leer el archivo seleccionado.", "Could not read the selected file."],
+    ["Leyendo archivo de importacion...", "Reading import file..."],
+    ["El archivo no contiene funciones validas para importar.", "The file does not contain valid functions to import."],
+    ["Importando funciones...", "Importing functions..."],
+    ["funciones no se pudieron importar.", "functions could not be imported."],
+    ["No se pudo importar ninguna funcion.", "Could not import any function."],
+    ["No se pudo importar el archivo.", "Could not import the file."],
     ["Editar", "Edit"],
     ["Cancelar edicion", "Cancel edit"],
     ["Cerrar", "Close"],
@@ -76,15 +128,18 @@
     ["Selecciona un plugin.", "Select a plugin."],
     ["Selecciona un rol.", "Select a role."],
     ["La funcion NAVAI no puede estar vacia.", "NAVAI function cannot be empty."],
+    ["Solo se permite codigo JavaScript en funciones personalizadas.", "Only JavaScript code is allowed in custom functions."],
     ["JSON Schema invalido.", "Invalid JSON Schema."],
     ["JSON Schema invalido: revisa el formato JSON.", "Invalid JSON Schema: check the JSON format."],
     ["El JSON Schema debe ser un objeto JSON.", "JSON Schema must be a JSON object."],
     ["Test payload invalido: revisa el formato JSON.", "Invalid test payload: check the JSON format."],
     ["El Test payload debe ser un objeto o arreglo JSON.", "Test payload must be a JSON object or array."],
     ["Probando funcion...", "Testing function..."],
+    ["Guardando funcion...", "Saving function..."],
     ["Prueba completada correctamente.", "Test completed successfully."],
     ["La prueba devolvio un resultado no exitoso.", "The test returned a non-success result."],
     ["No se pudo probar la funcion.", "Failed to test the function."],
+    ["No se pudo guardar la funcion.", "Failed to save the function."],
     ["Funcion validada y lista para guardar.", "Function validated and ready to save."],
     ["Configuracion principal del runtime de voz.", "Main voice runtime configuration."],
     ["Configura guardrails para bloquear o advertir sobre entradas, herramientas y salidas del agente.", "Configure guardrails to block or warn about agent inputs, tools, and outputs."],
@@ -221,10 +276,13 @@
     ["Se aplico retencion a sesiones antiguas.", "Retention was applied to old sessions."],
     ["Agentes", "Agents"],
     ["Crea agentes especialistas y reglas de handoff por intencion/contexto para delegar herramientas.", "Create specialist agents and handoff rules by intent/context to delegate tools."],
+    ["Agentes y handoffs", "Agents and handoffs"],
     ["Activar multiagente y handoffs", "Enable multi-agent and handoffs"],
     ["Usa Guardar cambios para persistir este interruptor. Los agentes y reglas se guardan al instante desde este panel.", "Use Save changes to persist this toggle. Agents and rules are saved instantly from this panel."],
     ["Agente especialista", "Specialist agent"],
     ["Define nombre, instrucciones y allowlists de tools/rutas.", "Define name, instructions, and tool/route allowlists."],
+    ["Define nombre e instrucciones del especialista. Las tools permitidas se asignan desde el panel de Funciones.", "Define the specialist name and instructions. Allowed tools are assigned from the Functions panel."],
+    ["Crear agente", "Create agent"],
     ["Agent key", "Agent key"],
     ["Nombre", "Name"],
     ["Agente activo", "Active agent"],
@@ -282,6 +340,12 @@
     ["Debes seleccionar un agente destino.", "You must select a target agent."],
     ["El JSON de contexto debe ser un objeto JSON.", "Context JSON must be a JSON object."],
     ["El handoff requiere al menos una condicion.", "Handoff requires at least one condition."],
+    ["Servidor MCP", "MCP server"],
+    ["Editar servidor MCP", "Edit MCP server"],
+    ["Crear servidor", "Create server"],
+    ["Politica de acceso MCP", "MCP access policy"],
+    ["Editar politica MCP", "Edit MCP policy"],
+    ["Crear politica", "Create policy"],
     ["Deshabilitado", "Disabled"],
     ["Conexion y runtime", "Connection and runtime"],
     ["Configura la API, el modelo y el comportamiento base del agente de voz.", "Configure the API, model, and base behavior of the voice agent."],
@@ -320,7 +384,7 @@
     ["Filtrar por texto...", "Filter by text..."],
     ["Describe when NAVAI should use this route", "Describe when NAVAI should use this route"],
     ["Describe when NAVAI should execute this function", "Describe when NAVAI should execute this function"],
-    ["Pega codigo PHP o JavaScript para NAVAI. Para JavaScript usa prefijo js:.", "Paste PHP or JavaScript code for NAVAI. For JavaScript use the js: prefix."],
+    ["Pega codigo JavaScript para NAVAI.", "Paste JavaScript code for NAVAI."],
     ["Buscar modelo...", "Search model..."],
     ["No se encontraron modelos.", "No models found."],
     ["Buscar voz...", "Search voice..."],
@@ -342,15 +406,22 @@
     if (VALID_TABS[fromHash]) {
       return fromHash;
     }
+    if (LEGACY_SETTINGS_HASH_TABS[fromHash]) {
+      return "settings";
+    }
 
     return "navigation";
   }
 
   function readDashboardLanguage() {
     var config = getAdminConfig();
-    var lang = typeof config.dashboardLanguage === "string" ? config.dashboardLanguage.trim().toLowerCase() : "";
-    if (lang !== "es" && lang !== "en") {
-      lang = "en";
+    return normalizeDashboardLanguage(config.dashboardLanguage, "en");
+  }
+
+  function normalizeDashboardLanguage(value, fallback) {
+    var lang = typeof value === "string" ? value.trim().toLowerCase() : "";
+    if (!SUPPORTED_DASHBOARD_LANGUAGES[lang]) {
+      lang = SUPPORTED_DASHBOARD_LANGUAGES[fallback] ? fallback : "en";
     }
     return lang;
   }
@@ -420,6 +491,8 @@
     if (!wrap) {
       return;
     }
+
+    targetLang = normalizeDashboardLanguage(targetLang, readDashboardLanguage());
 
     translateNodeTree(wrap, targetLang);
 
@@ -998,6 +1071,7 @@
 
   runtime.getAdminConfig = getAdminConfig;
   runtime.readInitialTab = readInitialTab;
+  runtime.normalizeDashboardLanguage = normalizeDashboardLanguage;
   runtime.readDashboardLanguage = readDashboardLanguage;
   runtime.translateValue = translateValue;
   runtime.translateNodeTree = translateNodeTree;

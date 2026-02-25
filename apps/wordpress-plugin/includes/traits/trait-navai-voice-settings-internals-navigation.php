@@ -381,7 +381,13 @@ trait Navai_Voice_Settings_Internals_Navigation_Trait
             }
 
             $role = sanitize_key((string) ($item['role'] ?? ''));
-            $roleLabel = isset($availableRoles[$role]) ? (string) $availableRoles[$role] : $role;
+            if ($role === 'all') {
+                $roleLabel = __('Todos los roles', 'navai-voice');
+            } elseif ($role === 'guest') {
+                $roleLabel = __('Visitantes', 'navai-voice');
+            } else {
+                $roleLabel = isset($availableRoles[$role]) ? (string) $availableRoles[$role] : $role;
+            }
             $item['role_label'] = $roleLabel;
             $groups[$pluginKey]['functions'][] = $item;
         }
@@ -451,7 +457,16 @@ trait Navai_Voice_Settings_Internals_Navigation_Trait
      */
     private function build_plugin_function_role_options(array $customFunctions, array $availableRoles): array
     {
-        $options = [];
+        $options = [
+            'all' => [
+                'key' => 'all',
+                'label' => __('Todos los roles', 'navai-voice'),
+            ],
+            'guest' => [
+                'key' => 'guest',
+                'label' => __('Visitantes', 'navai-voice'),
+            ],
+        ];
 
         foreach ($customFunctions as $item) {
             if (!is_array($item)) {
@@ -465,7 +480,11 @@ trait Navai_Voice_Settings_Internals_Navigation_Trait
 
             $options[$role] = [
                 'key' => $role,
-                'label' => isset($availableRoles[$role]) ? (string) $availableRoles[$role] : $role,
+                'label' => $role === 'all'
+                    ? __('Todos los roles', 'navai-voice')
+                    : ($role === 'guest'
+                        ? __('Visitantes', 'navai-voice')
+                        : (isset($availableRoles[$role]) ? (string) $availableRoles[$role] : $role)),
             ];
         }
 

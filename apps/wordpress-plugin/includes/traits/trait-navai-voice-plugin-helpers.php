@@ -6,6 +6,93 @@ if (!defined('ABSPATH')) {
 
 trait Navai_Voice_Plugin_Helpers_Trait
 {
+    /**
+     * @param array<string, mixed> $settings
+     * @return array<int, array{phase: int, key: string, label: string, enabled: bool, details: array<int, string>}>
+     */
+    private function build_frontend_roadmap_phases(array $settings): array
+    {
+        $guardrailsEnabled = !array_key_exists('enable_guardrails', $settings) || !empty($settings['enable_guardrails']);
+        $approvalsEnabled = !array_key_exists('enable_approvals', $settings) || !empty($settings['enable_approvals']);
+        $tracingEnabled = !array_key_exists('enable_tracing', $settings) || !empty($settings['enable_tracing']);
+        $sessionMemoryEnabled = !array_key_exists('enable_session_memory', $settings) || !empty($settings['enable_session_memory']);
+        $agentsEnabled = !array_key_exists('enable_agents', $settings) || !empty($settings['enable_agents']);
+        $mcpEnabled = !array_key_exists('enable_mcp', $settings) || !empty($settings['enable_mcp']);
+        $turnDetectionMode = $this->sanitize_realtime_turn_detection_mode($settings['realtime_turn_detection_mode'] ?? 'server_vad');
+        $voiceInputMode = $this->sanitize_frontend_voice_input_mode($settings['frontend_voice_input_mode'] ?? 'vad');
+        $textInputEnabled = !array_key_exists('frontend_text_input_enabled', $settings) || !empty($settings['frontend_text_input_enabled']);
+        $publicFunctionsEnabled = !array_key_exists('allow_public_functions', $settings) || !empty($settings['allow_public_functions']);
+
+        return [
+            [
+                'phase' => 1,
+                'key' => 'guardrails',
+                'label' => 'Base DB + migraciones + Guardrails (seguridad)',
+                'enabled' => $guardrailsEnabled,
+                'details' => [
+                    'guardrails:' . ($guardrailsEnabled ? 'on' : 'off'),
+                ],
+            ],
+            [
+                'phase' => 2,
+                'key' => 'approvals_traces',
+                'label' => 'Aprobaciones (HITL) + Trazas basicas',
+                'enabled' => $approvalsEnabled || $tracingEnabled,
+                'details' => [
+                    'approvals:' . ($approvalsEnabled ? 'on' : 'off'),
+                    'tracing:' . ($tracingEnabled ? 'on' : 'off'),
+                ],
+            ],
+            [
+                'phase' => 3,
+                'key' => 'sessions_memory_history',
+                'label' => 'Sesiones + memoria + transcript/historial',
+                'enabled' => $sessionMemoryEnabled,
+                'details' => [
+                    'session_memory:' . ($sessionMemoryEnabled ? 'on' : 'off'),
+                ],
+            ],
+            [
+                'phase' => 4,
+                'key' => 'voice_ux_realtime',
+                'label' => 'UX de voz avanzada (realtime) + modo texto/voz',
+                'enabled' => true,
+                'details' => [
+                    'voice_input:' . $voiceInputMode,
+                    'text_input:' . ($textInputEnabled ? 'on' : 'off'),
+                    'turn_detection:' . $turnDetectionMode,
+                ],
+            ],
+            [
+                'phase' => 5,
+                'key' => 'js_functions',
+                'label' => 'Funciones JS robustas (schema, timeout, test)',
+                'enabled' => true,
+                'details' => [
+                    'public_functions:' . ($publicFunctionsEnabled ? 'on' : 'off'),
+                ],
+            ],
+            [
+                'phase' => 6,
+                'key' => 'multiagent_handoffs',
+                'label' => 'Multiagente + handoffs',
+                'enabled' => $agentsEnabled,
+                'details' => [
+                    'agents:' . ($agentsEnabled ? 'on' : 'off'),
+                ],
+            ],
+            [
+                'phase' => 7,
+                'key' => 'mcp_integrations',
+                'label' => 'MCP + integraciones estandar',
+                'enabled' => $mcpEnabled,
+                'details' => [
+                    'mcp:' . ($mcpEnabled ? 'on' : 'off'),
+                ],
+            ],
+        ];
+    }
+
     private function resolve_public_routes(): array
     {
         $settings = $this->settings->get_settings();
@@ -580,6 +667,59 @@ trait Navai_Voice_Plugin_Helpers_Trait
             <?php endif; ?>
             <?php if ($showStatus) : ?>
                 <p class="navai-voice-status" aria-live="polite"><?php echo esc_html__('Idle', 'navai-voice'); ?></p>
+            <?php endif; ?>
+            <?php if ($debug) : ?>
+                <div class="navai-voice-log-toolbar" role="group" aria-label="<?php echo esc_attr__('Controles de log', 'navai-voice'); ?>">
+                    <button type="button" class="navai-voice-log-copy button button-small">
+                        <?php echo esc_html__('Copiar log', 'navai-voice'); ?>
+                    </button>
+                    <div class="navai-voice-log-filters" role="group" aria-label="<?php echo esc_attr__('Filtros de log', 'navai-voice'); ?>">
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="agent_response" checked />
+                            <span><?php echo esc_html__('Respuesta IA', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="function_response" checked />
+                            <span><?php echo esc_html__('Respuesta funciones', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="functions_loaded" checked />
+                            <span><?php echo esc_html__('Funciones cargadas', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="routes_loaded" checked />
+                            <span><?php echo esc_html__('Rutas cargadas', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="realtime_sent" checked />
+                            <span><?php echo esc_html__('Eventos enviados', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="realtime_recv" checked />
+                            <span><?php echo esc_html__('Eventos recibidos', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="connection" checked />
+                            <span><?php echo esc_html__('Conexion', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="phases_loaded" checked />
+                            <span><?php echo esc_html__('Fases cargadas', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="other" checked />
+                            <span><?php echo esc_html__('Otros', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="warn" checked />
+                            <span><?php echo esc_html__('Warnings', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-voice-log-filter-option">
+                            <input type="checkbox" data-navai-log-filter="error" checked />
+                            <span><?php echo esc_html__('Errores', 'navai-voice'); ?></span>
+                        </label>
+                    </div>
+                </div>
             <?php endif; ?>
             <pre class="navai-voice-log" <?php echo $debug ? '' : 'hidden'; ?>></pre>
         </div>

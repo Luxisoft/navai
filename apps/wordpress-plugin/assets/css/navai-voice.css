@@ -226,6 +226,53 @@
   word-break: break-word;
 }
 
+.navai-voice-log-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.navai-voice-log-copy {
+  align-self: flex-start;
+  border: 1px solid #cfd7e4;
+  background: #ffffff;
+  color: #1f2b3b;
+  border-radius: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  min-height: 28px;
+  line-height: 1.15;
+}
+
+.navai-voice-log-copy:hover,
+.navai-voice-log-copy:focus-visible {
+  border-color: #b8c5d8;
+  background: #f7f9fc;
+}
+
+.navai-voice-log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid #e7ebf2;
+  border-radius: 0.4rem;
+  background: #fbfcfe;
+}
+
+.navai-voice-log-filter-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: #2a3443;
+  line-height: 1.1;
+}
+
+.navai-voice-log-filter-option input[type="checkbox"] {
+  margin: 0;
+}
+
 .navai-voice-remote-audio {
   display: none;
 }
@@ -288,6 +335,11 @@
   width: min(80vw, 360px);
 }
 
+.navai-voice-widget--floating .navai-voice-log-toolbar,
+.navai-voice-widget--floating .navai-voice-log-filters {
+  width: min(80vw, 360px);
+}
+
 @media (max-width: 782px) {
   .navai-voice-widget--floating {
     bottom: 14px;
@@ -307,6 +359,10 @@
 
   .navai-voice-text-send {
     width: 100%;
+  }
+
+  .navai-voice-log-filter-option {
+    width: calc(50% - 0.35rem);
   }
 }
 

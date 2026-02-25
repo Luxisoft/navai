@@ -26,7 +26,7 @@ El plugin esta implementado en PHP (servidor) y JavaScript vanilla (navegador) p
 - `Instalar`: [WordPress admin](#instalacion-desde-wordpress-admin) | [Manual](#instalacion-manual-filesystem)
 - `Configurar`: [Configuracion rapida](#configuracion-rapida-recomendada)
 - `Usar`: [Boton global flotante](#opcion-a-boton-global-flotante) | [Shortcode](#opcion-b-shortcode)
-- `Tabs admin`: [Navegacion](#tab-navegacion-rutas-permitidas-para-la-ia) | [Funciones](#tab-funciones-funciones-personalizadas) | [Seguridad](#tab-seguridad-guardrails-fase-1) | [Aprobaciones](#fases-integradas-fase-2-a-fase-7) | [Trazas](#fases-integradas-fase-2-a-fase-7) | [Historial](#fases-integradas-fase-2-a-fase-7) | [Agentes](#fases-integradas-fase-2-a-fase-7) | [MCP](#fases-integradas-fase-2-a-fase-7)
+- `Secciones admin`: [Navegacion](#tab-navegacion-rutas-permitidas-para-la-ia) | [Funciones](#tab-funciones-funciones-personalizadas) | [Ajustes > Seguridad](#ajustes--tab-seguridad-guardrails-fase-1) | [Ajustes > Aprobaciones/Trazas/Historial](#fases-integradas-fase-2-a-fase-7) | [Agentes](#fases-integradas-fase-2-a-fase-7) | [MCP](#fases-integradas-fase-2-a-fase-7)
 - `Desarrollo`: [Endpoints REST](#endpoints-rest-actuales) | [Extensibilidad backend](#extensibilidad-backend-filters)
 - `Operaciones`: [Generar ZIP](#generar-zip-instalable-powershell) | [Problemas comunes](#troubleshooting--problemas-comunes)
 
@@ -105,23 +105,30 @@ Esto sirve para evitar que NAVAI ejecute acciones destructivas en funciones back
 - Definir rutas de navegacion permitidas para la tool `navigate_to`.
 - Crear rutas privadas personalizadas por plugin + rol + URL.
 - Agregar descripciones de rutas (para guiar a la IA sobre cuando usar cada una).
-- Crear funciones personalizadas por plugin y rol desde el dashboard:
-  - Ejecucion PHP (servidor)
-  - Ejecucion JavaScript (`js:` prefijo, lado cliente)
-  - Puente legacy de acciones (`@action:...`)
+- Crear funciones personalizadas por plugin y rol desde el dashboard con editor en modal responsive (solo JavaScript).
+- Configurar metadata por funcion:
+  - `function_name` (nombre de tool)
+  - scope de ejecucion (`frontend`, `admin`, `both`)
+  - `timeout`, `retries`
+  - `requires approval`
+  - `JSON Schema` opcional
+- Probar funciones con payload JSON antes de guardarlas (`Test function`).
+- Importar/exportar funciones como paquetes `.js` desde la tab `Funciones`.
+- Asignar funciones a agentes IA directamente desde el modal de `Funciones` (`Agentes IA permitidos`), sincronizando `allowed_tools` por `function_name`.
 - Activar/desactivar funciones personalizadas individualmente con checkboxes.
 - Editar/eliminar funciones personalizadas directamente desde la lista.
 - Filtrar rutas/funciones por texto, plugin y rol en el panel admin.
-- Cambiar idioma del panel (English/Spanish) desde el dashboard de NAVAI.
-- Configurar guardrails (Fase 1) desde la tab `Seguridad` para `input`, `tool` y `output` con reglas `keyword`/`regex`.
+- Cambiar idioma del panel desde el dashboard de NAVAI (`English`, `Español`, `Português`, `Français`, `Русский`, `한국어`, `日本語`, `中文`, `हिंदी`).
+- Aplicar traduccion completa del panel en `English`/`Spanish` y fallback a ingles para los idiomas adicionales del selector.
+- Configurar guardrails (Fase 1) desde `Ajustes > Seguridad` para `input`, `tool` y `output` con reglas `keyword`/`regex`.
 - Bloquear llamadas a funciones (`/functions/execute`) cuando una regla de guardrail coincide.
-- Probar reglas de guardrails desde el panel admin (`Seguridad > Probar reglas`).
+- Probar reglas de guardrails desde el panel admin (`Ajustes > Seguridad > Probar reglas`).
 - Registrar eventos minimos de bloqueo (`guardrail_blocked`) en base de datos para trazabilidad basica.
-- Gestionar aprobaciones humanas (HITL) para funciones sensibles (`pending`, `approved`, `rejected`) y ejecutar la accion pendiente desde el panel.
-- Consultar trazas de runtime (tool_start, tool_success, tool_error, guardrails, approvals, handoffs, MCP bloqueado) para depuracion.
-- Persistir sesiones, transcriptos y tool calls con retencion/limpieza y vista de historial.
-- Configurar agentes especialistas con allowlist de tools/rutas y reglas de handoff por intencion/contexto.
-- Integrar servidores MCP (JSON-RPC HTTP), sincronizar tools remotas y restringir su uso con allowlist/denylist por rol/agente.
+- Gestionar aprobaciones humanas (HITL) para funciones sensibles (`pending`, `approved`, `rejected`) y ejecutar la accion pendiente desde `Ajustes > Aprobaciones`.
+- Consultar trazas de runtime (tool_start, tool_success, tool_error, guardrails, approvals, handoffs, MCP bloqueado) desde `Ajustes > Trazas`.
+- Persistir sesiones, transcriptos y tool calls con retencion/limpieza y vista de historial en `Ajustes > Historial`.
+- Configurar agentes especialistas y reglas de handoff con UI en modales y tabs internas (`Agentes` / `Reglas de handoff configuradas`).
+- Integrar servidores MCP (JSON-RPC HTTP), sincronizar tools remotas y restringir su uso con politicas por rol/agente (CRUD de servidores/politicas en modal).
 - Usar endpoints REST integrados para client secret, rutas, listado de funciones y ejecucion.
 
 ## Requisitos
@@ -136,7 +143,7 @@ El plugin agrega un item en el menu lateral:
 
 - `NAVAI Voice`
 
-El dashboard tiene tabs operativas por fases y controles extra:
+El dashboard usa tabs principales y sub-tabs internas dentro de `Ajustes`:
 
 - `Navegacion`
   - Rutas publicas desde menus de WordPress
@@ -145,44 +152,38 @@ El dashboard tiene tabs operativas por fases y controles extra:
   - Filtros y acciones de seleccion masiva
 - `Funciones`
   - Editor de funciones personalizadas en modal responsive (crear/editar)
+  - Editor de codigo solo JavaScript
+  - Metadata de funcion (`function_name`, scope, timeout, retries, aprobacion, JSON Schema)
+  - Payload de prueba + `Test function`
+  - Asignacion de agentes (`Agentes IA permitidos`) sincronizada con `allowed_tools`
   - Lista de funciones con checkbox de activacion
   - Acciones Editar/Eliminar
   - Filtros por texto/plugin/rol
-- `Seguridad` (Fase 1)
-  - Toggle `Activar guardrails en tiempo real`
-  - CRUD de reglas (`keyword` / `regex`)
-  - Scopes `input`, `tool`, `output`
-  - Filtros por rol y por plugin/funcion
-  - Probador de reglas (`Probar reglas`) con texto/payload JSON
-- `Aprobaciones` (Fase 2)
-  - Cola de solicitudes `pending`
-  - Aprobar/rechazar funciones sensibles
-  - Detalle de payload, trace y resultado de ejecucion
-- `Trazas` (Fase 2)
-  - Timeline por `trace_id`
-  - Eventos de tools, guardrails, approvals y handoffs
-  - Filtros por evento/severidad
-- `Historial` (Fase 3)
-  - Sesiones persistidas y transcriptos
-  - Limpieza por sesion
-  - Retencion y compactacion
+  - Importar/Exportar funciones (`.js`) con filtros/seleccion
 - `Agentes` (Fase 6)
-  - CRUD de agentes especialistas
-  - Allowlists de tools y rutas
-  - Reglas de handoff por intencion/contexto
+  - Toggle de multiagente + handoffs
+  - Dos tabs internas: `Agentes` y `Reglas de handoff configuradas`
+  - CRUD de agentes en modal (perfil + instrucciones)
+  - CRUD de handoffs en modal (condiciones por intencion/funcion/payload/roles/contexto)
+  - La asignacion de funciones a agentes se gestiona desde `Funciones`
 - `MCP` (Fase 7)
-  - CRUD de servidores MCP (URL, auth, timeouts)
+  - Toggle de integraciones MCP
+  - CRUD de servidores MCP en modal (URL, auth, timeouts, SSL, headers extra)
   - Health check + sync/listado de tools remotas
-  - Politicas allow/deny por `tool`, rol y `agent_key`
+  - Vista de tools remotas cacheadas (`tool` -> `function_name` runtime)
+  - CRUD de politicas allow/deny en modal por `tool`, rol y `agent_key`
 - `Ajustes`
-  - Conexion/runtime (API key, modelo, voz, selector buscable de idioma, acento, tono, TTL)
-  - Widget global (modo, lado, colores, textos)
-  - Visibilidad/shortcode (roles permitidos, ayuda de shortcode)
+  - Sub-tabs internas:
+    - `General`: conexion/runtime, widget, visibilidad, shortcode, voz/texto/VAD
+    - `Seguridad` (Fase 1): guardrails + probador
+    - `Aprobaciones` (Fase 2): cola HITL + decisiones
+    - `Trazas` (Fase 2): trazas runtime + timelines
+    - `Historial` (Fase 3): sesiones, transcriptos, retencion/compactacion
 
 Controles extra en la cabecera:
 
 - Boton `Documentation` (abre documentacion de NAVAI para WordPress)
-- Selector de idioma del panel (`English`, `Spanish`)
+- Selector de idioma del panel (`English`, `Español`, `Português`, `Français`, `Русский`, `한국어`, `日本語`, `中文`, `हिंदी`) sin prefijos (`en`, `es`, etc.)
 - Cabecera sticky (logo + menu) al hacer scroll dentro de la pagina de ajustes NAVAI
 - El dashboard abre por defecto en `Navegacion` al entrar a NAVAI
 
@@ -274,88 +275,50 @@ Esto sirve para paginas protegidas o pantallas admin por rol.
 
 ## Tab Funciones (funciones personalizadas)
 
-Usa esta seccion para definir funciones personalizadas por plugin y por rol.
+Usa esta seccion para definir funciones personalizadas por plugin y por rol usando el editor en modal.
 
 Flujo:
 
 1. Click en `Crear funcion` (abre el modal responsive).
-2. Selecciona plugin y rol.
-3. Agrega codigo en `Funcion NAVAI`.
-4. Agrega una descripcion.
-5. Click en `Anadir funcion`.
+2. Selecciona `Plugin` y `Rol`.
+3. Define `Nombre de funcion (tool)` (se normaliza a `snake_case` al guardar).
+4. Pega codigo en `Funcion NAVAI (JavaScript)`.
+5. Agrega una `Descripcion` clara (recomendado para que NAVAI elija mejor la tool).
+6. Configura opcionalmente:
+   - `Scope de ejecucion` (`Frontend y admin`, `Solo frontend`, `Solo admin`)
+   - `Timeout (segundos)`
+   - `Retries`
+   - `Requiere aprobacion`
+   - `JSON Schema de argumentos`
+   - `Agentes IA permitidos` (sincroniza `allowed_tools` por `function_name`)
+7. (Opcional) usa `Test function` con payload JSON.
+8. Guarda con `Anadir funcion` / `Guardar cambios`.
 
 Despues de crear:
 
-- La funcion se agrega a la lista
-- Queda activa por defecto
+- La funcion se agrega a la lista.
+- Queda activa por defecto.
 - Luego puedes:
-  - Editar
+  - Editar (reabre el mismo modal con datos precargados)
   - Eliminar
   - Activar/desactivar con checkbox
-- Al editar, se abre el mismo modal con los datos de la funcion cargados
+- Puedes importar/exportar paquetes `.js` desde la misma tab.
 
-### Modos de codigo para "Funcion NAVAI"
+### Formato de funciones personalizadas en dashboard
 
-### 1) PHP (ejecucion en servidor)
+- El editor del dashboard acepta funciones personalizadas en JavaScript (sin modo PHP en el editor).
+- La UI valida el codigo como JavaScript y bloquea snippets PHP.
+- Usa la `Descripcion` de la funcion + descripciones de ruta para mejorar la seleccion de tools por parte de NAVAI.
 
-- Modo por defecto (sin prefijo)
-- Acepta prefijo opcional `php:`
-- El codigo corre en el servidor mediante `eval()` (codigo confiable de administrador)
+### Recomendaciones de diseño de funciones
 
-Variables disponibles dentro del codigo PHP:
+- Mantener una funcion por tarea (`buscar_productos`, `listar_pedidos`, `obtener_formularios`).
+- Validar payloads con `JSON Schema`.
+- Ajustar `Timeout` y `Retries` para llamadas externas.
+- Marcar acciones sensibles/escritura con `Requiere aprobacion`.
+- Asignar cada funcion a los agentes especialistas correctos desde el mismo modal.
 
-- `$payloadData`
-- `$contextData`
-- `$plugin`
-- `$request`
-
-Ejemplo:
-
-```php
-return [
-    'ok' => true,
-    'message' => 'Hola desde una funcion PHP',
-    'payload' => $payloadData,
-];
-```
-
-### 2) JavaScript (ejecucion en cliente)
-
-Usa el prefijo `js:`.
-
-El backend devuelve el codigo al navegador y el widget lo ejecuta en el cliente.
-
-Ejemplo:
-
-```js
-js:
-return {
-  ok: true,
-  current_url: context.current_url,
-  page_title: context.page_title
-};
-```
-
-La funcion JS recibe:
-
-- `payload`
-- `context`
-- `widget`
-- `config`
-- `window`
-- `document`
-
-### 3) Puente legacy de acciones (`@action:`)
-
-Para compatibilidad con acciones registradas usando `navai_voice_plugin_actions`.
-
-Ejemplo en el dashboard:
-
-```txt
-@action:list_recent_orders
-```
-
-## Tab Seguridad (Guardrails, Fase 1)
+## Ajustes > Tab Seguridad (Guardrails, Fase 1)
 
 Usa esta seccion para crear reglas que bloquean o advierten cuando NAVAI intenta ejecutar funciones con entradas, payloads o resultados que no quieres permitir.
 
@@ -412,7 +375,7 @@ Uso:
 
 ### Probar reglas antes de activar bloqueo en flujos reales
 
-En `Seguridad > Probar reglas` puedes enviar:
+En `Ajustes > Seguridad > Probar reglas` puedes enviar:
 
 - `Scope`
 - `Function name`
@@ -437,9 +400,9 @@ Esta version ya integra las fases avanzadas del roadmap. Abajo tienes para que s
 #### Aprobaciones: como usarla
 
 1. En `Funciones`, marca una funcion con `Requiere aprobacion`.
-2. En `Aprobaciones`, activa `Activar aprobaciones para funciones sensibles`.
+2. En `Ajustes > Aprobaciones`, activa `Activar aprobaciones para funciones sensibles`.
 3. Cuando NAVAI intente ejecutar la funcion, se crea una solicitud `pending`.
-4. En la tab `Aprobaciones`, abre `Ver detalle`.
+4. En `Ajustes > Aprobaciones`, abre `Ver detalle`.
 5. Revisa payload, trace y funcion solicitada.
 6. Haz `Aprobar` o `Rechazar`.
 
@@ -460,9 +423,9 @@ Nota: al aprobar, el plugin puede ejecutar la funcion pendiente en ese momento (
 
 #### Trazas: como usarla
 
-1. Activa `Trazas` desde la tab `Trazas`.
+1. Activa `Trazas` desde `Ajustes > Trazas`.
 2. Ejecuta pruebas desde widget o panel.
-3. Abre la tab `Trazas`.
+3. Abre `Ajustes > Trazas`.
 4. Filtra por evento/severidad.
 5. Entra al `timeline` del `trace_id` para ver la secuencia completa.
 
@@ -482,10 +445,10 @@ Nota: al aprobar, el plugin puede ejecutar la funcion pendiente en ese momento (
 
 #### Como usarla
 
-1. Activa `Historial` / memoria de sesiones.
+1. Activa `Historial` / memoria de sesiones desde `Ajustes > Historial`.
 2. Configura `TTL`, `Retencion` y compactacion.
 3. Usa el widget (texto/voz) normalmente.
-4. Abre `Historial` para revisar sesiones y mensajes.
+4. Abre `Ajustes > Historial` para revisar sesiones y mensajes.
 5. Usa `Limpiar sesion` o `Aplicar retencion` cuando necesites.
 
 #### Ejemplos en WordPress
@@ -514,20 +477,22 @@ Nota: al aprobar, el plugin puede ejecutar la funcion pendiente en ese momento (
 - Backoffice silencioso: usar solo texto manteniendo memoria.
 - Sitio publico: voz + texto para accesibilidad.
 
-### Fase 5: Funciones JS/PHP robustas (schema, timeout, retries, test)
+### Fase 5: Funciones robustas (JavaScript, schema, timeout, retries, test)
 
 #### Para que sirve
 
 - Reduce errores de payload con validacion por schema.
 - Controla tiempo de ejecucion y reintentos.
 - Permite probar funciones antes de usarlas en produccion.
+- Permite asignar funciones a agentes especialistas desde el modal de `Funciones`.
 
 #### Como usarla
 
 1. En `Funciones`, define `JSON Schema` (opcional pero recomendado).
 2. Ajusta `Timeout`, `Retries`, `Scope` y `Requiere aprobacion`.
 3. Usa `Test function` con un payload de prueba.
-4. Guarda solo cuando la prueba sea correcta.
+4. (Opcional) asigna agentes IA permitidos para esa funcion.
+5. Guarda solo cuando la prueba sea correcta.
 
 #### Ejemplos en WordPress
 
@@ -540,15 +505,16 @@ Nota: al aprobar, el plugin puede ejecutar la funcion pendiente en ese momento (
 #### Para que sirve
 
 - Separa responsabilidades (soporte, ecommerce, contenido, backoffice).
-- Limita tools/rutas por agente.
+- Separa la orquestacion (agentes + handoffs) de la autoria de funciones.
+- Usa las funciones existentes de `Funciones` (`function_name`) como fuente de verdad para acceso a tools.
 - Permite delegacion automatica por reglas (handoff).
 
 #### Como usarla
 
-1. En `Agentes`, crea agentes especialistas.
-2. Define `allowed_tools` y `allowed_routes`.
-3. Crea reglas de handoff por intencion, tool, payload, roles o contexto.
-4. Ejecuta pruebas y revisa `Trazas` para validar el handoff.
+1. En `Agentes`, crea agentes especialistas (CRUD en modal).
+2. Asigna acceso a funciones desde `Funciones` (`Agentes IA permitidos`) por `function_name`.
+3. Crea reglas de handoff en `Agentes > Reglas de handoff configuradas` por intencion, funcion, payload, roles o contexto.
+4. Ejecuta pruebas y revisa `Ajustes > Trazas` para validar el handoff.
 
 #### Ejemplos en WordPress
 
@@ -578,7 +544,7 @@ Nota: al aprobar, el plugin puede ejecutar la funcion pendiente en ese momento (
    - `tool_name` (o `*`)
    - rol
    - `agent_key`
-6. Prueba la ejecucion y revisa `Trazas` si algo se bloquea.
+6. Prueba la ejecucion y revisa `Ajustes > Trazas` si algo se bloquea.
 
 Compatibilidad implementada en el plugin:
 
@@ -668,7 +634,7 @@ add_filter('navai_voice_functions_registry', function (array $items): array {
 });
 ```
 
-### Registrar acciones de plugins (usadas por `@action:`)
+### Registrar acciones de plugins (compatibilidad backend / integraciones legacy `@action:`)
 
 ```php
 add_filter('navai_voice_plugin_actions', function (array $actions): array {
@@ -710,7 +676,8 @@ add_filter('navai_voice_frontend_config', function (array $config, array $settin
 - Si `Permitir client_secret publico` esta desactivado, solo admins pueden solicitar client secret.
 - Si `Permitir funciones backend publicas` esta desactivado, solo admins pueden listar/ejecutar funciones backend.
 - `Seguridad` (Fase 1) permite bloquear llamadas por `input`, `tool` y `output` antes/despues de `functions/execute`.
-- El codigo PHP personalizado en la tab `Funciones` es codigo confiable de admin y se ejecuta en tu servidor. Usalo con cuidado.
+- El editor de `Funciones` del dashboard es solo JavaScript.
+- Los callbacks PHP/backend se pueden registrar via filters (`navai_voice_functions_registry`, `navai_voice_plugin_actions`) y deben tratarse como codigo confiable de admin.
 - Restringe rutas y funciones a lo estrictamente necesario.
 
 ## Generar ZIP instalable (PowerShell)

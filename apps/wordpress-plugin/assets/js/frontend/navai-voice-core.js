@@ -280,6 +280,58 @@
     return routes;
   }
 
+  function normalizeRoadmapPhases(raw) {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    var output = [];
+    var seen = {};
+    for (var i = 0; i < raw.length; i += 1) {
+      var item = raw[i];
+      if (!isRecord(item)) {
+        continue;
+      }
+
+      var phaseNumber = Number(item.phase);
+      if (!isFinite(phaseNumber) || phaseNumber <= 0) {
+        phaseNumber = output.length + 1;
+      }
+      phaseNumber = Math.round(phaseNumber);
+
+      var key = asTrimmedString(item.key).toLowerCase() || "phase_" + String(phaseNumber);
+      if (seen[key]) {
+        continue;
+      }
+      seen[key] = true;
+
+      var label = asTrimmedString(item.label) || "Fase " + String(phaseNumber);
+      var details = [];
+      if (Array.isArray(item.details)) {
+        for (var d = 0; d < item.details.length; d += 1) {
+          var detail = asTrimmedString(item.details[d]);
+          if (detail) {
+            details.push(detail);
+          }
+        }
+      }
+
+      output.push({
+        phase: phaseNumber,
+        key: key,
+        label: label,
+        enabled: !!item.enabled,
+        details: details
+      });
+    }
+
+    output.sort(function (a, b) {
+      return a.phase - b.phase;
+    });
+
+    return output;
+  }
+
   function resolveAllowedRoute(target, routes) {
     if (!routes.length) {
       return null;
@@ -409,6 +461,34 @@
     return lines;
   }
 
+  function getRoadmapPhasePromptLines(phases) {
+    if (!Array.isArray(phases) || !phases.length) {
+      return ["- none"];
+    }
+
+    var lines = [];
+    for (var i = 0; i < phases.length; i += 1) {
+      var phase = phases[i];
+      if (!isRecord(phase)) {
+        continue;
+      }
+
+      var phaseNumber = typeof phase.phase === "number" && isFinite(phase.phase) ? Math.round(phase.phase) : i + 1;
+      var label = asTrimmedString(phase.label) || "Fase " + String(phaseNumber);
+      var suffix = phase.enabled ? "enabled" : "disabled";
+      if (Array.isArray(phase.details) && phase.details.length) {
+        suffix += "; " + phase.details.join(", ");
+      }
+      lines.push("- Fase " + String(phaseNumber) + ": " + label + " [" + suffix + "]");
+    }
+
+    if (!lines.length) {
+      return ["- none"];
+    }
+
+    return lines;
+  }
+
   function buildToolDefinitions(routes, backendFunctions) {
     var tools = [
       {
@@ -502,7 +582,7 @@
     };
   }
 
-  function buildAssistantInstructions(baseInstructions, routes, backendFunctions) {
+  function buildAssistantInstructions(baseInstructions, routes, backendFunctions, roadmapPhases) {
     var functionLines = backendFunctions.length
       ? backendFunctions.map(function (item) {
           return "- " + item.name + ": " + (item.description || "Execute backend function.");
@@ -517,7 +597,13 @@
     lines = lines.concat(getRoutePromptLines(routes));
     lines.push("Allowed app functions:");
     lines = lines.concat(functionLines);
+    if (Array.isArray(roadmapPhases) && roadmapPhases.length) {
+      lines.push("NAVAI roadmap phases:");
+      lines = lines.concat(getRoadmapPhasePromptLines(roadmapPhases));
+    }
     lines.push("Rules:");
+    lines.push("- For product searches, catalog queries, prices, stock, orders, or plugin data, prefer execute_app_function or a direct function alias before navigate_to.");
+    lines.push("- Use navigate_to only when the user explicitly wants to open/go to a page or website section.");
     lines.push("- If the user asks to open a website section, call navigate_to.");
     lines.push("- In navigate_to.target, prefer the exact route name listed in Allowed routes.");
     lines.push("- If the user asks to run an internal action, call execute_app_function or a direct function alias.");
@@ -841,9 +927,11 @@
   runtime.extractPathTokens = extractPathTokens;
   runtime.buildTargetCandidates = buildTargetCandidates;
   runtime.normalizeRoutes = normalizeRoutes;
+  runtime.normalizeRoadmapPhases = normalizeRoadmapPhases;
   runtime.resolveAllowedRoute = resolveAllowedRoute;
   runtime.sanitizeBackendFunctions = sanitizeBackendFunctions;
   runtime.getRoutePromptLines = getRoutePromptLines;
+  runtime.getRoadmapPhasePromptLines = getRoadmapPhasePromptLines;
   runtime.buildToolDefinitions = buildToolDefinitions;
   runtime.buildAssistantInstructions = buildAssistantInstructions;
   runtime.readErrorMessage = readErrorMessage;

@@ -99,6 +99,16 @@ class Navai_Voice_API
 
         register_rest_route(
             'navai/v1',
+            '/plugin-functions/upsert',
+            [
+                'methods' => WP_REST_Server::CREATABLE,
+                'callback' => [$this, 'upsert_plugin_function_setting'],
+                'permission_callback' => [$this, 'can_manage_functions'],
+            ]
+        );
+
+        register_rest_route(
+            'navai/v1',
             '/guardrails',
             [
                 [
@@ -832,6 +842,196 @@ class Navai_Voice_API
                 'skip_session' => true,
             ]
         );
+    }
+
+    public function upsert_plugin_function_setting(WP_REST_Request $request)
+    {
+        $input = $request->get_json_params();
+        if (!is_array($input)) {
+            $input = [];
+        }
+
+        $functionInput = is_array($input['function'] ?? null) ? $input['function'] : [];
+        $selected = !array_key_exists('selected', $input) || !empty($input['selected']);
+
+        $rowId = sanitize_key((string) ($functionInput['id'] ?? ''));
+        if ($rowId === '') {
+            $rowId = sanitize_key('fn_' . wp_generate_password(12, false, false));
+        }
+        if ($rowId === '') {
+            return new WP_Error('navai_invalid_plugin_function_id', 'Invalid plugin function id.', ['status' => 400]);
+        }
+
+        $pluginKey = sanitize_text_field((string) ($functionInput['plugin_key'] ?? 'wp-core'));
+        if ($pluginKey === '') {
+            $pluginKey = 'wp-core';
+        }
+
+        $role = sanitize_key((string) ($functionInput['role'] ?? ''));
+        if ($role === '') {
+            return new WP_Error('navai_invalid_plugin_function_role', 'role is required.', ['status' => 400]);
+        }
+
+        $functionCode = isset($functionInput['function_code']) && is_string($functionInput['function_code'])
+            ? trim($functionInput['function_code'])
+            : '';
+        if ($functionCode === '') {
+            return new WP_Error('navai_invalid_plugin_function_code', 'function_code is required.', ['status' => 400]);
+        }
+
+        $currentSettings = $this->settings->get_settings();
+        $currentFunctions = is_array($currentSettings['plugin_custom_functions'] ?? null)
+            ? array_values(array_filter($currentSettings['plugin_custom_functions'], 'is_array'))
+            : [];
+
+        $functionName = sanitize_key((string) ($functionInput['function_name'] ?? ''));
+        if ($functionName === '') {
+            $functionName = sanitize_key('navai_custom_' . substr($rowId, 0, 20));
+        }
+
+        $timeoutSeconds = is_numeric($functionInput['timeout_seconds'] ?? null) ? (int) $functionInput['timeout_seconds'] : 0;
+        if ($timeoutSeconds < 0) {
+            $timeoutSeconds = 0;
+        }
+        if ($timeoutSeconds > 600) {
+            $timeoutSeconds = 600;
+        }
+
+        $executionScope = sanitize_key((string) ($functionInput['execution_scope'] ?? 'both'));
+        if (!in_array($executionScope, ['frontend', 'admin', 'both'], true)) {
+            $executionScope = 'both';
+        }
+
+        $retries = is_numeric($functionInput['retries'] ?? null) ? (int) $functionInput['retries'] : 0;
+        if ($retries < 0) {
+            $retries = 0;
+        }
+        if ($retries > 5) {
+            $retries = 5;
+        }
+
+        $upsertRow = [
+            'id' => $rowId,
+            'plugin_key' => $pluginKey,
+            'plugin_label' => sanitize_text_field((string) ($functionInput['plugin_label'] ?? '')),
+            'role' => $role,
+            'function_name' => $functionName,
+            'function_code' => $functionCode,
+            'description' => sanitize_text_field((string) ($functionInput['description'] ?? '')),
+            'requires_approval' => !empty($functionInput['requires_approval']),
+            'timeout_seconds' => $timeoutSeconds,
+            'execution_scope' => $executionScope,
+            'retries' => $retries,
+            'argument_schema_json' => is_string($functionInput['argument_schema_json'] ?? null)
+                ? trim((string) $functionInput['argument_schema_json'])
+                : '',
+        ];
+
+        $replaced = false;
+        foreach ($currentFunctions as $index => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $existingId = sanitize_key((string) ($row['id'] ?? ''));
+            if ($existingId !== '' && $existingId === $rowId) {
+                $currentFunctions[$index] = $upsertRow;
+                $replaced = true;
+                break;
+            }
+        }
+        if (!$replaced) {
+            $currentFunctions[] = $upsertRow;
+        }
+
+        $selectedKeys = is_array($currentSettings['allowed_plugin_function_keys'] ?? null)
+            ? array_values(array_filter(array_map(static function ($value): string {
+                return sanitize_text_field((string) $value);
+            }, $currentSettings['allowed_plugin_function_keys']), static function ($value): bool {
+                return $value !== '';
+            }))
+            : [];
+        $targetKey = 'pluginfn:' . $rowId;
+        $selectedKeys = array_values(array_filter($selectedKeys, static function ($value) use ($targetKey): bool {
+            return $value !== $targetKey;
+        }));
+        if ($selected) {
+            $selectedKeys[] = $targetKey;
+        }
+
+        $nextSettingsSource = $currentSettings;
+        $nextSettingsSource['plugin_custom_functions'] = array_values($currentFunctions);
+        $nextSettingsSource['allowed_plugin_function_keys'] = array_values(array_unique($selectedKeys));
+        $nextSettingsSource['active_tab'] = 'plugins';
+
+        $sanitizedSettings = $this->settings->sanitize_settings($nextSettingsSource);
+        if (!update_option(Navai_Voice_Settings::OPTION_KEY, $sanitizedSettings)) {
+            // Continue even when WP returns false for "no changes"; we still return normalized state.
+        }
+
+        $savedSettings = $this->settings->get_settings();
+        $state = $this->build_plugin_functions_settings_state($savedSettings);
+        $savedItems = is_array($state['plugin_custom_functions'] ?? null) ? $state['plugin_custom_functions'] : [];
+        $savedItem = null;
+        foreach ($savedItems as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            if (sanitize_key((string) ($item['id'] ?? '')) === $rowId) {
+                $savedItem = $item;
+                break;
+            }
+        }
+
+        if (!is_array($savedItem)) {
+            return new WP_Error(
+                'navai_plugin_function_save_failed',
+                'Plugin function could not be saved. Check role/plugin values.',
+                ['status' => 400]
+            );
+        }
+
+        return rest_ensure_response(
+            [
+                'ok' => true,
+                'saved_id' => $rowId,
+                'item' => $savedItem,
+                'state' => $state,
+            ]
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @return array{plugin_custom_functions: array<int, array<string, mixed>>, allowed_plugin_function_keys: array<int, string>}
+     */
+    private function build_plugin_functions_settings_state(array $settings): array
+    {
+        $functions = [];
+        if (is_array($settings['plugin_custom_functions'] ?? null)) {
+            foreach ($settings['plugin_custom_functions'] as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $functions[] = $row;
+            }
+        }
+
+        $allowedKeys = [];
+        if (is_array($settings['allowed_plugin_function_keys'] ?? null)) {
+            foreach ($settings['allowed_plugin_function_keys'] as $value) {
+                $key = sanitize_text_field((string) $value);
+                if ($key === '') {
+                    continue;
+                }
+                $allowedKeys[] = $key;
+            }
+        }
+
+        return [
+            'plugin_custom_functions' => array_values($functions),
+            'allowed_plugin_function_keys' => array_values(array_unique($allowedKeys)),
+        ];
     }
 
     public function list_guardrails(WP_REST_Request $request)

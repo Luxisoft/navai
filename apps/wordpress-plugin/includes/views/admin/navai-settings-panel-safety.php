@@ -23,23 +23,6 @@ if (!isset($guardrailsEnabled)) {
             </p>
         </div>
 
-        <div class="navai-plugin-functions-builder-head navai-guardrails-builder-head">
-            <div class="navai-plugin-functions-builder-head-copy">
-                <h3><?php echo esc_html__('Reglas de guardrails', 'navai-voice'); ?></h3>
-                <p class="navai-admin-description">
-                    <?php echo esc_html__('Crea reglas para bloquear o advertir coincidencias por texto (keyword) o regex en input, tool y output.', 'navai-voice'); ?>
-                </p>
-            </div>
-            <div class="navai-plugin-functions-builder-head-actions">
-                <button type="button" class="button button-primary navai-guardrail-open">
-                    <?php echo esc_html__('Crear regla', 'navai-voice'); ?>
-                </button>
-                <button type="button" class="button button-secondary navai-guardrail-test-open">
-                    <?php echo esc_html__('Abrir probador', 'navai-voice'); ?>
-                </button>
-            </div>
-        </div>
-
         <div class="navai-plugin-function-modal navai-guardrail-modal" hidden>
             <div
                 class="navai-plugin-function-modal-dialog navai-guardrail-modal-dialog"
@@ -240,6 +223,9 @@ if (!isset($guardrailsEnabled)) {
                 <div class="navai-guardrails-list-actions">
                     <button type="button" class="button button-primary navai-guardrail-open">
                         <?php echo esc_html__('Crear regla', 'navai-voice'); ?>
+                    </button>
+                    <button type="button" class="button button-secondary navai-guardrail-test-open">
+                        <?php echo esc_html__('Abrir probador', 'navai-voice'); ?>
                     </button>
                     <button type="button" class="button button-secondary navai-guardrail-reload">
                         <?php echo esc_html__('Recargar', 'navai-voice'); ?>

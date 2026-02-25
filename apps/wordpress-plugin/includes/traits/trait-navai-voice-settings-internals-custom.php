@@ -25,7 +25,9 @@ trait Navai_Voice_Settings_Internals_Custom_Trait
             }
 
             $role = sanitize_key((string) ($item['role'] ?? ''));
-            if ($role === '' || !isset($availableRoles[$role])) {
+            $isGuestRole = $role === 'guest';
+            $isAllRoles = $role === 'all';
+            if ($role === '' || (!$isGuestRole && !$isAllRoles && !isset($availableRoles[$role]))) {
                 continue;
             }
 

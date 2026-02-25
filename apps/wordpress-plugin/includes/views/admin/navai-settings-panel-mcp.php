@@ -24,77 +24,14 @@ if (!isset($mcpEnabled)) {
         </div>
 
         <div class="navai-agents-grid">
-            <section class="navai-agents-editor">
-                <div class="navai-agents-section-head">
-                    <h3><?php echo esc_html__('Servidor MCP', 'navai-voice'); ?></h3>
-                    <p class="navai-admin-description"><?php echo esc_html__('Registra URL, auth y timeouts para conectarte a tools remotas via JSON-RPC.', 'navai-voice'); ?></p>
-                </div>
-
-                <input type="hidden" class="navai-mcp-server-form-id" value="" />
-
-                <div class="navai-agents-form-grid">
-                    <label>
-                        <span><?php echo esc_html__('Server key', 'navai-voice'); ?></span>
-                        <input type="text" class="regular-text navai-mcp-server-form-key" placeholder="<?php echo esc_attr__('support_mcp', 'navai-voice'); ?>" />
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Nombre', 'navai-voice'); ?></span>
-                        <input type="text" class="regular-text navai-mcp-server-form-name" placeholder="<?php echo esc_attr__('Support MCP', 'navai-voice'); ?>" />
-                    </label>
-                    <label class="navai-agents-form-grid-span-full">
-                        <span><?php echo esc_html__('URL base', 'navai-voice'); ?></span>
-                        <input type="url" class="regular-text navai-mcp-server-form-url" placeholder="<?php echo esc_attr__('https://mcp.example.com', 'navai-voice'); ?>" />
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Auth type', 'navai-voice'); ?></span>
-                        <select class="navai-mcp-server-form-auth-type">
-                            <option value="none"><?php echo esc_html__('Sin auth', 'navai-voice'); ?></option>
-                            <option value="bearer"><?php echo esc_html__('Bearer token', 'navai-voice'); ?></option>
-                            <option value="basic"><?php echo esc_html__('Basic (user:pass)', 'navai-voice'); ?></option>
-                            <option value="header"><?php echo esc_html__('Header custom', 'navai-voice'); ?></option>
-                        </select>
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Header auth (si custom)', 'navai-voice'); ?></span>
-                        <input type="text" class="regular-text navai-mcp-server-form-auth-header" placeholder="<?php echo esc_attr__('Authorization', 'navai-voice'); ?>" />
-                    </label>
-                    <label class="navai-agents-form-grid-span-full">
-                        <span><?php echo esc_html__('Secret / token (opcional en edicion)', 'navai-voice'); ?></span>
-                        <input type="password" class="regular-text navai-mcp-server-form-auth-value" autocomplete="off" placeholder="<?php echo esc_attr__('Dejar vacio para conservar el existente', 'navai-voice'); ?>" />
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Timeout conexion (s)', 'navai-voice'); ?></span>
-                        <input type="number" min="1" max="120" step="1" class="small-text navai-mcp-server-form-timeout-connect" value="10" />
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Timeout lectura (s)', 'navai-voice'); ?></span>
-                        <input type="number" min="1" max="120" step="1" class="small-text navai-mcp-server-form-timeout-read" value="20" />
-                    </label>
-                    <label class="navai-agent-form-check">
-                        <input type="checkbox" class="navai-mcp-server-form-enabled" checked />
-                        <span><?php echo esc_html__('Servidor activo', 'navai-voice'); ?></span>
-                    </label>
-                    <label class="navai-agent-form-check">
-                        <input type="checkbox" class="navai-mcp-server-form-verify-ssl" checked />
-                        <span><?php echo esc_html__('Verificar SSL', 'navai-voice'); ?></span>
-                    </label>
-                    <label class="navai-agents-form-grid-span-full">
-                        <span><?php echo esc_html__('Headers extra (JSON opcional)', 'navai-voice'); ?></span>
-                        <textarea class="large-text code navai-mcp-server-form-headers" rows="4" placeholder="<?php echo esc_attr__('{\"X-API-Version\":\"1\"}', 'navai-voice'); ?>"></textarea>
-                    </label>
-                </div>
-
-                <div class="navai-agents-actions">
-                    <button type="button" class="button button-primary navai-mcp-server-save"><?php echo esc_html__('Guardar servidor', 'navai-voice'); ?></button>
-                    <button type="button" class="button button-secondary navai-mcp-server-reset"><?php echo esc_html__('Limpiar', 'navai-voice'); ?></button>
-                    <button type="button" class="button button-secondary navai-mcp-servers-reload"><?php echo esc_html__('Recargar', 'navai-voice'); ?></button>
-                </div>
-            </section>
-
             <section class="navai-agents-list">
                 <div class="navai-agents-section-head">
                     <h3><?php echo esc_html__('Servidores MCP', 'navai-voice'); ?></h3>
                     <p class="navai-admin-description"><?php echo esc_html__('Ejecuta health check y sincroniza tools remotas por servidor.', 'navai-voice'); ?></p>
+                </div>
+                <div class="navai-agents-actions">
+                    <button type="button" class="button button-primary navai-mcp-server-open"><?php echo esc_html__('Crear servidor', 'navai-voice'); ?></button>
+                    <button type="button" class="button button-secondary navai-mcp-servers-reload"><?php echo esc_html__('Recargar', 'navai-voice'); ?></button>
                 </div>
                 <div class="navai-agents-table-wrap">
                     <table class="widefat striped navai-mcp-servers-table">
@@ -153,66 +90,14 @@ if (!isset($mcpEnabled)) {
         </div>
 
         <div class="navai-handoffs-grid">
-            <section class="navai-handoffs-editor">
-                <div class="navai-agents-section-head">
-                    <h3><?php echo esc_html__('Politica de acceso MCP', 'navai-voice'); ?></h3>
-                    <p class="navai-admin-description"><?php echo esc_html__('Crea allowlists/denylists por tool (o *), rol y/o agent_key.', 'navai-voice'); ?></p>
-                </div>
-
-                <input type="hidden" class="navai-mcp-policy-form-id" value="" />
-
-                <div class="navai-handoffs-form-grid">
-                    <label>
-                        <span><?php echo esc_html__('Servidor (opcional)', 'navai-voice'); ?></span>
-                        <select class="navai-mcp-policy-form-server-id">
-                            <option value="0"><?php echo esc_html__('Todos', 'navai-voice'); ?></option>
-                        </select>
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Tool name o *', 'navai-voice'); ?></span>
-                        <input type="text" class="regular-text navai-mcp-policy-form-tool-name" value="*" />
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Modo', 'navai-voice'); ?></span>
-                        <select class="navai-mcp-policy-form-mode">
-                            <option value="allow"><?php echo esc_html__('Allow', 'navai-voice'); ?></option>
-                            <option value="deny"><?php echo esc_html__('Deny', 'navai-voice'); ?></option>
-                        </select>
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Prioridad', 'navai-voice'); ?></span>
-                        <input type="number" min="1" max="9999" step="1" class="small-text navai-mcp-policy-form-priority" value="100" />
-                    </label>
-                    <label class="navai-agent-form-check">
-                        <input type="checkbox" class="navai-mcp-policy-form-enabled" checked />
-                        <span><?php echo esc_html__('Politica activa', 'navai-voice'); ?></span>
-                    </label>
-                    <div></div>
-                    <label>
-                        <span><?php echo esc_html__('Roles (csv opcional)', 'navai-voice'); ?></span>
-                        <input type="text" class="regular-text navai-mcp-policy-form-roles" placeholder="<?php echo esc_attr__('administrator, editor, guest', 'navai-voice'); ?>" />
-                    </label>
-                    <label>
-                        <span><?php echo esc_html__('Agent keys (csv opcional)', 'navai-voice'); ?></span>
-                        <input type="text" class="regular-text navai-mcp-policy-form-agent-keys" placeholder="<?php echo esc_attr__('support, ecommerce', 'navai-voice'); ?>" />
-                    </label>
-                    <label class="navai-agents-form-grid-span-full">
-                        <span><?php echo esc_html__('Notas (opcional)', 'navai-voice'); ?></span>
-                        <textarea class="large-text navai-mcp-policy-form-notes" rows="3"></textarea>
-                    </label>
-                </div>
-
-                <div class="navai-agents-actions">
-                    <button type="button" class="button button-primary navai-mcp-policy-save"><?php echo esc_html__('Guardar politica', 'navai-voice'); ?></button>
-                    <button type="button" class="button button-secondary navai-mcp-policy-reset"><?php echo esc_html__('Limpiar', 'navai-voice'); ?></button>
-                    <button type="button" class="button button-secondary navai-mcp-policies-reload"><?php echo esc_html__('Recargar politicas', 'navai-voice'); ?></button>
-                </div>
-            </section>
-
             <section class="navai-handoffs-list">
                 <div class="navai-agents-section-head">
                     <h3><?php echo esc_html__('Politicas configuradas', 'navai-voice'); ?></h3>
                     <p class="navai-admin-description"><?php echo esc_html__('Las denylists aplican primero; si hay allowlists para una tool, todo lo demas queda bloqueado.', 'navai-voice'); ?></p>
+                </div>
+                <div class="navai-agents-actions">
+                    <button type="button" class="button button-primary navai-mcp-policy-open"><?php echo esc_html__('Crear politica', 'navai-voice'); ?></button>
+                    <button type="button" class="button button-secondary navai-mcp-policies-reload"><?php echo esc_html__('Recargar politicas', 'navai-voice'); ?></button>
                 </div>
                 <div class="navai-agents-table-wrap">
                     <table class="widefat striped navai-mcp-policies-table">
@@ -233,6 +118,181 @@ if (!isset($mcpEnabled)) {
                     </table>
                 </div>
             </section>
+        </div>
+
+        <div class="navai-plugin-function-modal navai-mcp-server-modal" hidden>
+            <div
+                class="navai-plugin-function-modal-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="navai-mcp-server-modal-title"
+            >
+                <div class="navai-plugin-function-modal-head">
+                    <div>
+                        <h4
+                            id="navai-mcp-server-modal-title"
+                            class="navai-plugin-function-modal-title navai-mcp-server-modal-title"
+                            data-label-create="<?php echo esc_attr__('Servidor MCP', 'navai-voice'); ?>"
+                            data-label-edit="<?php echo esc_attr__('Editar servidor MCP', 'navai-voice'); ?>"
+                        >
+                            <?php echo esc_html__('Servidor MCP', 'navai-voice'); ?>
+                        </h4>
+                        <p class="navai-admin-description">
+                            <?php echo esc_html__('Registra URL, auth y timeouts para conectarte a tools remotas via JSON-RPC.', 'navai-voice'); ?>
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="button button-secondary button-small navai-mcp-server-modal-dismiss navai-plugin-function-modal-dismiss--top"
+                    >
+                        <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                    </button>
+                </div>
+
+                <section class="navai-agents-editor">
+                    <input type="hidden" class="navai-mcp-server-form-id" value="" />
+
+                    <div class="navai-agents-form-grid">
+                        <label>
+                            <span><?php echo esc_html__('Server key', 'navai-voice'); ?></span>
+                            <input type="text" class="regular-text navai-mcp-server-form-key" placeholder="<?php echo esc_attr__('support_mcp', 'navai-voice'); ?>" />
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Nombre', 'navai-voice'); ?></span>
+                            <input type="text" class="regular-text navai-mcp-server-form-name" placeholder="<?php echo esc_attr__('Support MCP', 'navai-voice'); ?>" />
+                        </label>
+                        <label class="navai-agents-form-grid-span-full">
+                            <span><?php echo esc_html__('URL base', 'navai-voice'); ?></span>
+                            <input type="url" class="regular-text navai-mcp-server-form-url" placeholder="<?php echo esc_attr__('https://mcp.example.com', 'navai-voice'); ?>" />
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Auth type', 'navai-voice'); ?></span>
+                            <select class="navai-mcp-server-form-auth-type">
+                                <option value="none"><?php echo esc_html__('Sin auth', 'navai-voice'); ?></option>
+                                <option value="bearer"><?php echo esc_html__('Bearer token', 'navai-voice'); ?></option>
+                                <option value="basic"><?php echo esc_html__('Basic (user:pass)', 'navai-voice'); ?></option>
+                                <option value="header"><?php echo esc_html__('Header custom', 'navai-voice'); ?></option>
+                            </select>
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Header auth (si custom)', 'navai-voice'); ?></span>
+                            <input type="text" class="regular-text navai-mcp-server-form-auth-header" placeholder="<?php echo esc_attr__('Authorization', 'navai-voice'); ?>" />
+                        </label>
+                        <label class="navai-agents-form-grid-span-full">
+                            <span><?php echo esc_html__('Secret / token (opcional en edicion)', 'navai-voice'); ?></span>
+                            <input type="password" class="regular-text navai-mcp-server-form-auth-value" autocomplete="off" placeholder="<?php echo esc_attr__('Dejar vacio para conservar el existente', 'navai-voice'); ?>" />
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Timeout conexion (s)', 'navai-voice'); ?></span>
+                            <input type="number" min="1" max="120" step="1" class="small-text navai-mcp-server-form-timeout-connect" value="10" />
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Timeout lectura (s)', 'navai-voice'); ?></span>
+                            <input type="number" min="1" max="120" step="1" class="small-text navai-mcp-server-form-timeout-read" value="20" />
+                        </label>
+                        <label class="navai-agent-form-check">
+                            <input type="checkbox" class="navai-mcp-server-form-enabled" checked />
+                            <span><?php echo esc_html__('Servidor activo', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-agent-form-check">
+                            <input type="checkbox" class="navai-mcp-server-form-verify-ssl" checked />
+                            <span><?php echo esc_html__('Verificar SSL', 'navai-voice'); ?></span>
+                        </label>
+                        <label class="navai-agents-form-grid-span-full">
+                            <span><?php echo esc_html__('Headers extra (JSON opcional)', 'navai-voice'); ?></span>
+                            <textarea class="large-text code navai-mcp-server-form-headers" rows="4" placeholder="<?php echo esc_attr__('{\"X-API-Version\":\"1\"}', 'navai-voice'); ?>"></textarea>
+                        </label>
+                    </div>
+
+                    <div class="navai-agents-actions">
+                        <button type="button" class="button button-primary navai-mcp-server-save"><?php echo esc_html__('Guardar servidor', 'navai-voice'); ?></button>
+                        <button type="button" class="button button-secondary navai-mcp-server-reset"><?php echo esc_html__('Limpiar', 'navai-voice'); ?></button>
+                        <button type="button" class="button button-secondary navai-mcp-server-modal-dismiss"><?php echo esc_html__('Cerrar', 'navai-voice'); ?></button>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="navai-plugin-function-modal navai-mcp-policy-modal" hidden>
+            <div
+                class="navai-plugin-function-modal-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="navai-mcp-policy-modal-title"
+            >
+                <div class="navai-plugin-function-modal-head">
+                    <div>
+                        <h4
+                            id="navai-mcp-policy-modal-title"
+                            class="navai-plugin-function-modal-title navai-mcp-policy-modal-title"
+                            data-label-create="<?php echo esc_attr__('Politica de acceso MCP', 'navai-voice'); ?>"
+                            data-label-edit="<?php echo esc_attr__('Editar politica MCP', 'navai-voice'); ?>"
+                        >
+                            <?php echo esc_html__('Politica de acceso MCP', 'navai-voice'); ?>
+                        </h4>
+                        <p class="navai-admin-description">
+                            <?php echo esc_html__('Crea allowlists/denylists por tool (o *), rol y/o agent_key.', 'navai-voice'); ?>
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="button button-secondary button-small navai-mcp-policy-modal-dismiss navai-plugin-function-modal-dismiss--top"
+                    >
+                        <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                    </button>
+                </div>
+
+                <section class="navai-handoffs-editor">
+                    <input type="hidden" class="navai-mcp-policy-form-id" value="" />
+
+                    <div class="navai-handoffs-form-grid">
+                        <label>
+                            <span><?php echo esc_html__('Servidor (opcional)', 'navai-voice'); ?></span>
+                            <select class="navai-mcp-policy-form-server-id">
+                                <option value="0"><?php echo esc_html__('Todos', 'navai-voice'); ?></option>
+                            </select>
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Tool name o *', 'navai-voice'); ?></span>
+                            <input type="text" class="regular-text navai-mcp-policy-form-tool-name" value="*" />
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Modo', 'navai-voice'); ?></span>
+                            <select class="navai-mcp-policy-form-mode">
+                                <option value="allow"><?php echo esc_html__('Allow', 'navai-voice'); ?></option>
+                                <option value="deny"><?php echo esc_html__('Deny', 'navai-voice'); ?></option>
+                            </select>
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Prioridad', 'navai-voice'); ?></span>
+                            <input type="number" min="1" max="9999" step="1" class="small-text navai-mcp-policy-form-priority" value="100" />
+                        </label>
+                        <label class="navai-agent-form-check">
+                            <input type="checkbox" class="navai-mcp-policy-form-enabled" checked />
+                            <span><?php echo esc_html__('Politica activa', 'navai-voice'); ?></span>
+                        </label>
+                        <div></div>
+                        <label>
+                            <span><?php echo esc_html__('Roles (csv opcional)', 'navai-voice'); ?></span>
+                            <input type="text" class="regular-text navai-mcp-policy-form-roles" placeholder="<?php echo esc_attr__('administrator, editor, guest', 'navai-voice'); ?>" />
+                        </label>
+                        <label>
+                            <span><?php echo esc_html__('Agent keys (csv opcional)', 'navai-voice'); ?></span>
+                            <input type="text" class="regular-text navai-mcp-policy-form-agent-keys" placeholder="<?php echo esc_attr__('support, ecommerce', 'navai-voice'); ?>" />
+                        </label>
+                        <label class="navai-agents-form-grid-span-full">
+                            <span><?php echo esc_html__('Notas (opcional)', 'navai-voice'); ?></span>
+                            <textarea class="large-text navai-mcp-policy-form-notes" rows="3"></textarea>
+                        </label>
+                    </div>
+
+                    <div class="navai-agents-actions">
+                        <button type="button" class="button button-primary navai-mcp-policy-save"><?php echo esc_html__('Guardar politica', 'navai-voice'); ?></button>
+                        <button type="button" class="button button-secondary navai-mcp-policy-reset"><?php echo esc_html__('Limpiar', 'navai-voice'); ?></button>
+                        <button type="button" class="button button-secondary navai-mcp-policy-modal-dismiss"><?php echo esc_html__('Cerrar', 'navai-voice'); ?></button>
+                    </div>
+                </section>
+            </div>
         </div>
 
         <div class="navai-agents-detail navai-mcp-detail" hidden>
