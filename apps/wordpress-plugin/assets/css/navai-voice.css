@@ -122,19 +122,34 @@
   justify-content: center;
   gap: 0.4rem;
   border: 1px solid #d2d9e5;
-  background: #f5f7fb;
+  background: linear-gradient(180deg, #ffffff, #f2f6fc);
   color: #233044;
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.85rem;
-  font-weight: 600;
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.95rem;
+  font-weight: 700;
   line-height: 1.15;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, transform 0.12s ease;
 }
 
 .navai-voice-ptt:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.navai-voice-ptt:hover:not(:disabled),
+.navai-voice-ptt:focus-visible:not(:disabled) {
+  border-color: #b8c7dc;
+  background: linear-gradient(180deg, #ffffff, #edf3fd);
+  box-shadow: 0 4px 10px rgba(8, 29, 59, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.navai-voice-ptt:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .navai-voice-ptt .dashicons {
@@ -144,15 +159,29 @@
   line-height: 1;
 }
 
+.navai-voice-ptt .navai-voice-ptt-text {
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+
 .navai-voice-ptt.is-active {
-  background: #ecf4ff;
-  border-color: #a8c8f1;
-  box-shadow: 0 0 0 3px rgba(18, 99, 220, 0.12);
+  background: linear-gradient(180deg, #ecf4ff, #dcecff);
+  border-color: #8eb9ef;
+  box-shadow: 0 0 0 3px rgba(18, 99, 220, 0.14), 0 6px 14px rgba(18, 99, 220, 0.12);
+  color: #103b76;
 }
 
 .navai-voice-widget.is-interrupted .navai-voice-ptt {
   border-color: #e9b3b3;
-  background: #fff3f3;
+  background: linear-gradient(180deg, #fff7f7, #fff0f0);
+}
+
+.navai-voice-widget.is-ptt-mode .navai-voice-ptt {
+  min-height: 44px;
+}
+
+.navai-voice-widget.is-ptt-mode .navai-voice-ptt.is-active .dashicons {
+  animation: navai-voice-pulse 0.85s ease-in-out infinite;
 }
 
 .navai-voice-text-form {

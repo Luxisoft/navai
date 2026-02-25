@@ -34,18 +34,19 @@ if (!isset($agentsEnabled)) {
 
         <div class="navai-nav-subpanel" data-navai-agents-subpanel="agents">
             <section class="navai-agents-list">
-                <div class="navai-agents-section-head">
-                    <h3><?php echo esc_html__('Agentes configurados', 'navai-voice'); ?></h3>
-                    <p class="navai-admin-description"><?php echo esc_html__('Edita o elimina especialistas. El agente por defecto se usa cuando no hay coincidencia.', 'navai-voice'); ?></p>
-                </div>
-
-                <div class="navai-agents-actions">
-                    <button type="button" class="button button-primary navai-agent-open">
-                        <?php echo esc_html__('Crear agente', 'navai-voice'); ?>
-                    </button>
-                    <button type="button" class="button button-secondary navai-agents-reload">
-                        <?php echo esc_html__('Recargar', 'navai-voice'); ?>
-                    </button>
+                <div class="navai-agents-section-head navai-agents-section-head--with-actions">
+                    <div class="navai-agents-section-head-copy">
+                        <h3><?php echo esc_html__('Agentes configurados', 'navai-voice'); ?></h3>
+                        <p class="navai-admin-description"><?php echo esc_html__('Edita o elimina especialistas. El agente por defecto se usa cuando no hay coincidencia.', 'navai-voice'); ?></p>
+                    </div>
+                    <div class="navai-agents-actions navai-agents-section-head-actions">
+                        <button type="button" class="button button-primary navai-agent-open">
+                            <?php echo esc_html__('Crear agente', 'navai-voice'); ?>
+                        </button>
+                        <button type="button" class="button button-secondary navai-agents-reload">
+                            <?php echo esc_html__('Recargar', 'navai-voice'); ?>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="navai-agents-table-wrap">
@@ -72,17 +73,18 @@ if (!isset($agentsEnabled)) {
 
         <div class="navai-nav-subpanel" data-navai-agents-subpanel="handoffs">
             <section class="navai-handoffs-list">
-                <div class="navai-agents-section-head">
-                    <h3><?php echo esc_html__('Reglas de handoff configuradas', 'navai-voice'); ?></h3>
-                    <p class="navai-admin-description"><?php echo esc_html__('Se evalua por prioridad ascendente. La primera coincidencia delega al agente destino.', 'navai-voice'); ?></p>
-                </div>
-
-                <div class="navai-agents-actions">
-                    <button type="button" class="button button-primary navai-handoff-open">
-                        <?php echo esc_html__('Crear regla', 'navai-voice'); ?>
-                    </button>
-                    <button type="button" class="button button-secondary navai-handoffs-reload">
-                        <?php echo esc_html__('Recargar reglas', 'navai-voice'); ?></button>
+                <div class="navai-agents-section-head navai-agents-section-head--with-actions">
+                    <div class="navai-agents-section-head-copy">
+                        <h3><?php echo esc_html__('Reglas de handoff configuradas', 'navai-voice'); ?></h3>
+                        <p class="navai-admin-description"><?php echo esc_html__('Se evalua por prioridad ascendente. La primera coincidencia delega al agente destino.', 'navai-voice'); ?></p>
+                    </div>
+                    <div class="navai-agents-actions navai-agents-section-head-actions">
+                        <button type="button" class="button button-primary navai-handoff-open">
+                            <?php echo esc_html__('Crear regla', 'navai-voice'); ?>
+                        </button>
+                        <button type="button" class="button button-secondary navai-handoffs-reload">
+                            <?php echo esc_html__('Recargar reglas', 'navai-voice'); ?></button>
+                    </div>
                 </div>
 
                 <div class="navai-agents-table-wrap">

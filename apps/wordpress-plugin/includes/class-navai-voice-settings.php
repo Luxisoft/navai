@@ -44,7 +44,7 @@ class Navai_Voice_Settings
         );
 
         $baseSettingsUrl = admin_url('admin.php?page=' . self::PAGE_SLUG);
-        $documentationUrl = 'https://navai.luxisoft.com/documentation/installation-wordpress';
+        $documentationUrl = 'https://navai.luxisoft.com/wordpress';
 
         global $submenu;
         if (!is_array($submenu)) {
@@ -54,10 +54,6 @@ class Navai_Voice_Settings
         $submenu[self::PAGE_SLUG] = [
             [__('Navegacion', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#navigation'],
             [__('Funciones', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#plugins'],
-            [__('Seguridad', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#safety'],
-            [__('Aprobaciones', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#approvals'],
-            [__('Trazas', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#traces'],
-            [__('Historial', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#history'],
             [__('Agentes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#agents'],
             [__('MCP', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#mcp'],
             [__('Ajustes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#settings'],
@@ -266,7 +262,9 @@ class Navai_Voice_Settings
             'realtime_vad_prefix_padding_ms' => $realtimeVadPrefixPaddingMs,
             'client_secret_ttl' => $ttl,
             'allow_public_client_secret' => !empty($source['allow_public_client_secret']),
-            'allow_public_functions' => !empty($source['allow_public_functions']),
+            'allow_public_functions' => array_key_exists('allow_public_functions', $source)
+                ? !empty($source['allow_public_functions'])
+                : (!empty($previous['allow_public_functions']) || (!array_key_exists('allow_public_functions', $previous) && !empty($defaults['allow_public_functions']))),
             'enable_guardrails' => !empty($source['enable_guardrails']),
             'enable_approvals' => !empty($source['enable_approvals']),
             'enable_tracing' => !empty($source['enable_tracing']),

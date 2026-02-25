@@ -6330,6 +6330,85 @@
       });
     }
 
+    (function initDashboardThemeToggle() {
+      var wrapNode = document.querySelector(".navai-admin-wrap");
+      var toggleButton = document.querySelector("[data-navai-theme-toggle]");
+      var storageKey = "navai_admin_theme_mode";
+      if (!wrapNode) {
+        return;
+      }
+
+      function normalizeThemeMode(value, fallback) {
+        var nextValue = String(value || "").toLowerCase();
+        if (nextValue === "dark" || nextValue === "light") {
+          return nextValue;
+        }
+        return String(fallback || "light").toLowerCase() === "dark" ? "dark" : "light";
+      }
+
+      function readStoredThemeMode() {
+        try {
+          if (!window.localStorage) {
+            return "";
+          }
+          return String(window.localStorage.getItem(storageKey) || "");
+        } catch (_error) {
+          return "";
+        }
+      }
+
+      function writeStoredThemeMode(value) {
+        try {
+          if (!window.localStorage) {
+            return;
+          }
+          window.localStorage.setItem(storageKey, value);
+        } catch (_error) {
+          // Ignore storage errors (private mode / browser restrictions).
+        }
+      }
+
+      function updateToggleMetadata(activeTheme) {
+        if (!toggleButton) {
+          return;
+        }
+
+        var isDark = activeTheme === "dark";
+        var nextActionLabel = isDark
+          ? String(toggleButton.getAttribute("data-label-light") || tAdmin("Activar modo claro"))
+          : String(toggleButton.getAttribute("data-label-dark") || tAdmin("Activar modo oscuro"));
+
+        toggleButton.classList.toggle("is-dark", isDark);
+        toggleButton.setAttribute("aria-pressed", isDark ? "true" : "false");
+        toggleButton.setAttribute("aria-label", nextActionLabel);
+        toggleButton.setAttribute("title", nextActionLabel);
+      }
+
+      function applyThemeMode(themeMode, shouldPersist) {
+        var nextTheme = normalizeThemeMode(themeMode, "light");
+        wrapNode.setAttribute("data-navai-theme", nextTheme);
+        updateToggleMetadata(nextTheme);
+        if (shouldPersist) {
+          writeStoredThemeMode(nextTheme);
+        }
+      }
+
+      var initialTheme = normalizeThemeMode(
+        readStoredThemeMode() || String(wrapNode.getAttribute("data-navai-theme") || "light"),
+        "light"
+      );
+      applyThemeMode(initialTheme, false);
+
+      if (!toggleButton || toggleButton.__navaiThemeToggleReady) {
+        return;
+      }
+      toggleButton.__navaiThemeToggleReady = true;
+      toggleButton.addEventListener("click", function () {
+        var currentTheme = normalizeThemeMode(String(wrapNode.getAttribute("data-navai-theme") || "light"), "light");
+        applyThemeMode(currentTheme === "dark" ? "light" : "dark", true);
+      });
+    })();
+
     (function initSettingsSubtabs() {
       var settingsPanel = document.querySelector('.navai-admin-form > [data-navai-panel="settings"]');
       if (!settingsPanel || settingsPanel.__navaiSettingsSubtabsReady) {

@@ -125,7 +125,11 @@ trait Navai_Voice_Settings_Render_Page_Trait
         $pluginFunctionPluginOptions = $this->build_plugin_function_plugin_options($pluginFunctionGroups);
         $pluginFunctionRoleOptions = $this->build_plugin_function_role_options($pluginCustomFunctions, $availableRoles);
         ?>
-        <div class="wrap navai-admin-wrap" data-navai-dashboard-language="<?php echo esc_attr($dashboardLanguage); ?>">
+        <div
+            class="wrap navai-admin-wrap"
+            data-navai-dashboard-language="<?php echo esc_attr($dashboardLanguage); ?>"
+            data-navai-theme="light"
+        >
             <form action="options.php" method="post" class="navai-admin-form">
                 <?php settings_fields('navai_voice_settings_group'); ?>
                 <input
@@ -138,11 +142,19 @@ trait Navai_Voice_Settings_Render_Page_Trait
                 <div class="navai-admin-hero">
                     <div class="navai-admin-hero-top">
                         <div class="navai-admin-banner-wrap">
-                            <img
-                                class="navai-admin-banner"
-                                src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/navai.png'); ?>"
-                                alt="<?php echo esc_attr__('NAVAI', 'navai-voice'); ?>"
-                            />
+                            <a
+                                class="navai-admin-banner-link"
+                                href="https://navai.luxisoft.com/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="<?php echo esc_attr__('Ir a NAVAI', 'navai-voice'); ?>"
+                            >
+                                <img
+                                    class="navai-admin-banner"
+                                    src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/navai.png'); ?>"
+                                    alt="<?php echo esc_attr__('NAVAI', 'navai-voice'); ?>"
+                                />
+                            </a>
                             <p class="navai-admin-banner-credit">
                                 <?php echo esc_html__('by', 'navai-voice'); ?>
                                 <a href="https://luxisoft.com/en/" target="_blank" rel="noopener noreferrer">LUXISOFT</a>
@@ -167,26 +179,41 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 </button>
                                 <a
                                     class="button button-secondary navai-admin-doc-link"
-                                    href="https://navai.luxisoft.com/documentation/installation-wordpress"
+                                    href="https://navai.luxisoft.com/wordpress"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
                                     <?php echo esc_html__('Documentacion', 'navai-voice'); ?>
                                 </a>
                             </div>
-                            <label class="navai-admin-language-select">
-                                <select
-                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[dashboard_language]"
-                                    id="navai-dashboard-language"
-                                    aria-label="<?php echo esc_attr__('Idioma del panel', 'navai-voice'); ?>"
+                            <div class="navai-admin-header-utilities">
+                                <label class="navai-admin-language-select">
+                                    <select
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[dashboard_language]"
+                                        id="navai-dashboard-language"
+                                        aria-label="<?php echo esc_attr__('Idioma del panel', 'navai-voice'); ?>"
+                                    >
+                                        <?php foreach ($dashboardLanguageOptions as $dashboardLanguageKey => $dashboardLanguageLabel) : ?>
+                                            <option value="<?php echo esc_attr($dashboardLanguageKey); ?>" <?php selected($dashboardLanguage, $dashboardLanguageKey); ?>>
+                                                <?php echo esc_html($dashboardLanguageLabel); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+                                <button
+                                    type="button"
+                                    class="button button-secondary navai-admin-theme-toggle"
+                                    data-navai-theme-toggle
+                                    data-label-dark="<?php echo esc_attr__('Activar modo oscuro', 'navai-voice'); ?>"
+                                    data-label-light="<?php echo esc_attr__('Activar modo claro', 'navai-voice'); ?>"
+                                    aria-pressed="false"
+                                    aria-label="<?php echo esc_attr__('Activar modo oscuro', 'navai-voice'); ?>"
+                                    title="<?php echo esc_attr__('Activar modo oscuro', 'navai-voice'); ?>"
                                 >
-                                    <?php foreach ($dashboardLanguageOptions as $dashboardLanguageKey => $dashboardLanguageLabel) : ?>
-                                        <option value="<?php echo esc_attr($dashboardLanguageKey); ?>" <?php selected($dashboardLanguage, $dashboardLanguageKey); ?>>
-                                            <?php echo esc_html($dashboardLanguageLabel); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </label>
+                                    <span class="navai-admin-theme-toggle-icon navai-admin-theme-toggle-icon--sun" aria-hidden="true">☀</span>
+                                    <span class="navai-admin-theme-toggle-icon navai-admin-theme-toggle-icon--moon" aria-hidden="true">☾</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -968,15 +995,6 @@ trait Navai_Voice_Settings_Render_Page_Trait
                             <span><?php echo esc_html__('Permitir client_secret publico (anonimos)', 'navai-voice'); ?></span>
                         </label>
 
-                        <label class="navai-admin-check">
-                            <input
-                                type="checkbox"
-                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[allow_public_functions]"
-                                value="1"
-                                <?php checked(!empty($settings['allow_public_functions']), true); ?>
-                            />
-                            <span><?php echo esc_html__('Permitir funciones backend publicas (anonimos)', 'navai-voice'); ?></span>
-                        </label>
                             </div>
                         </section>
 
