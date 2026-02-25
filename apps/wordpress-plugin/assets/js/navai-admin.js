@@ -231,7 +231,7 @@
       var nextSnapshot = getSnapshot();
       if (nextSnapshot === baselineSnapshot) {
         if (pendingReason) {
-          setStatus(tAdmin("Auto-guardado activado."), "");
+          setStatus("", "");
           pendingReason = "";
         }
         return;
@@ -255,7 +255,7 @@
         baselineSnapshot = getSnapshot();
         setStatus(tAdmin("Cambios guardados automaticamente."), "success");
         successTimer = setTimeout(function () {
-          setStatus(tAdmin("Auto-guardado activado."), "");
+          setStatus("", "");
         }, 1200);
       } catch (error) {
         setStatus((error && error.message) ? error.message : tAdmin("No se pudieron guardar los cambios automaticamente."), "error");
@@ -277,7 +277,7 @@
     }
 
     baselineSnapshot = getSnapshot();
-    setStatus(tAdmin("Auto-guardado activado."), "");
+    setStatus("", "");
 
     if (autosaveBar && autosaveBar.querySelector) {
       var legacySubmitButton = autosaveBar.querySelector('.button.button-primary, input[type="submit"]');

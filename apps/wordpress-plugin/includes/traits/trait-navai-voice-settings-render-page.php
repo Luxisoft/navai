@@ -143,6 +143,10 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/navai.png'); ?>"
                                 alt="<?php echo esc_attr__('NAVAI', 'navai-voice'); ?>"
                             />
+                            <p class="navai-admin-banner-credit">
+                                <?php echo esc_html__('by', 'navai-voice'); ?>
+                                <a href="https://luxisoft.com/en/" target="_blank" rel="noopener noreferrer">LUXISOFT</a>
+                            </p>
                         </div>
                         <div class="navai-admin-header-controls">
                             <div class="navai-admin-tab-buttons" role="tablist" aria-label="<?php echo esc_attr__('NAVAI sections', 'navai-voice'); ?>">
@@ -1233,19 +1237,12 @@ trait Navai_Voice_Settings_Render_Page_Trait
                 </section>
 
                 <div class="navai-admin-autosave-bar" data-navai-autosave-bar>
-                    <p class="navai-admin-autosave-status" aria-live="polite">
-                        <?php echo esc_html__('Auto-guardado activado.', 'navai-voice'); ?>
-                    </p>
+                    <p class="navai-admin-autosave-status" aria-live="polite"></p>
                     <noscript>
                         <?php submit_button(__('Guardar cambios', 'navai-voice')); ?>
                     </noscript>
                 </div>
             </form>
-
-            <footer class="navai-admin-footer">
-                <?php echo esc_html__('by', 'navai-voice'); ?>
-                <a href="https://luxisoft.com/en/" target="_blank" rel="noopener noreferrer">LUXISOFT</a>
-            </footer>
         </div>
         <?php
     }
