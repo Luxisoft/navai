@@ -298,6 +298,22 @@
   grid-template-columns: 1fr;
 }
 
+.navai-mcp-panel .navai-agents-actions + .navai-agents-table-wrap {
+  margin-top: 10px;
+}
+
+.navai-mcp-panel .navai-agents-section-head + .navai-agents-form-grid {
+  margin-top: 10px;
+}
+
+.navai-mcp-panel .navai-agents-form-grid .navai-agents-actions {
+  margin-top: 0;
+}
+
+.navai-mcp-panel .navai-agents-form-grid + .navai-agents-table-wrap {
+  margin-top: 10px;
+}
+
 .navai-agents-editor,
 .navai-agents-list,
 .navai-handoffs-editor,
@@ -2441,19 +2457,17 @@
 }
 
 .navai-admin-wrap .navai-searchable-select-toggle::after {
-  content: "\25B4\25BE";
+  content: "";
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 10px;
+  height: 10px;
   margin-left: auto;
-  color: var(--navai-select-arrow-color);
-  font-size: 9px;
-  line-height: 1;
-  letter-spacing: -1px;
-  border: 0;
-  transform: none;
+  border-right: 2px solid var(--navai-select-arrow-color);
+  border-bottom: 2px solid var(--navai-select-arrow-color);
+  transform: rotate(45deg) translateY(-1px);
+  transition: transform 0.15s ease, border-color 0.15s ease;
   flex: 0 0 auto;
 }
 
@@ -2465,17 +2479,21 @@
   background: #ffffff;
 }
 
+.navai-admin-wrap .navai-searchable-select.is-open .navai-searchable-select-toggle::after {
+  transform: rotate(-135deg) translate(-1px, 0);
+}
+
 .navai-admin-wrap select:not([multiple]) {
   -webkit-appearance: none;
   appearance: none;
   padding-right: 40px !important;
   background-repeat: no-repeat !important;
   background-position:
-    calc(100% - 16px) calc(50% - 4px),
-    calc(100% - 12px) calc(50% - 4px),
-    calc(100% - 16px) calc(50% + 3px),
-    calc(100% - 12px) calc(50% + 3px) !important;
-  background-size: 4px 4px, 4px 4px, 4px 4px, 4px 4px !important;
+    calc(100% - 17px) calc(50% - 5px),
+    calc(100% - 11px) calc(50% - 5px),
+    calc(100% - 17px) calc(50% + 4px),
+    calc(100% - 11px) calc(50% + 4px) !important;
+  background-size: 5px 5px, 5px 5px, 5px 5px, 5px 5px !important;
   background-image:
     linear-gradient(225deg, transparent 50%, var(--navai-select-arrow-color) 50%),
     linear-gradient(315deg, var(--navai-select-arrow-color) 50%, transparent 50%),
@@ -2556,6 +2574,26 @@
   transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
+.navai-admin-wrap .navai-nav-route-item {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.navai-admin-wrap .navai-nav-route-main {
+  grid-column: 2 / 3;
+  min-width: 0;
+}
+
+.navai-admin-wrap .navai-nav-route-description {
+  width: 100%;
+  min-width: 0;
+}
+
+.navai-admin-wrap .navai-nav-url-button {
+  grid-column: 2 / 3;
+  justify-self: start;
+}
+
 .navai-admin-wrap .navai-nav-route-item:hover,
 .navai-admin-wrap .navai-plugin-func-item:hover,
 .navai-admin-wrap .navai-plugin-function-transfer-item:hover {
@@ -2567,6 +2605,12 @@
   border-style: solid;
   border-color: rgba(198, 214, 235, 0.95);
   background: linear-gradient(180deg, #f8fbff, #eef5ff);
+}
+
+.navai-admin-wrap .navai-nav-url-box code {
+  width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .navai-admin-wrap .navai-status-badge {
@@ -2704,6 +2748,23 @@
   --navai-shadow-sm: 0 10px 22px rgba(2, 8, 20, 0.36);
   --navai-shadow-md: 0 18px 40px rgba(2, 8, 20, 0.42);
   --navai-shadow-lg: 0 28px 70px rgba(2, 8, 20, 0.52);
+}
+
+body.navai-admin-theme-dark,
+body.navai-admin-theme-dark #wpwrap,
+body.navai-admin-theme-dark #wpcontent,
+body.navai-admin-theme-dark #wpbody,
+body.navai-admin-theme-dark #wpbody-content,
+body.navai-admin-theme-dark #wpfooter {
+  background: #0b1320;
+}
+
+body.navai-admin-theme-dark #wpcontent,
+body.navai-admin-theme-dark #wpbody-content {
+  background:
+    radial-gradient(1200px 520px at 20% 0%, rgba(31, 123, 255, 0.08), rgba(31, 123, 255, 0)),
+    radial-gradient(900px 420px at 88% 3%, rgba(76, 160, 255, 0.06), rgba(76, 160, 255, 0)),
+    #0b1320;
 }
 
 .navai-admin-wrap[data-navai-theme="dark"]::before {

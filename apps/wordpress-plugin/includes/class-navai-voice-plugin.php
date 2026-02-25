@@ -110,7 +110,8 @@ class Navai_Voice_Plugin
     public function inject_admin_menu_icon_css(): void
     {
         $menuId = 'toplevel_page_' . Navai_Voice_Settings::PAGE_SLUG;
-        $documentationUrl = 'https://navai.luxisoft.com/documentation/installation-wordpress';
+        $documentationUrl = 'https://navai.luxisoft.com/wordpress';
+        $legacyDocumentationUrl = 'https://navai.luxisoft.com/documentation/installation-wordpress';
         ?>
         <style>
             #<?php echo esc_attr($menuId); ?> .wp-menu-image img {
@@ -124,14 +125,37 @@ class Navai_Voice_Plugin
         </style>
         <script>
             (function () {
-                var selector = '#<?php echo esc_js($menuId); ?> .wp-submenu a[href="<?php echo esc_js($documentationUrl); ?>"]';
-                var docLink = document.querySelector(selector);
-                if (!docLink) {
-                    return;
+                function bindExternalDocumentationLinkTarget() {
+                    var menuSelector = '#<?php echo esc_js($menuId); ?> .wp-submenu a';
+                    var links = document.querySelectorAll(menuSelector);
+                    if (!links || !links.length) {
+                        return;
+                    }
+
+                    var docsUrl = '<?php echo esc_js($documentationUrl); ?>';
+                    var legacyDocsUrl = '<?php echo esc_js($legacyDocumentationUrl); ?>';
+
+                    for (var i = 0; i < links.length; i += 1) {
+                        var link = links[i];
+                        if (!link) {
+                            continue;
+                        }
+
+                        var href = String(link.getAttribute('href') || '');
+                        if (href !== docsUrl && href !== legacyDocsUrl) {
+                            continue;
+                        }
+
+                        link.setAttribute('target', '_blank');
+                        link.setAttribute('rel', 'noopener noreferrer');
+                    }
                 }
 
-                docLink.setAttribute('target', '_blank');
-                docLink.setAttribute('rel', 'noopener noreferrer');
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', bindExternalDocumentationLinkTarget);
+                } else {
+                    bindExternalDocumentationLinkTarget();
+                }
             })();
         </script>
         <?php

@@ -6384,9 +6384,19 @@
         toggleButton.setAttribute("title", nextActionLabel);
       }
 
+      function syncDocumentThemeClass(activeTheme) {
+        if (!document || !document.body || !document.body.classList) {
+          return;
+        }
+
+        var isDark = activeTheme === "dark";
+        document.body.classList.toggle("navai-admin-theme-dark", isDark);
+      }
+
       function applyThemeMode(themeMode, shouldPersist) {
         var nextTheme = normalizeThemeMode(themeMode, "light");
         wrapNode.setAttribute("data-navai-theme", nextTheme);
+        syncDocumentThemeClass(nextTheme);
         updateToggleMetadata(nextTheme);
         if (shouldPersist) {
           writeStoredThemeMode(nextTheme);
