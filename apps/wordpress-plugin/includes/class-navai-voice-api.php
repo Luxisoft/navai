@@ -109,6 +109,16 @@ class Navai_Voice_API
 
         register_rest_route(
             'navai/v1',
+            '/settings',
+            [
+                'methods' => WP_REST_Server::CREATABLE,
+                'callback' => [$this, 'update_admin_settings'],
+                'permission_callback' => [$this, 'can_manage_settings'],
+            ]
+        );
+
+        register_rest_route(
+            'navai/v1',
             '/guardrails',
             [
                 [
@@ -441,6 +451,11 @@ class Navai_Voice_API
     }
 
     public function can_manage_guardrails(WP_REST_Request $request): bool
+    {
+        return current_user_can('manage_options');
+    }
+
+    public function can_manage_settings(WP_REST_Request $request): bool
     {
         return current_user_can('manage_options');
     }
@@ -1032,6 +1047,40 @@ class Navai_Voice_API
             'plugin_custom_functions' => array_values($functions),
             'allowed_plugin_function_keys' => array_values(array_unique($allowedKeys)),
         ];
+    }
+
+    public function update_admin_settings(WP_REST_Request $request)
+    {
+        $settingsInput = $request->get_param(Navai_Voice_Settings::OPTION_KEY);
+        if (!is_array($settingsInput)) {
+            $json = $request->get_json_params();
+            if (is_array($json) && isset($json[Navai_Voice_Settings::OPTION_KEY]) && is_array($json[Navai_Voice_Settings::OPTION_KEY])) {
+                $settingsInput = $json[Navai_Voice_Settings::OPTION_KEY];
+            } elseif (is_array($json) && isset($json['settings']) && is_array($json['settings'])) {
+                $settingsInput = $json['settings'];
+            } else {
+                $settingsInput = [];
+            }
+        }
+
+        $settingsInput['active_tab'] = isset($settingsInput['active_tab'])
+            ? sanitize_key((string) $settingsInput['active_tab'])
+            : 'navigation';
+
+        $sanitizedSettings = $this->settings->sanitize_settings($settingsInput);
+        if (!update_option(Navai_Voice_Settings::OPTION_KEY, $sanitizedSettings)) {
+            // WordPress returns false when values are unchanged; keep response successful.
+        }
+
+        $savedSettings = $this->settings->get_settings();
+
+        return rest_ensure_response([
+            'ok' => true,
+            'saved' => [
+                'dashboard_language' => isset($savedSettings['dashboard_language']) ? (string) $savedSettings['dashboard_language'] : 'en',
+                'active_tab' => isset($savedSettings['active_tab']) ? (string) $savedSettings['active_tab'] : 'navigation',
+            ],
+        ]);
     }
 
     public function list_guardrails(WP_REST_Request $request)

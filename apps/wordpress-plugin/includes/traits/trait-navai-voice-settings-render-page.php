@@ -125,7 +125,7 @@ trait Navai_Voice_Settings_Render_Page_Trait
         $pluginFunctionPluginOptions = $this->build_plugin_function_plugin_options($pluginFunctionGroups);
         $pluginFunctionRoleOptions = $this->build_plugin_function_role_options($pluginCustomFunctions, $availableRoles);
         ?>
-        <div class="wrap navai-admin-wrap">
+        <div class="wrap navai-admin-wrap" data-navai-dashboard-language="<?php echo esc_attr($dashboardLanguage); ?>">
             <form action="options.php" method="post" class="navai-admin-form">
                 <?php settings_fields('navai_voice_settings_group'); ?>
                 <input
@@ -690,26 +690,27 @@ trait Navai_Voice_Settings_Render_Page_Trait
                     <h2><?php echo esc_html__('Ajustes', 'navai-voice'); ?></h2>
                     <p><?php echo esc_html__('Configuracion principal del runtime de voz.', 'navai-voice'); ?></p>
 
-                    <div class="navai-nav-tabs" role="tablist" aria-label="<?php echo esc_attr__('Secciones de ajustes', 'navai-voice'); ?>">
-                        <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="general">
-                            <?php echo esc_html__('General', 'navai-voice'); ?>
-                        </button>
-                        <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="safety">
-                            <?php echo esc_html__('Seguridad', 'navai-voice'); ?>
-                        </button>
-                        <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="approvals">
-                            <?php echo esc_html__('Aprobaciones', 'navai-voice'); ?>
-                        </button>
-                        <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="traces">
-                            <?php echo esc_html__('Trazas', 'navai-voice'); ?>
-                        </button>
-                        <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="history">
-                            <?php echo esc_html__('Historial', 'navai-voice'); ?>
-                        </button>
-                    </div>
+                    <div class="navai-admin-card navai-nav-card navai-admin-settings-shell">
+                        <div class="navai-nav-tabs" role="tablist" aria-label="<?php echo esc_attr__('Secciones de ajustes', 'navai-voice'); ?>">
+                            <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="general">
+                                <?php echo esc_html__('General', 'navai-voice'); ?>
+                            </button>
+                            <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="safety">
+                                <?php echo esc_html__('Seguridad', 'navai-voice'); ?>
+                            </button>
+                            <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="approvals">
+                                <?php echo esc_html__('Aprobaciones', 'navai-voice'); ?>
+                            </button>
+                            <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="traces">
+                                <?php echo esc_html__('Trazas', 'navai-voice'); ?>
+                            </button>
+                            <button type="button" class="button button-secondary navai-nav-tab-button" data-navai-settings-tab="history">
+                                <?php echo esc_html__('Historial', 'navai-voice'); ?>
+                            </button>
+                        </div>
 
-                    <div class="navai-nav-subpanel" data-navai-settings-subpanel="general">
-                    <div class="navai-admin-card navai-admin-settings-sections">
+                        <div class="navai-nav-subpanel" data-navai-settings-subpanel="general">
+                    <div class="navai-admin-settings-sections">
                         <section class="navai-admin-settings-section">
                             <div class="navai-admin-settings-section-head">
                                 <h3><?php echo esc_html__('Conexion y runtime', 'navai-voice'); ?></h3>
@@ -1211,26 +1212,34 @@ trait Navai_Voice_Settings_Render_Page_Trait
                             </div>
                         </section>
                     </div>
-                    </div>
+                        </div>
 
-                    <div class="navai-nav-subpanel" data-navai-settings-subpanel="safety">
-                        <?php require __DIR__ . '/../views/admin/navai-settings-panel-safety.php'; ?>
-                    </div>
+                        <div class="navai-nav-subpanel" data-navai-settings-subpanel="safety">
+                            <?php require __DIR__ . '/../views/admin/navai-settings-panel-safety.php'; ?>
+                        </div>
 
-                    <div class="navai-nav-subpanel" data-navai-settings-subpanel="approvals">
-                        <?php require __DIR__ . '/../views/admin/navai-settings-panel-approvals.php'; ?>
-                    </div>
+                        <div class="navai-nav-subpanel" data-navai-settings-subpanel="approvals">
+                            <?php require __DIR__ . '/../views/admin/navai-settings-panel-approvals.php'; ?>
+                        </div>
 
-                    <div class="navai-nav-subpanel" data-navai-settings-subpanel="traces">
-                        <?php require __DIR__ . '/../views/admin/navai-settings-panel-traces.php'; ?>
-                    </div>
+                        <div class="navai-nav-subpanel" data-navai-settings-subpanel="traces">
+                            <?php require __DIR__ . '/../views/admin/navai-settings-panel-traces.php'; ?>
+                        </div>
 
-                    <div class="navai-nav-subpanel" data-navai-settings-subpanel="history">
-                        <?php require __DIR__ . '/../views/admin/navai-settings-panel-history.php'; ?>
+                        <div class="navai-nav-subpanel" data-navai-settings-subpanel="history">
+                            <?php require __DIR__ . '/../views/admin/navai-settings-panel-history.php'; ?>
+                        </div>
                     </div>
                 </section>
 
-                <?php submit_button(__('Guardar cambios', 'navai-voice')); ?>
+                <div class="navai-admin-autosave-bar" data-navai-autosave-bar>
+                    <p class="navai-admin-autosave-status" aria-live="polite">
+                        <?php echo esc_html__('Auto-guardado activado.', 'navai-voice'); ?>
+                    </p>
+                    <noscript>
+                        <?php submit_button(__('Guardar cambios', 'navai-voice')); ?>
+                    </noscript>
+                </div>
             </form>
 
             <footer class="navai-admin-footer">

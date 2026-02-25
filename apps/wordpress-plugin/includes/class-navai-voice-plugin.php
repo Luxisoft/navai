@@ -151,9 +151,16 @@ class Navai_Voice_Plugin
         }
 
         wp_enqueue_style(
+            'navai-voice-admin-fonts',
+            'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap',
+            [],
+            null
+        );
+
+        wp_enqueue_style(
             'navai-voice-admin',
             NAVAI_VOICE_URL . 'assets/css/navai-admin.css',
-            [],
+            ['navai-voice-admin-fonts'],
             NAVAI_VOICE_VERSION
         );
 

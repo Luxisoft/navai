@@ -731,8 +731,32 @@
   margin: 0 0 14px;
 }
 
+.navai-admin-autosave-bar {
+  margin: 4px 0 14px;
+  min-height: 24px;
+}
+
+.navai-admin-autosave-status {
+  margin: 0;
+  color: #526077;
+  font-size: 13px;
+}
+
+.navai-admin-autosave-status.is-saving {
+  color: #0f62d6;
+}
+
+.navai-admin-autosave-status.is-success {
+  color: #027a48;
+}
+
+.navai-admin-autosave-status.is-error {
+  color: #b42318;
+}
+
 .navai-admin-panel[data-navai-panel="navigation"] > .navai-admin-card,
-.navai-admin-panel[data-navai-panel="plugins"] > .navai-admin-card {
+.navai-admin-panel[data-navai-panel="plugins"] > .navai-admin-card,
+.navai-admin-panel[data-navai-panel="settings"] > .navai-admin-card.navai-admin-settings-shell {
   background: linear-gradient(180deg, #fbfdff, #f6faff);
   border-color: #d8e4f2;
 }
@@ -744,6 +768,19 @@
 .navai-nav-card {
   padding-top: 12px;
   background: linear-gradient(180deg, #fbfdff, #f6faff);
+}
+
+.navai-admin-settings-shell {
+  padding-top: 12px;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel > .navai-admin-panel {
+  padding-top: 0;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel > .navai-admin-panel > .navai-admin-card:last-child,
+.navai-admin-settings-shell > .navai-nav-subpanel > .navai-admin-panel > .navai-guardrails-panel:last-child {
+  margin-bottom: 0;
 }
 
 .navai-nav-tabs {
@@ -1523,6 +1560,10 @@
   gap: 14px;
 }
 
+.navai-admin-settings-shell .navai-admin-settings-sections {
+  margin: 0;
+}
+
 .navai-admin-settings-section {
   border: 1px solid #dfe7f3;
   border-radius: 12px;
@@ -1541,6 +1582,54 @@
 
 .navai-admin-settings-section-head .navai-admin-description {
   margin: 4px 0 0;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ru"] {
+  font-family: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="zh"] {
+  font-family: "Noto Sans SC", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ja"] {
+  font-family: "Noto Sans JP", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ko"] {
+  font-family: "Noto Sans KR", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="hi"] {
+  font-family: "Noto Sans Devanagari", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ru"] input,
+.navai-admin-wrap[data-navai-dashboard-language="ru"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="ru"] select,
+.navai-admin-wrap[data-navai-dashboard-language="ru"] option,
+.navai-admin-wrap[data-navai-dashboard-language="ru"] button,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] input,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] select,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] option,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] button,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] input,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] select,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] option,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] button,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] input,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] select,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] option,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] button,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] input,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] select,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] option,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] button {
+  font-family: inherit;
 }
 
 .navai-admin-settings-grid > label {

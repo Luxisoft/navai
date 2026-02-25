@@ -31,7 +31,7 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
                 <span><?php echo esc_html__('Activar persistencia de sesiones y memoria', 'navai-voice'); ?></span>
             </label>
             <p class="navai-admin-description">
-                <?php echo esc_html__('Usa Guardar cambios para persistir este interruptor y los limites. Si se desactiva, el widget opera sin guardar historial en base de datos.', 'navai-voice'); ?>
+                <?php echo esc_html__('Los cambios de este interruptor y los limites se guardan automaticamente. Si se desactiva, el widget opera sin guardar historial en base de datos.', 'navai-voice'); ?>
             </p>
         </div>
 
@@ -146,4 +146,3 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
         </div>
     </div>
 </section>
-

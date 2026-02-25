@@ -19,7 +19,7 @@ if (!isset($agentsEnabled)) {
                 <span><?php echo esc_html__('Activar multiagente y handoffs', 'navai-voice'); ?></span>
             </label>
             <p class="navai-admin-description">
-                <?php echo esc_html__('Usa Guardar cambios para persistir este interruptor. Los agentes y reglas se guardan al instante desde este panel.', 'navai-voice'); ?>
+                <?php echo esc_html__('Los cambios de este interruptor se guardan automaticamente. Los agentes y reglas se guardan al instante desde este panel.', 'navai-voice'); ?>
             </p>
         </div>
 

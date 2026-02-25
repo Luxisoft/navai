@@ -19,7 +19,7 @@ if (!isset($approvalsEnabled)) {
                 <span><?php echo esc_html__('Activar aprobaciones para funciones sensibles', 'navai-voice'); ?></span>
             </label>
             <p class="navai-admin-description">
-                <?php echo esc_html__('Usa Guardar cambios para persistir este interruptor. Las decisiones se gestionan al instante desde este panel.', 'navai-voice'); ?>
+                <?php echo esc_html__('Los cambios de este interruptor se guardan automaticamente. Las decisiones se gestionan al instante desde este panel.', 'navai-voice'); ?>
             </p>
         </div>
 
@@ -71,4 +71,3 @@ if (!isset($approvalsEnabled)) {
         </div>
     </div>
 </section>
-

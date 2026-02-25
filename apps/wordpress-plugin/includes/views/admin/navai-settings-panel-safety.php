@@ -19,7 +19,7 @@ if (!isset($guardrailsEnabled)) {
                 <span><?php echo esc_html__('Activar guardrails en tiempo real', 'navai-voice'); ?></span>
             </label>
             <p class="navai-admin-description">
-                <?php echo esc_html__('Usa Guardar cambios para persistir este interruptor. Las reglas se guardan al instante con la API del panel.', 'navai-voice'); ?>
+                <?php echo esc_html__('Los cambios de este interruptor se guardan automaticamente. Las reglas se guardan al instante con la API del panel.', 'navai-voice'); ?>
             </p>
         </div>
 

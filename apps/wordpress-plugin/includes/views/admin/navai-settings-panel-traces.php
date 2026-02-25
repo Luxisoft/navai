@@ -19,7 +19,7 @@ if (!isset($tracingEnabled)) {
                 <span><?php echo esc_html__('Activar trazas del runtime', 'navai-voice'); ?></span>
             </label>
             <p class="navai-admin-description">
-                <?php echo esc_html__('Usa Guardar cambios para persistir este interruptor. Este panel solo muestra eventos ya almacenados.', 'navai-voice'); ?>
+                <?php echo esc_html__('Los cambios de este interruptor se guardan automaticamente. Este panel solo muestra eventos ya almacenados.', 'navai-voice'); ?>
             </p>
         </div>
 

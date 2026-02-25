@@ -19,7 +19,7 @@ if (!isset($mcpEnabled)) {
                 <span><?php echo esc_html__('Activar integraciones MCP', 'navai-voice'); ?></span>
             </label>
             <p class="navai-admin-description">
-                <?php echo esc_html__('Usa Guardar cambios para persistir este interruptor. Los servidores, tools cacheadas y politicas se guardan al instante desde este panel.', 'navai-voice'); ?>
+                <?php echo esc_html__('Los cambios de este interruptor se guardan automaticamente. Los servidores, tools cacheadas y politicas se guardan al instante desde este panel.', 'navai-voice'); ?>
             </p>
         </div>
 

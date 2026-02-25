@@ -83,6 +83,242 @@
     return data;
   }
 
+  async function adminApiFormRequest(path, method, params) {
+    var config = getAdminApiConfig();
+    if (!config.restBaseUrl) {
+      throw new Error("Missing admin restBaseUrl.");
+    }
+
+    var url = String(config.restBaseUrl).replace(/\/$/, "") + path;
+    var headers = {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    };
+    if (config.restNonce) {
+      headers["X-WP-Nonce"] = config.restNonce;
+    }
+
+    var body = params instanceof URLSearchParams ? params.toString() : String(params || "");
+    var response = await fetch(url, {
+      method: method || "POST",
+      headers: headers,
+      body: body
+    });
+
+    var data = null;
+    try {
+      data = await response.json();
+    } catch (_error) {
+      data = null;
+    }
+
+    if (!response.ok) {
+      var msg = "";
+      if (data && typeof data.message === "string") {
+        msg = data.message;
+      } else if (data && typeof data.error === "string") {
+        msg = data.error;
+      } else {
+        msg = "Request failed (" + response.status + ")";
+      }
+      throw new Error(msg);
+    }
+
+    return data;
+  }
+
+  function buildSettingsFormParams(formNode) {
+    var params = new URLSearchParams();
+    if (!formNode || !formNode.querySelectorAll) {
+      return params;
+    }
+
+    var fields = formNode.querySelectorAll("input[name], select[name], textarea[name]");
+    for (var i = 0; i < fields.length; i += 1) {
+      var field = fields[i];
+      if (!field || field.disabled) {
+        continue;
+      }
+
+      var name = String(field.getAttribute("name") || "");
+      if (name.indexOf("navai_voice_settings[") !== 0) {
+        continue;
+      }
+
+      var tag = String(field.tagName || "").toLowerCase();
+      if (tag === "input") {
+        var type = String(field.getAttribute("type") || "").toLowerCase();
+        if (type === "button" || type === "submit" || type === "file" || type === "reset") {
+          continue;
+        }
+        if (type === "checkbox") {
+          if (/\[\]$/.test(name)) {
+            if (field.checked) {
+              params.append(name, String(field.value || "1"));
+            }
+          } else {
+            params.append(name, field.checked ? String(field.value || "1") : "");
+          }
+          continue;
+        }
+        if (type === "radio") {
+          if (field.checked) {
+            params.append(name, String(field.value || ""));
+          }
+          continue;
+        }
+      }
+
+      if (tag === "select" && field.multiple) {
+        var selectedCount = 0;
+        var options = field.options || [];
+        for (var optionIndex = 0; optionIndex < options.length; optionIndex += 1) {
+          var option = options[optionIndex];
+          if (!option || !option.selected) {
+            continue;
+          }
+          selectedCount += 1;
+          params.append(name, String(option.value || ""));
+        }
+        if (selectedCount === 0 && !/\[\]$/.test(name)) {
+          params.append(name, "");
+        }
+        continue;
+      }
+
+      params.append(name, String(field.value || ""));
+    }
+
+    return params;
+  }
+
+  function initSettingsAutoSave() {
+    var formNode = document.querySelector(".navai-admin-form");
+    if (!formNode || formNode.__navaiAutoSaveReady) {
+      return;
+    }
+    formNode.__navaiAutoSaveReady = true;
+
+    var statusNode = formNode.querySelector(".navai-admin-autosave-status");
+    var autosaveBar = formNode.querySelector("[data-navai-autosave-bar]");
+    var saveTimer = null;
+    var saveInFlight = false;
+    var saveQueued = false;
+    var baselineSnapshot = "";
+    var pendingReason = "";
+    var successTimer = null;
+
+    function setStatus(message, state) {
+      if (!statusNode) {
+        return;
+      }
+      statusNode.textContent = String(message || "");
+      statusNode.classList.remove("is-saving", "is-success", "is-error");
+      if (state === "saving") {
+        statusNode.classList.add("is-saving");
+      } else if (state === "success") {
+        statusNode.classList.add("is-success");
+      } else if (state === "error") {
+        statusNode.classList.add("is-error");
+      }
+    }
+
+    function getSnapshot() {
+      return buildSettingsFormParams(formNode).toString();
+    }
+
+    async function runSave() {
+      saveTimer = null;
+      var nextSnapshot = getSnapshot();
+      if (nextSnapshot === baselineSnapshot) {
+        if (pendingReason) {
+          setStatus(tAdmin("Auto-guardado activado."), "");
+          pendingReason = "";
+        }
+        return;
+      }
+
+      if (saveInFlight) {
+        saveQueued = true;
+        return;
+      }
+
+      saveInFlight = true;
+      if (successTimer) {
+        clearTimeout(successTimer);
+        successTimer = null;
+      }
+      setStatus(tAdmin("Guardando cambios..."), "saving");
+
+      try {
+        var params = buildSettingsFormParams(formNode);
+        await adminApiFormRequest("/settings", "POST", params);
+        baselineSnapshot = getSnapshot();
+        setStatus(tAdmin("Cambios guardados automaticamente."), "success");
+        successTimer = setTimeout(function () {
+          setStatus(tAdmin("Auto-guardado activado."), "");
+        }, 1200);
+      } catch (error) {
+        setStatus((error && error.message) ? error.message : tAdmin("No se pudieron guardar los cambios automaticamente."), "error");
+      } finally {
+        saveInFlight = false;
+        if (saveQueued) {
+          saveQueued = false;
+          scheduleSave("queued", 120);
+        }
+      }
+    }
+
+    function scheduleSave(reason, delayMs) {
+      pendingReason = String(reason || "");
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+      }
+      saveTimer = setTimeout(runSave, typeof delayMs === "number" ? delayMs : 450);
+    }
+
+    baselineSnapshot = getSnapshot();
+    setStatus(tAdmin("Auto-guardado activado."), "");
+
+    if (autosaveBar && autosaveBar.querySelector) {
+      var legacySubmitButton = autosaveBar.querySelector('.button.button-primary, input[type="submit"]');
+      if (legacySubmitButton && legacySubmitButton.style) {
+        legacySubmitButton.style.display = "none";
+      }
+    }
+
+    formNode.addEventListener("submit", function (event) {
+      event.preventDefault();
+    });
+
+    formNode.addEventListener("input", function (event) {
+      var target = event.target;
+      if (!target || !target.name || String(target.name).indexOf("navai_voice_settings[") !== 0) {
+        return;
+      }
+      scheduleSave("input", 600);
+    });
+
+    formNode.addEventListener("change", function (event) {
+      var target = event.target;
+      if (!target || !target.name || String(target.name).indexOf("navai_voice_settings[") !== 0) {
+        return;
+      }
+      scheduleSave("change", 220);
+    });
+
+    formNode.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest) {
+        return;
+      }
+      var button = target.closest('button[type="button"], .button, [role="button"]');
+      if (!button) {
+        return;
+      }
+      scheduleSave("click", 280);
+    });
+  }
+
   function applyPluginFunctionFilters(pluginPanel) {
     if (!pluginPanel) {
       return;
@@ -6162,6 +6398,7 @@
     initHistoryControls();
     initAgentsControls();
     initMcpControls();
+    initSettingsAutoSave();
     if (typeof initSearchableSelects === "function") {
       initSearchableSelects();
     }
