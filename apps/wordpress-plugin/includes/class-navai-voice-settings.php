@@ -174,6 +174,12 @@ class Navai_Voice_Settings
             $source['frontend_voice_input_mode'] ?? ($previous['frontend_voice_input_mode'] ?? $defaults['frontend_voice_input_mode'])
         );
         $frontendTextInputEnabled = !empty($source['frontend_text_input_enabled']);
+        $frontendAutoInitialize = array_key_exists('frontend_auto_initialize', $source)
+            ? !empty($source['frontend_auto_initialize'])
+            : (!empty($previous['frontend_auto_initialize']) || (!array_key_exists('frontend_auto_initialize', $previous) && !empty($defaults['frontend_auto_initialize'])));
+        $frontendAllowAssistantStopTool = array_key_exists('frontend_allow_assistant_stop_tool', $source)
+            ? !empty($source['frontend_allow_assistant_stop_tool'])
+            : (!empty($previous['frontend_allow_assistant_stop_tool']) || (!array_key_exists('frontend_allow_assistant_stop_tool', $previous) && !empty($defaults['frontend_allow_assistant_stop_tool'])));
         $frontendTextPlaceholder = $this->read_text_value(
             $source,
             $previous,
@@ -290,6 +296,8 @@ class Navai_Voice_Settings
             'frontend_button_text_active' => $frontendButtonTextActive,
             'frontend_voice_input_mode' => $frontendVoiceInputMode,
             'frontend_text_input_enabled' => $frontendTextInputEnabled,
+            'frontend_auto_initialize' => $frontendAutoInitialize,
+            'frontend_allow_assistant_stop_tool' => $frontendAllowAssistantStopTool,
             'frontend_text_placeholder' => $frontendTextPlaceholder,
             'private_custom_routes' => $privateCustomRoutes,
             'route_descriptions' => $routeDescriptions,

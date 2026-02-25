@@ -909,6 +909,8 @@ trait Navai_Voice_Settings_Internals_Routes_Trait
             'frontend_voice_input_mode' => 'vad',
             'frontend_text_input_enabled' => true,
             'frontend_text_placeholder' => 'Escribe un mensaje...',
+            'frontend_auto_initialize' => false,
+            'frontend_allow_assistant_stop_tool' => true,
             'private_custom_routes' => [],
             'route_descriptions' => [],
             'frontend_allowed_roles' => $this->get_default_frontend_roles(),

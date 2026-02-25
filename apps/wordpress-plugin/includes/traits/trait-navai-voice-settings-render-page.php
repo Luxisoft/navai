@@ -31,6 +31,8 @@ trait Navai_Voice_Settings_Render_Page_Trait
         }
         $frontendVoiceInputMode = $this->sanitize_frontend_voice_input_mode($settings['frontend_voice_input_mode'] ?? 'vad');
         $frontendTextInputEnabled = !array_key_exists('frontend_text_input_enabled', $settings) || !empty($settings['frontend_text_input_enabled']);
+        $frontendAutoInitialize = !empty($settings['frontend_auto_initialize']);
+        $frontendAllowAssistantStopTool = !array_key_exists('frontend_allow_assistant_stop_tool', $settings) || !empty($settings['frontend_allow_assistant_stop_tool']);
         $frontendTextPlaceholder = sanitize_text_field((string) ($settings['frontend_text_placeholder'] ?? 'Escribe un mensaje...'));
         if (trim($frontendTextPlaceholder) === '') {
             $frontendTextPlaceholder = 'Escribe un mensaje...';
@@ -1099,6 +1101,32 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 <?php checked($frontendTextInputEnabled, true); ?>
                             />
                             <span><?php echo esc_html__('Habilitar input de texto (modo hibrido)', 'navai-voice'); ?></span>
+                        </label>
+
+                        <label class="navai-admin-check navai-admin-check-block">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_auto_initialize]"
+                                value="1"
+                                <?php checked($frontendAutoInitialize, true); ?>
+                            />
+                            <span>
+                                <?php echo esc_html__('Inicializar NAVAI automaticamente al cargar el sitio', 'navai-voice'); ?>
+                                <small><?php echo esc_html__('Si esta desactivado, NAVAI esperara a que el usuario pulse el boton para iniciar.', 'navai-voice'); ?></small>
+                            </span>
+                        </label>
+
+                        <label class="navai-admin-check navai-admin-check-block">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[frontend_allow_assistant_stop_tool]"
+                                value="1"
+                                <?php checked($frontendAllowAssistantStopTool, true); ?>
+                            />
+                            <span>
+                                <?php echo esc_html__('Permitir apagado de NAVAI por solicitud del usuario', 'navai-voice'); ?>
+                                <small><?php echo esc_html__('Cuando esta opcion esta activa, NAVAI puede ejecutar una tool interna para apagarse.', 'navai-voice'); ?></small>
+                            </span>
                         </label>
 
                         <label>

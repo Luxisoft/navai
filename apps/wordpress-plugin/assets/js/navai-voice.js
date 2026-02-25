@@ -127,6 +127,12 @@
       asTrimmedString(container.dataset.textPlaceholder) ||
       (isRecord(this.globalConfig.realtime) ? asTrimmedString(this.globalConfig.realtime.textPlaceholder) : "") ||
       "Write a message...";
+    var widgetConfig = isRecord(this.globalConfig.widget) ? this.globalConfig.widget : {};
+    this.autoInitializeOnLoad = toConfigBool(container.dataset.autoInitialize, widgetConfig.autoInitializeOnLoad);
+    this.assistantStopToolEnabled = toConfigBool(
+      container.dataset.assistantStopToolEnabled,
+      widgetConfig.allowAssistantStopTool
+    );
     this.navigationInProgress = false;
     this.storage = getSafeStorage();
     this.sessionKey = "";
@@ -183,7 +189,13 @@
     this.bindLogControls();
     this.renderLog();
 
-    if (this.persistActive && this.shouldAutoResume()) {
+    if (this.autoInitializeOnLoad) {
+      this.appendLog("Auto-starting NAVAI voice widget on page load.", "info");
+      var autoStartWidget = this;
+      window.setTimeout(function () {
+        autoStartWidget.start();
+      }, 350);
+    } else if (this.persistActive && this.shouldAutoResume()) {
       this.appendLog("Auto-resuming global voice widget from previous page.", "info");
       var resumeWidget = this;
       window.setTimeout(function () {
@@ -1424,7 +1436,10 @@
     var baseInstructions = this.instructionsOverride || asTrimmedString(defaults.instructions);
     var voice = this.voiceOverride || asTrimmedString(defaults.voice);
     var turnDetection = this.buildTurnDetectionConfig();
-    var toolsResult = buildToolDefinitions(this.routes, this.backendFunctions);
+    var toolOptions = {
+      allowStopTool: this.assistantStopToolEnabled
+    };
+    var toolsResult = buildToolDefinitions(this.routes, this.backendFunctions, toolOptions);
     this.directAliases = toolsResult.directAliases;
 
     for (var i = 0; i < toolsResult.warnings.length; i += 1) {
@@ -1435,7 +1450,8 @@
       baseInstructions,
       this.routes,
       this.backendFunctions,
-      this.roadmapPhases
+      this.roadmapPhases,
+      toolOptions
     );
     var session = {
       type: "realtime",
@@ -1879,6 +1895,11 @@
       return this.runNavigateTo(target);
     }
 
+    if (functionName === "stop_navai_voice") {
+      var reason = typeof args.reason === "string" ? args.reason : "";
+      return this.runStopNavaiVoice(reason);
+    }
+
     if (functionName === "execute_app_function") {
       var requested = asTrimmedString(args.function_name).toLowerCase();
       var payload = isRecord(args.payload) || args.payload === null ? args.payload : null;
@@ -1894,6 +1915,38 @@
       ok: false,
       error: "Unknown or disallowed function.",
       available_functions: this.directAliases
+    };
+  };
+
+  NavaiVoiceWidget.prototype.runStopNavaiVoice = function (reason) {
+    if (!this.assistantStopToolEnabled) {
+      return {
+        ok: false,
+        error: "stop_navai_voice is disabled by configuration."
+      };
+    }
+
+    var cleanReason = asTrimmedString(reason);
+    if (this.state === "idle") {
+      return {
+        ok: true,
+        stopping: false,
+        status: "already_stopped",
+        reason: cleanReason || null
+      };
+    }
+
+    var widget = this;
+    window.setTimeout(function () {
+      widget.stop();
+    }, 220);
+
+    this.appendLog("Assistant requested NAVAI shutdown.", "info");
+    return {
+      ok: true,
+      stopping: true,
+      status: "stopping",
+      reason: cleanReason || null
     };
   };
 

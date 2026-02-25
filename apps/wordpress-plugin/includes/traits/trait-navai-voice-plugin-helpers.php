@@ -577,6 +577,10 @@ trait Navai_Voice_Plugin_Helpers_Trait
             ? $this->sanitize_frontend_voice_input_mode((string) $options['voice_input_mode'])
             : 'vad';
         $textInputEnabled = array_key_exists('text_input_enabled', $options) ? !empty($options['text_input_enabled']) : true;
+        $autoInitialize = array_key_exists('auto_initialize', $options) ? !empty($options['auto_initialize']) : false;
+        $assistantStopToolEnabled = array_key_exists('assistant_stop_tool_enabled', $options)
+            ? !empty($options['assistant_stop_tool_enabled'])
+            : true;
         $textPlaceholder = isset($options['text_placeholder'])
             ? sanitize_text_field((string) $options['text_placeholder'])
             : __('Escribe un mensaje...', 'navai-voice');
@@ -622,6 +626,8 @@ trait Navai_Voice_Plugin_Helpers_Trait
             'show-text' => $showButtonText ? '1' : '0',
             'voice-input-mode' => $voiceInputMode,
             'text-enabled' => $textInputEnabled ? '1' : '0',
+            'auto-initialize' => $autoInitialize ? '1' : '0',
+            'assistant-stop-tool-enabled' => $assistantStopToolEnabled ? '1' : '0',
             'text-placeholder' => $textPlaceholder,
         ];
 

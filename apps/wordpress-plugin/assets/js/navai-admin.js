@@ -6479,6 +6479,10 @@
       }
     })();
 
+    if (typeof initSearchableSelects === "function") {
+      initSearchableSelects();
+    }
+
     initNavigationControls();
     initPluginFunctionsControls();
     initGuardrailsControls();

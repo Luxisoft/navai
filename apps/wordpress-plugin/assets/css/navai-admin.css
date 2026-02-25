@@ -2055,6 +2055,7 @@
   isolation: isolate;
   max-width: 1320px;
   font-family: var(--navai-ui-font);
+  color: var(--navai-text);
 }
 
 .navai-admin-wrap::before {
@@ -2456,6 +2457,14 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
+.navai-admin-wrap .navai-searchable-select {
+  position: relative;
+}
+
+.navai-admin-wrap .navai-searchable-select.is-open {
+  z-index: 120;
+}
+
 .navai-admin-wrap .navai-searchable-select-toggle::after {
   content: "";
   display: inline-flex;
@@ -2481,6 +2490,15 @@
 
 .navai-admin-wrap .navai-searchable-select.is-open .navai-searchable-select-toggle::after {
   transform: rotate(-135deg) translate(-1px, 0);
+}
+
+.navai-admin-wrap .navai-searchable-select-dropdown {
+  z-index: 140;
+}
+
+.navai-admin-wrap .navai-searchable-select-native[hidden] {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 .navai-admin-wrap select:not([multiple]) {
@@ -2837,6 +2855,18 @@ body.navai-admin-theme-dark #wpbody-content {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-tab-button.button.is-active,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-tab-button.button.is-active,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-settings-tab-button.button.is-active {
+  color: #ffffff;
+  border-color: rgba(80, 151, 255, 0.95);
+  background: linear-gradient(135deg, #0d63df 0%, #2684ff 52%, #5db1ff 100%);
+  box-shadow:
+    0 12px 24px rgba(16, 93, 205, 0.34),
+    0 0 0 1px rgba(112, 176, 255, 0.25) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
 .navai-admin-wrap[data-navai-theme="dark"] .navai-admin-tab-button.button:hover,
 .navai-admin-wrap[data-navai-theme="dark"] .navai-admin-doc-link.button:hover,
 .navai-admin-wrap[data-navai-theme="dark"] .navai-nav-tab-button.button:hover,
@@ -2899,6 +2929,18 @@ body.navai-admin-theme-dark #wpbody-content {
 .navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel]:not([data-navai-settings-subpanel="general"]) {
   background: linear-gradient(180deg, rgba(16, 27, 46, 0.98), rgba(13, 22, 38, 0.98));
   border-color: rgba(43, 63, 91, 0.95);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-grid > label,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-grid .navai-admin-full-width {
+  background: linear-gradient(180deg, #17263d, #132138);
+  border-color: rgba(46, 67, 95, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-grid > label > span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-field-title {
+  color: #e8f0fc;
 }
 
 .navai-admin-wrap[data-navai-theme="dark"] input[type="text"],
@@ -2972,6 +3014,20 @@ body.navai-admin-theme-dark #wpbody-content {
   color: #e6eefc;
 }
 
+.navai-admin-wrap[data-navai-theme="dark"] .widefat tbody tr,
+.navai-admin-wrap[data-navai-theme="dark"] table.widefat tbody tr,
+.navai-admin-wrap[data-navai-theme="dark"] .widefat tbody td {
+  background: #122033 !important;
+  color: #e6eefc !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .widefat.striped > tbody > :nth-child(odd),
+.navai-admin-wrap[data-navai-theme="dark"] .widefat.striped > tbody > :nth-child(odd) > td,
+.navai-admin-wrap[data-navai-theme="dark"] .widefat.striped > tbody > :nth-child(even),
+.navai-admin-wrap[data-navai-theme="dark"] .widefat.striped > tbody > :nth-child(even) > td {
+  background: #122033 !important;
+}
+
 .navai-admin-wrap[data-navai-theme="dark"] .widefat thead th {
   background: linear-gradient(180deg, #192944, #15243b);
   border-bottom-color: rgba(49, 71, 101, 0.95);
@@ -2985,7 +3041,7 @@ body.navai-admin-theme-dark #wpbody-content {
 }
 
 .navai-admin-wrap[data-navai-theme="dark"] .widefat tbody tr:hover td {
-  background: #172840;
+  background: #172840 !important;
 }
 
 .navai-admin-wrap[data-navai-theme="dark"] .navai-agents-table-wrap,
@@ -3013,8 +3069,42 @@ body.navai-admin-theme-dark #wpbody-content {
   color: #e6eefc;
 }
 
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-dropdown {
+  background: linear-gradient(180deg, #16243a, #121e31);
+  border-color: rgba(47, 68, 96, 0.95);
+  box-shadow: 0 16px 36px rgba(2, 8, 20, 0.42);
+}
+
 .navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-search input {
   background: #101b2d !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check-block,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check-block span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check > span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-toggle,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-toggle span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-agent-form-check > span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-route-main strong,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-title,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-item-title {
+  color: #e6eefc;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check-block small,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-route-roles,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-description-text,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-item-meta,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-item-preview {
+  color: #aebdd5;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-url-button {
+  color: #73b9ff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-url-button.is-active {
+  color: #9ccfff;
 }
 
 .navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-option {

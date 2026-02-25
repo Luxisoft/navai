@@ -6,7 +6,8 @@
 
   var RESERVED_TOOL_NAMES = {
     navigate_to: true,
-    execute_app_function: true
+    execute_app_function: true,
+    stop_navai_voice: true
   };
   var TOOL_NAME_REGEXP = /^[a-zA-Z0-9_-]{1,64}$/;
   var DEFAULT_WEBRTC_URL = "https://api.openai.com/v1/realtime/calls";
@@ -489,7 +490,9 @@
     return lines;
   }
 
-  function buildToolDefinitions(routes, backendFunctions) {
+  function buildToolDefinitions(routes, backendFunctions, options) {
+    var opts = isRecord(options) ? options : {};
+    var allowStopTool = !!opts.allowStopTool;
     var tools = [
       {
         type: "function",
@@ -529,6 +532,24 @@
         }
       }
     ];
+
+    if (allowStopTool) {
+      tools.push({
+        type: "function",
+        name: "stop_navai_voice",
+        description: "Stop and deactivate NAVAI voice interaction on user request.",
+        parameters: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            reason: {
+              type: "string",
+              description: "Optional reason provided by the user."
+            }
+          }
+        }
+      });
+    }
 
     var aliasWarnings = [];
     var directAliases = [];
@@ -582,7 +603,9 @@
     };
   }
 
-  function buildAssistantInstructions(baseInstructions, routes, backendFunctions, roadmapPhases) {
+  function buildAssistantInstructions(baseInstructions, routes, backendFunctions, roadmapPhases, options) {
+    var opts = isRecord(options) ? options : {};
+    var allowStopTool = !!opts.allowStopTool;
     var functionLines = backendFunctions.length
       ? backendFunctions.map(function (item) {
           return "- " + item.name + ": " + (item.description || "Execute backend function.");
@@ -608,6 +631,9 @@
     lines.push("- In navigate_to.target, prefer the exact route name listed in Allowed routes.");
     lines.push("- If the user asks to run an internal action, call execute_app_function or a direct function alias.");
     lines.push("- Always pass payload in execute_app_function. Use null when no arguments are needed.");
+    if (allowStopTool) {
+      lines.push("- If the user asks to stop, turn off, close, pause, deactivate, or shut down NAVAI, call stop_navai_voice.");
+    }
     lines.push("- Never invent routes or functions that are not listed.");
     lines.push("- If destination/action is unclear, ask a brief clarifying question.");
 

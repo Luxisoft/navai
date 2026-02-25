@@ -306,6 +306,10 @@ class Navai_Voice_Plugin
                 'textInputEnabled' => !array_key_exists('frontend_text_input_enabled', $settings) || !empty($settings['frontend_text_input_enabled']),
                 'textPlaceholder' => sanitize_text_field((string) ($settings['frontend_text_placeholder'] ?? 'Escribe un mensaje...')),
             ],
+            'widget' => [
+                'autoInitializeOnLoad' => !empty($settings['frontend_auto_initialize']),
+                'allowAssistantStopTool' => !array_key_exists('frontend_allow_assistant_stop_tool', $settings) || !empty($settings['frontend_allow_assistant_stop_tool']),
+            ],
             'routes' => $this->resolve_public_routes(),
             'roadmapPhases' => $this->build_frontend_roadmap_phases($settings),
             'messages' => [
@@ -395,6 +399,8 @@ class Navai_Voice_Plugin
                 'show_status' => true,
                 'voice_input_mode' => $voiceInputMode,
                 'text_input_enabled' => !array_key_exists('frontend_text_input_enabled', $settings) || !empty($settings['frontend_text_input_enabled']),
+                'auto_initialize' => !empty($settings['frontend_auto_initialize']),
+                'assistant_stop_tool_enabled' => !array_key_exists('frontend_allow_assistant_stop_tool', $settings) || !empty($settings['frontend_allow_assistant_stop_tool']),
                 'text_placeholder' => sanitize_text_field((string) ($settings['frontend_text_placeholder'] ?? 'Escribe un mensaje...')),
             ]
         );
@@ -449,6 +455,8 @@ class Navai_Voice_Plugin
                 'show_status' => false,
                 'voice_input_mode' => $voiceInputMode,
                 'text_input_enabled' => !array_key_exists('frontend_text_input_enabled', $settings) || !empty($settings['frontend_text_input_enabled']),
+                'auto_initialize' => !empty($settings['frontend_auto_initialize']),
+                'assistant_stop_tool_enabled' => !array_key_exists('frontend_allow_assistant_stop_tool', $settings) || !empty($settings['frontend_allow_assistant_stop_tool']),
                 'text_placeholder' => sanitize_text_field((string) ($settings['frontend_text_placeholder'] ?? 'Escribe un mensaje...')),
             ]
         );
