@@ -603,6 +603,16 @@
   }
 }
 
+@media (max-width: 1320px) {
+  .navai-plugin-function-meta-grid {
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+  }
+
+  .navai-plugin-function-meta-grid .navai-plugin-function-agent-assignment {
+    grid-column: 1 / -1;
+  }
+}
+
 .navai-admin-wrap {
   max-width: 1200px;
 }
@@ -844,10 +854,10 @@
 }
 
 .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel]:not([data-navai-settings-subpanel="general"]) {
-  border: 1px solid #dfe7f3;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #fbfdff, #f6faff);
-  padding: 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .navai-admin-settings-shell > .navai-nav-subpanel > .navai-admin-panel {
@@ -860,6 +870,28 @@
 
 .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel]:not([data-navai-settings-subpanel="general"]) > .navai-admin-panel > p {
   margin: 0 0 14px;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-top,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-list,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="approvals"] .navai-guardrails-top,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="traces"] .navai-guardrails-top,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="history"] .navai-guardrails-top {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-list {
+  margin-top: 14px;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="approvals"] .navai-approvals-toolbar,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="traces"] .navai-traces-toolbar,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="history"] .navai-history-toolbar,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="history"] .navai-history-config-grid {
+  margin-top: 14px;
 }
 
 .navai-admin-settings-shell > .navai-nav-subpanel > .navai-admin-panel > .navai-admin-card:last-child,
@@ -1267,18 +1299,39 @@
   grid-column: 1 / -1;
 }
 
+.navai-plugin-function-meta-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 2fr)
+    minmax(150px, 1fr)
+    minmax(130px, 0.8fr)
+    minmax(180px, 1fr)
+    minmax(260px, 2fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.navai-plugin-function-meta-grid > label {
+  margin: 0;
+}
+
+.navai-plugin-function-meta-grid .navai-plugin-function-agent-assignment {
+  grid-column: auto;
+}
+
 .navai-plugin-function-agent-assignment {
   grid-column: 1 / -1;
 }
 
 .navai-plugin-function-agent-assignment select {
   width: 100%;
-  min-height: 140px;
+  min-height: 40px;
 }
 
 .navai-plugin-function-agent-assignment .navai-admin-description {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .navai-plugin-function-code {
@@ -1381,54 +1434,49 @@
   color: #243145;
 }
 
-.navai-plugin-func-item {
+.navai-admin-check.navai-plugin-func-item {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "check role edit delete"
+    "title title title title"
+    "description description description description";
   align-items: center;
-  gap: 10px;
+  gap: 6px 10px;
 }
 
-.navai-plugin-func-item input[type="checkbox"] {
-  margin-top: 0;
+.navai-admin-check.navai-plugin-func-item input[type="checkbox"] {
+  grid-area: check;
+  margin: 0;
   align-self: center;
 }
 
-.navai-plugin-func-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "title title"
-    "description role";
-  align-items: center;
-  gap: 2px 8px;
-  min-width: 0;
-  flex: 1 1 auto;
+.navai-admin-check.navai-plugin-func-item > .navai-plugin-func-main {
+  display: contents !important;
 }
 
 .navai-plugin-func-title {
   grid-area: title;
   display: block;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .navai-plugin-func-description-text {
   grid-area: description;
   display: block;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.navai-plugin-func-role-wrap {
+.navai-admin-check.navai-plugin-func-item .navai-plugin-func-role-wrap {
   grid-area: role;
-  justify-self: end;
-  display: inline-flex;
+  justify-self: start;
+  display: inline-flex !important;
   align-items: center;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Hide code snippets in the function list cards; keep code only inside the editor modal. */
@@ -1436,19 +1484,25 @@
   display: none !important;
 }
 
-.navai-plugin-func-item-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  flex: 0 0 auto;
-  flex-wrap: nowrap;
+.navai-admin-check.navai-plugin-func-item > .navai-plugin-func-item-actions {
+  display: contents !important;
 }
 
 .navai-plugin-func-item-actions .button {
+  margin: 0;
   min-height: 28px;
   line-height: 26px;
   padding: 0 10px;
+}
+
+.navai-plugin-func-item-actions .navai-plugin-func-edit {
+  grid-area: edit;
+  justify-self: end;
+}
+
+.navai-plugin-func-item-actions .navai-plugin-func-delete {
+  grid-area: delete;
+  justify-self: end;
 }
 
 .navai-plugin-func-delete.button {
@@ -1490,20 +1544,23 @@
   color: #243145;
 }
 
-.navai-nav-route-item {
+.navai-admin-check.navai-nav-route-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 8px 10px;
   align-items: start;
 }
 
-.navai-nav-route-item input[type="checkbox"] {
+.navai-admin-check.navai-nav-route-item input[type="checkbox"] {
   margin-top: 4px;
+  grid-column: 1 / 2;
+  grid-row: 1 / span 3;
 }
 
 .navai-nav-route-main {
   display: block;
   min-width: 0;
+  grid-column: 2 / 3;
 }
 
 .navai-nav-route-main strong {
@@ -1538,6 +1595,8 @@
 .navai-nav-url-button {
   font-weight: 600;
   text-decoration: none;
+  grid-column: 2 / 3;
+  justify-self: start;
 }
 
 .navai-nav-url-button.is-active {
@@ -1545,7 +1604,7 @@
 }
 
 .navai-nav-url-box {
-  grid-column: 1 / -1;
+  grid-column: 2 / 3;
   width: 100%;
   margin-top: 6px;
   padding: 8px;
@@ -1556,8 +1615,12 @@
 
 .navai-nav-url-box code {
   display: block;
-  word-break: break-all;
-  white-space: pre-wrap;
+  width: 100%;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .navai-nav-route-item.is-hidden,
@@ -1949,6 +2012,10 @@
     grid-template-columns: 1fr;
   }
 
+  .navai-plugin-function-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
   .navai-plugin-function-editor-actions {
     flex-direction: column;
     align-items: stretch;
@@ -2005,14 +2072,12 @@
     margin-bottom: 0;
   }
 
-  .navai-plugin-func-item {
-    flex-wrap: wrap;
+  .navai-admin-check.navai-plugin-func-item {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
   }
 
   .navai-plugin-func-item-actions {
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-start;
+    display: contents;
   }
 
   .navai-nav-group-head {
@@ -2024,7 +2089,7 @@
     width: 100%;
   }
 
-  .navai-nav-route-item {
+  .navai-admin-check.navai-nav-route-item {
     grid-template-columns: auto 1fr;
   }
 
@@ -2627,8 +2692,11 @@
 
 .navai-admin-wrap .navai-nav-url-box code {
   width: 100%;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .navai-admin-wrap .navai-status-badge {
@@ -2927,8 +2995,18 @@ body.navai-admin-theme-dark #wpbody-content {
 }
 
 .navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel]:not([data-navai-settings-subpanel="general"]) {
-  background: linear-gradient(180deg, rgba(16, 27, 46, 0.98), rgba(13, 22, 38, 0.98));
-  border-color: rgba(43, 63, 91, 0.95);
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-top,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-list,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="approvals"] .navai-guardrails-top,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="traces"] .navai-guardrails-top,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="history"] .navai-guardrails-top {
+  background: transparent;
+  border-color: transparent;
 }
 
 .navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-grid > label,
@@ -3155,6 +3233,97 @@ body.navai-admin-theme-dark #wpbody-content {
 .navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dismiss--top.button:hover {
   border-color: rgba(83, 114, 157, 0.95);
   background: linear-gradient(180deg, #20324f, #182841);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-row,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-mode,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-item,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-preview,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-agents-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-handoffs-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-guardrails-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-guardrails-test {
+  background: linear-gradient(180deg, rgba(21, 35, 58, 0.96), rgba(17, 28, 46, 0.96));
+  border-color: rgba(47, 68, 96, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-row--editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrail-modal .navai-guardrails-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrail-test-modal .navai-guardrails-test {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog label > span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog legend {
+  color: #eaf2fd;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog small,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-admin-description,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-item-meta,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-item-preview {
+  color: #aebdd5;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-item-title {
+  color: #eaf2fd;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-code-wrap .CodeMirror {
+  background: linear-gradient(180deg, #131f34, #101b2d);
+  border-color: rgba(52, 76, 108, 0.95);
+  color: #eaf2fd;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-code-wrap .CodeMirror-focused {
+  border-color: rgba(79, 146, 255, 0.72);
+  box-shadow:
+    0 0 0 3px rgba(31, 123, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-code-wrap .CodeMirror-gutters {
+  background: #16253d;
+  border-right-color: rgba(47, 68, 96, 0.95);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .CodeMirror-linenumber {
+  color: #8ea2c0;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .CodeMirror-cursor {
+  border-left-color: #9ccfff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .CodeMirror-selected {
+  background: rgba(79, 146, 255, 0.28) !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .CodeMirror-activeline-background {
+  background: rgba(79, 146, 255, 0.1);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-comment {
+  color: #7f95b5;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-keyword,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-def,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-variable-2 {
+  color: #8dc1ff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-string {
+  color: #9ad79f;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-number,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-atom {
+  color: #f4c88b;
 }
 
 .navai-admin-wrap[data-navai-theme="dark"] .navai-admin-autosave-status {

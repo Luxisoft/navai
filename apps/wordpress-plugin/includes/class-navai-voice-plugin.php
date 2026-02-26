@@ -208,9 +208,17 @@ class Navai_Voice_Plugin
         }
 
         wp_enqueue_script(
+            'navai-voice-admin-translations-extra',
+            NAVAI_VOICE_URL . 'assets/js/admin/navai-admin-translations-extra.js',
+            [],
+            NAVAI_VOICE_VERSION,
+            true
+        );
+
+        wp_enqueue_script(
             'navai-voice-admin-core',
             NAVAI_VOICE_URL . 'assets/js/admin/navai-admin-core.js',
-            [],
+            ['navai-voice-admin-translations-extra'],
             NAVAI_VOICE_VERSION,
             true
         );

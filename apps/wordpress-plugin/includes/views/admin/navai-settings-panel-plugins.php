@@ -134,60 +134,60 @@
                                                 />
                                             </label>
 
-                                            <label>
-                                                <span><?php echo esc_html__('Scope de ejecucion', 'navai-voice'); ?></span>
-                                                <select class="navai-plugin-function-editor-scope">
-                                                    <option value="both"><?php echo esc_html__('Frontend y admin', 'navai-voice'); ?></option>
-                                                    <option value="frontend"><?php echo esc_html__('Solo frontend', 'navai-voice'); ?></option>
-                                                    <option value="admin"><?php echo esc_html__('Solo admin', 'navai-voice'); ?></option>
-                                                </select>
-                                            </label>
+                                            <div class="navai-plugin-function-meta-grid">
+                                                <label>
+                                                    <span><?php echo esc_html__('Scope de ejecucion', 'navai-voice'); ?></span>
+                                                    <select class="navai-plugin-function-editor-scope">
+                                                        <option value="both"><?php echo esc_html__('Frontend y admin', 'navai-voice'); ?></option>
+                                                        <option value="frontend"><?php echo esc_html__('Solo frontend', 'navai-voice'); ?></option>
+                                                        <option value="admin"><?php echo esc_html__('Solo admin', 'navai-voice'); ?></option>
+                                                    </select>
+                                                </label>
 
-                                            <label>
-                                                <span><?php echo esc_html__('Timeout (segundos)', 'navai-voice'); ?></span>
-                                                <input
-                                                    type="number"
-                                                    class="small-text navai-plugin-function-editor-timeout"
-                                                    min="0"
-                                                    max="600"
-                                                    step="1"
-                                                    value="0"
-                                                />
-                                            </label>
+                                                <label>
+                                                    <span><?php echo esc_html__('Timeout (segundos)', 'navai-voice'); ?></span>
+                                                    <input
+                                                        type="number"
+                                                        class="small-text navai-plugin-function-editor-timeout"
+                                                        min="0"
+                                                        max="600"
+                                                        step="1"
+                                                        value="0"
+                                                    />
+                                                </label>
 
-                                            <label>
-                                                <span><?php echo esc_html__('Retries', 'navai-voice'); ?></span>
-                                                <input
-                                                    type="number"
-                                                    class="small-text navai-plugin-function-editor-retries"
-                                                    min="0"
-                                                    max="5"
-                                                    step="1"
-                                                    value="0"
-                                                />
-                                            </label>
+                                                <label>
+                                                    <span><?php echo esc_html__('Retries', 'navai-voice'); ?></span>
+                                                    <input
+                                                        type="number"
+                                                        class="small-text navai-plugin-function-editor-retries"
+                                                        min="0"
+                                                        max="5"
+                                                        step="1"
+                                                        value="0"
+                                                    />
+                                                </label>
 
-                                            <label class="navai-plugin-function-meta-check">
-                                                <span><?php echo esc_html__('Aprobacion', 'navai-voice'); ?></span>
-                                                <span class="navai-plugin-function-meta-check-field">
-                                                    <input type="checkbox" class="navai-plugin-function-editor-requires-approval" />
-                                                    <span><?php echo esc_html__('Requiere aprobacion', 'navai-voice'); ?></span>
-                                                </span>
-                                            </label>
+                                                <label class="navai-plugin-function-meta-check">
+                                                    <span><?php echo esc_html__('Aprobacion', 'navai-voice'); ?></span>
+                                                    <span class="navai-plugin-function-meta-check-field">
+                                                        <input type="checkbox" class="navai-plugin-function-editor-requires-approval" />
+                                                        <span><?php echo esc_html__('Requiere aprobacion', 'navai-voice'); ?></span>
+                                                    </span>
+                                                </label>
 
-                                            <label class="navai-plugin-function-agent-assignment">
-                                                <span><?php echo esc_html__('Agentes IA permitidos (opcional)', 'navai-voice'); ?></span>
-                                                <select
-                                                    class="navai-plugin-function-editor-agents"
-                                                    multiple
-                                                    size="6"
-                                                    aria-label="<?php echo esc_attr__('Selecciona agentes IA permitidos para esta funcion', 'navai-voice'); ?>"
-                                                ></select>
-                                                <small class="navai-admin-description">
-                                                    <?php echo esc_html__('Asigna esta funcion a agentes existentes. Se sincroniza con las tools permitidas del agente por function_name.', 'navai-voice'); ?>
-                                                </small>
-                                                <small class="navai-admin-description navai-plugin-function-editor-agents-status" hidden></small>
-                                            </label>
+                                                <label class="navai-plugin-function-agent-assignment">
+                                                    <span><?php echo esc_html__('Agente IA permitido (opcional)', 'navai-voice'); ?></span>
+                                                    <select
+                                                        class="navai-plugin-function-editor-agents"
+                                                        aria-label="<?php echo esc_attr__('Selecciona el agente IA permitido para esta funcion', 'navai-voice'); ?>"
+                                                    ></select>
+                                                    <small class="navai-admin-description">
+                                                        <?php echo esc_html__('Asigna esta funcion a un agente existente. Se sincroniza con las tools permitidas del agente por function_name.', 'navai-voice'); ?>
+                                                    </small>
+                                                    <small class="navai-admin-description navai-plugin-function-editor-agents-status" hidden></small>
+                                                </label>
+                                            </div>
 
                                             <div class="navai-plugin-function-test-tools">
                                                 <p class="navai-admin-description navai-plugin-function-editor-status" hidden></p>

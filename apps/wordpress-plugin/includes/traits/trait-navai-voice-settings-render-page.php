@@ -224,7 +224,7 @@ trait Navai_Voice_Settings_Render_Page_Trait
 
                 <section class="navai-admin-panel" data-navai-panel="navigation">
                     <h2><?php echo esc_html__('Navegacion', 'navai-voice'); ?></h2>
-                    <p><?php echo esc_html__('Selecciona rutas permitidas para la tool navigate_to.', 'navai-voice'); ?></p>
+                    <p><?php echo esc_html__('Selecciona rutas permitidas para navegacion con NAVAI.', 'navai-voice'); ?></p>
 
                     <div class="navai-admin-card navai-nav-card">
                         <div class="navai-nav-tabs" role="tablist" aria-label="<?php echo esc_attr__('Tipos de menus', 'navai-voice'); ?>">
@@ -281,100 +281,73 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 </label>
                             </div>
 
-                            <?php if (count($publicRouteGroups) === 0) : ?>
+                            <?php if (count($publicRoutes) === 0) : ?>
                                 <p><?php echo esc_html__('No se encontraron menus publicos de WordPress.', 'navai-voice'); ?></p>
                             <?php else : ?>
                                 <div class="navai-nav-groups" data-navai-nav-scope="public">
-                                    <?php foreach ($publicRouteGroups as $group) : ?>
-                                        <?php
-                                        $groupKey = (string) ($group['plugin_key'] ?? '');
-                                        $groupLabel = (string) ($group['plugin_label'] ?? '');
-                                        $groupRoutes = is_array($group['routes'] ?? null) ? $group['routes'] : [];
-                                        if ($groupKey === '' || count($groupRoutes) === 0) {
-                                            continue;
-                                        }
-                                        ?>
-                                        <section class="navai-nav-route-group" data-nav-plugin="<?php echo esc_attr($groupKey); ?>">
-                                            <div class="navai-nav-group-head">
-                                                <h4><?php echo esc_html($groupLabel); ?></h4>
-                                                <div class="navai-nav-actions navai-nav-actions--inline">
-                                                    <button
-                                                        type="button"
-                                                        class="button button-secondary navai-nav-check-action"
-                                                        data-navai-check-action="group-select"
-                                                        data-navai-nav-scope="public"
-                                                    >
-                                                        <?php echo esc_html__('Seleccionar', 'navai-voice'); ?>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="button button-secondary navai-nav-check-action"
-                                                        data-navai-check-action="group-deselect"
-                                                        data-navai-nav-scope="public"
-                                                    >
-                                                        <?php echo esc_html__('Deseleccionar', 'navai-voice'); ?>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="navai-admin-menu-grid">
-                                                <?php foreach ($groupRoutes as $item) : ?>
-                                                    <?php
-                                                    $routeKey = (string) ($item['key'] ?? '');
-                                                    if ($routeKey === '') {
-                                                        continue;
-                                                    }
-                                                    $routeTitle = sanitize_text_field((string) ($item['title'] ?? ''));
-                                                    $routeUrl = esc_url_raw((string) ($item['url'] ?? ''));
-                                                    $routeSynonyms = is_array($item['synonyms'] ?? null) ? $item['synonyms'] : [];
-                                                    $routeDescription = isset($routeDescriptions[$routeKey])
-                                                        ? sanitize_text_field((string) $routeDescriptions[$routeKey])
-                                                        : '';
-                                                    $isChecked = in_array($routeKey, $allowedRouteKeys, true);
-                                                    $searchText = trim(implode(' ', array_filter([
-                                                        $routeTitle,
-                                                        $routeUrl,
-                                                        $routeDescription,
-                                                        implode(' ', array_map('sanitize_text_field', $routeSynonyms)),
-                                                    ])));
-                                                    $urlBoxId = 'navai-route-url-' . md5('public|' . $routeKey);
-                                                    ?>
-                                                    <label
-                                                        class="navai-admin-check navai-admin-check-block navai-nav-route-item"
-                                                        data-nav-plugin="<?php echo esc_attr($groupKey); ?>"
-                                                        data-nav-roles=""
-                                                        data-nav-search="<?php echo esc_attr($searchText); ?>"
-                                                    >
+                                    <section class="navai-nav-route-group">
+                                        <div class="navai-admin-menu-grid">
+                                            <?php foreach ($publicRoutes as $item) : ?>
+                                                <?php
+                                                $routeKey = (string) ($item['key'] ?? '');
+                                                if ($routeKey === '') {
+                                                    continue;
+                                                }
+                                                $routePluginKey = sanitize_text_field((string) ($item['plugin_key'] ?? 'wp-core'));
+                                                if ($routePluginKey === '') {
+                                                    $routePluginKey = 'wp-core';
+                                                }
+                                                $routeTitle = sanitize_text_field((string) ($item['title'] ?? ''));
+                                                $routeUrl = esc_url_raw((string) ($item['url'] ?? ''));
+                                                $routeSynonyms = is_array($item['synonyms'] ?? null) ? $item['synonyms'] : [];
+                                                $routeDescription = isset($routeDescriptions[$routeKey])
+                                                    ? sanitize_text_field((string) $routeDescriptions[$routeKey])
+                                                    : '';
+                                                $isChecked = in_array($routeKey, $allowedRouteKeys, true);
+                                                $searchText = trim(implode(' ', array_filter([
+                                                    $routeTitle,
+                                                    $routeUrl,
+                                                    $routeDescription,
+                                                    implode(' ', array_map('sanitize_text_field', $routeSynonyms)),
+                                                ])));
+                                                $urlBoxId = 'navai-route-url-' . md5('public|' . $routeKey);
+                                                ?>
+                                                <label
+                                                    class="navai-admin-check navai-admin-check-block navai-nav-route-item"
+                                                    data-nav-plugin="<?php echo esc_attr($routePluginKey); ?>"
+                                                    data-nav-roles=""
+                                                    data-nav-search="<?php echo esc_attr($searchText); ?>"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_route_keys][]"
+                                                        value="<?php echo esc_attr($routeKey); ?>"
+                                                        <?php checked($isChecked, true); ?>
+                                                    />
+                                                    <span class="navai-nav-route-main">
+                                                        <strong><?php echo esc_html($routeTitle); ?></strong>
                                                         <input
-                                                            type="checkbox"
-                                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_route_keys][]"
-                                                            value="<?php echo esc_attr($routeKey); ?>"
-                                                            <?php checked($isChecked, true); ?>
+                                                            type="text"
+                                                            class="regular-text navai-nav-route-description"
+                                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[route_descriptions][<?php echo esc_attr($routeKey); ?>]"
+                                                            value="<?php echo esc_attr($routeDescription); ?>"
+                                                            placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
                                                         />
-                                                        <span class="navai-nav-route-main">
-                                                            <strong><?php echo esc_html($routeTitle); ?></strong>
-                                                            <input
-                                                                type="text"
-                                                                class="regular-text navai-nav-route-description"
-                                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[route_descriptions][<?php echo esc_attr($routeKey); ?>]"
-                                                                value="<?php echo esc_attr($routeDescription); ?>"
-                                                                placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
-                                                            />
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            class="button-link navai-nav-url-button"
-                                                            data-navai-url-target="<?php echo esc_attr($urlBoxId); ?>"
-                                                        >
-                                                            <?php echo esc_html__('URL', 'navai-voice'); ?>
-                                                        </button>
-                                                        <div class="navai-nav-url-box" id="<?php echo esc_attr($urlBoxId); ?>" hidden>
-                                                            <code><?php echo esc_html($routeUrl); ?></code>
-                                                        </div>
-                                                    </label>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        </section>
-                                    <?php endforeach; ?>
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        class="button-link navai-nav-url-button"
+                                                        data-navai-url-target="<?php echo esc_attr($urlBoxId); ?>"
+                                                    >
+                                                        <?php echo esc_html__('URL', 'navai-voice'); ?>
+                                                    </button>
+                                                    <div class="navai-nav-url-box" id="<?php echo esc_attr($urlBoxId); ?>" hidden>
+                                                        <code><?php echo esc_html($routeUrl); ?></code>
+                                                    </div>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </section>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -586,130 +559,103 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 </label>
                             </div>
 
-                            <?php if (count($privateRouteGroups) === 0) : ?>
+                            <?php if (count($privateRoutes) === 0) : ?>
                                 <p><?php echo esc_html__('No hay rutas privadas personalizadas. Usa el formulario de arriba para agregarlas.', 'navai-voice'); ?></p>
                             <?php else : ?>
                                 <div class="navai-nav-groups" data-navai-nav-scope="private">
-                                    <?php foreach ($privateRouteGroups as $group) : ?>
-                                        <?php
-                                        $groupKey = (string) ($group['plugin_key'] ?? '');
-                                        $groupLabel = (string) ($group['plugin_label'] ?? '');
-                                        $groupRoutes = is_array($group['routes'] ?? null) ? $group['routes'] : [];
-                                        if ($groupKey === '' || count($groupRoutes) === 0) {
-                                            continue;
-                                        }
-                                        ?>
-                                        <section class="navai-nav-route-group" data-nav-plugin="<?php echo esc_attr($groupKey); ?>">
-                                            <div class="navai-nav-group-head">
-                                                <h4><?php echo esc_html($groupLabel); ?></h4>
-                                                <div class="navai-nav-actions navai-nav-actions--inline">
-                                                    <button
-                                                        type="button"
-                                                        class="button button-secondary navai-nav-check-action"
-                                                        data-navai-check-action="group-select"
-                                                        data-navai-nav-scope="private"
-                                                    >
-                                                        <?php echo esc_html__('Seleccionar', 'navai-voice'); ?>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="button button-secondary navai-nav-check-action"
-                                                        data-navai-check-action="group-deselect"
-                                                        data-navai-nav-scope="private"
-                                                    >
-                                                        <?php echo esc_html__('Deseleccionar', 'navai-voice'); ?>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="navai-admin-menu-grid">
-                                                <?php foreach ($groupRoutes as $item) : ?>
-                                                    <?php
-                                                    $routeKey = (string) ($item['key'] ?? '');
-                                                    if ($routeKey === '') {
-                                                        continue;
+                                    <section class="navai-nav-route-group">
+                                        <div class="navai-admin-menu-grid">
+                                            <?php foreach ($privateRoutes as $item) : ?>
+                                                <?php
+                                                $routeKey = (string) ($item['key'] ?? '');
+                                                if ($routeKey === '') {
+                                                    continue;
+                                                }
+                                                $routePluginKey = sanitize_text_field((string) ($item['plugin_key'] ?? 'wp-core'));
+                                                if ($routePluginKey === '') {
+                                                    $routePluginKey = 'wp-core';
+                                                }
+                                                $routeTitle = sanitize_text_field((string) ($item['title'] ?? ''));
+                                                $routeUrl = esc_url_raw((string) ($item['url'] ?? ''));
+                                                $routeSynonyms = is_array($item['synonyms'] ?? null) ? $item['synonyms'] : [];
+                                                $routeRoles = is_array($item['roles'] ?? null)
+                                                    ? array_values(array_filter(array_map('sanitize_key', $item['roles'])))
+                                                    : [];
+                                                $routeDescription = isset($routeDescriptions[$routeKey])
+                                                    ? sanitize_text_field((string) $routeDescriptions[$routeKey])
+                                                    : '';
+                                                $routeRoleLabels = [];
+                                                $routeRoleBadges = [];
+                                                foreach ($routeRoles as $routeRole) {
+                                                    $roleLabel = $routeRole;
+                                                    if (isset($availableRoles[$routeRole])) {
+                                                        $roleLabel = (string) $availableRoles[$routeRole];
                                                     }
-                                                    $routeTitle = sanitize_text_field((string) ($item['title'] ?? ''));
-                                                    $routeUrl = esc_url_raw((string) ($item['url'] ?? ''));
-                                                    $routeSynonyms = is_array($item['synonyms'] ?? null) ? $item['synonyms'] : [];
-                                                    $routeRoles = is_array($item['roles'] ?? null)
-                                                        ? array_values(array_filter(array_map('sanitize_key', $item['roles'])))
-                                                        : [];
-                                                    $routeDescription = isset($routeDescriptions[$routeKey])
-                                                        ? sanitize_text_field((string) $routeDescriptions[$routeKey])
-                                                        : '';
-                                                    $routeRoleLabels = [];
-                                                    $routeRoleBadges = [];
-                                                    foreach ($routeRoles as $routeRole) {
-                                                        $roleLabel = $routeRole;
-                                                        if (isset($availableRoles[$routeRole])) {
-                                                            $roleLabel = (string) $availableRoles[$routeRole];
-                                                        }
-                                                        $routeRoleLabels[] = $roleLabel;
-                                                        $routeRoleBadges[] = [
-                                                            'label' => $roleLabel,
-                                                            'color' => $this->build_role_badge_color($routeRole),
-                                                        ];
-                                                    }
-                                                    $isChecked = in_array($routeKey, $allowedRouteKeys, true);
-                                                    $searchText = trim(implode(' ', array_filter([
-                                                        $routeTitle,
-                                                        $routeUrl,
-                                                        $routeDescription,
-                                                        implode(' ', $routeRoleLabels),
-                                                        implode(' ', array_map('sanitize_text_field', $routeSynonyms)),
-                                                    ])));
-                                                    $rolesAttr = implode('|', $routeRoles);
-                                                    $urlBoxId = 'navai-route-url-' . md5('private|' . $routeKey);
-                                                    ?>
-                                                    <label
-                                                        class="navai-admin-check navai-admin-check-block navai-nav-route-item"
-                                                        data-nav-plugin="<?php echo esc_attr($groupKey); ?>"
-                                                        data-nav-roles="<?php echo esc_attr($rolesAttr); ?>"
-                                                        data-nav-search="<?php echo esc_attr($searchText); ?>"
-                                                    >
+                                                    $routeRoleLabels[] = $roleLabel;
+                                                    $routeRoleBadges[] = [
+                                                        'label' => $roleLabel,
+                                                        'color' => $this->build_role_badge_color($routeRole),
+                                                    ];
+                                                }
+                                                $isChecked = in_array($routeKey, $allowedRouteKeys, true);
+                                                $searchText = trim(implode(' ', array_filter([
+                                                    $routeTitle,
+                                                    $routeUrl,
+                                                    $routeDescription,
+                                                    implode(' ', $routeRoleLabels),
+                                                    implode(' ', array_map('sanitize_text_field', $routeSynonyms)),
+                                                ])));
+                                                $rolesAttr = implode('|', $routeRoles);
+                                                $urlBoxId = 'navai-route-url-' . md5('private|' . $routeKey);
+                                                ?>
+                                                <label
+                                                    class="navai-admin-check navai-admin-check-block navai-nav-route-item"
+                                                    data-nav-plugin="<?php echo esc_attr($routePluginKey); ?>"
+                                                    data-nav-roles="<?php echo esc_attr($rolesAttr); ?>"
+                                                    data-nav-search="<?php echo esc_attr($searchText); ?>"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_route_keys][]"
+                                                        value="<?php echo esc_attr($routeKey); ?>"
+                                                        <?php checked($isChecked, true); ?>
+                                                    />
+                                                    <span class="navai-nav-route-main">
+                                                        <strong><?php echo esc_html($routeTitle); ?></strong>
                                                         <input
-                                                            type="checkbox"
-                                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_route_keys][]"
-                                                            value="<?php echo esc_attr($routeKey); ?>"
-                                                            <?php checked($isChecked, true); ?>
+                                                            type="text"
+                                                            class="regular-text navai-nav-route-description"
+                                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[route_descriptions][<?php echo esc_attr($routeKey); ?>]"
+                                                            value="<?php echo esc_attr($routeDescription); ?>"
+                                                            placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
                                                         />
-                                                        <span class="navai-nav-route-main">
-                                                            <strong><?php echo esc_html($routeTitle); ?></strong>
-                                                            <input
-                                                                type="text"
-                                                                class="regular-text navai-nav-route-description"
-                                                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[route_descriptions][<?php echo esc_attr($routeKey); ?>]"
-                                                                value="<?php echo esc_attr($routeDescription); ?>"
-                                                                placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
-                                                            />
-                                                            <?php if (count($routeRoleBadges) > 0) : ?>
-                                                                <small class="navai-nav-route-roles">
-                                                                    <?php foreach ($routeRoleBadges as $roleBadge) : ?>
-                                                                        <span
-                                                                            class="navai-nav-role-badge"
-                                                                            style="--navai-role-badge-color: <?php echo esc_attr((string) ($roleBadge['color'] ?? '#526077')); ?>;"
-                                                                        >
-                                                                            <?php echo esc_html((string) ($roleBadge['label'] ?? '')); ?>
-                                                                        </span>
-                                                                    <?php endforeach; ?>
-                                                                </small>
-                                                            <?php endif; ?>
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            class="button-link navai-nav-url-button"
-                                                            data-navai-url-target="<?php echo esc_attr($urlBoxId); ?>"
-                                                        >
-                                                            <?php echo esc_html__('URL', 'navai-voice'); ?>
-                                                        </button>
-                                                        <div class="navai-nav-url-box" id="<?php echo esc_attr($urlBoxId); ?>" hidden>
-                                                            <code><?php echo esc_html($routeUrl); ?></code>
-                                                        </div>
-                                                    </label>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        </section>
-                                    <?php endforeach; ?>
+                                                        <?php if (count($routeRoleBadges) > 0) : ?>
+                                                            <small class="navai-nav-route-roles">
+                                                                <?php foreach ($routeRoleBadges as $roleBadge) : ?>
+                                                                    <span
+                                                                        class="navai-nav-role-badge"
+                                                                        style="--navai-role-badge-color: <?php echo esc_attr((string) ($roleBadge['color'] ?? '#526077')); ?>;"
+                                                                    >
+                                                                        <?php echo esc_html((string) ($roleBadge['label'] ?? '')); ?>
+                                                                    </span>
+                                                                <?php endforeach; ?>
+                                                            </small>
+                                                        <?php endif; ?>
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        class="button-link navai-nav-url-button"
+                                                        data-navai-url-target="<?php echo esc_attr($urlBoxId); ?>"
+                                                    >
+                                                        <?php echo esc_html__('URL', 'navai-voice'); ?>
+                                                    </button>
+                                                    <div class="navai-nav-url-box" id="<?php echo esc_attr($urlBoxId); ?>" hidden>
+                                                        <code><?php echo esc_html($routeUrl); ?></code>
+                                                    </div>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </section>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -763,126 +709,44 @@ trait Navai_Voice_Settings_Render_Page_Trait
                             />
                         </label>
 
-                        <label class="navai-admin-searchable-field">
+                        <label>
                             <span><?php echo esc_html__('Modelo Realtime', 'navai-voice'); ?></span>
-                            <div class="navai-searchable-select" data-navai-searchable-select>
-                                <button
-                                    type="button"
-                                    class="navai-searchable-select-toggle"
-                                    aria-expanded="false"
-                                >
-                                    <span class="navai-searchable-select-value"><?php echo esc_html($defaultModel); ?></span>
-                                </button>
-                                <div class="navai-searchable-select-dropdown" hidden>
-                                    <input
-                                        type="search"
-                                        class="regular-text navai-searchable-select-search"
-                                        placeholder="<?php echo esc_attr__('Buscar modelo...', 'navai-voice'); ?>"
-                                        autocomplete="off"
-                                    />
-                                    <div class="navai-searchable-select-options">
-                                        <?php foreach ($realtimeModelOptions as $modelOption) : ?>
-                                            <?php
-                                            $modelId = sanitize_text_field((string) $modelOption);
-                                            if ($modelId === '') {
-                                                continue;
-                                            }
-                                            $isSelectedModel = $modelId === $defaultModel;
-                                            ?>
-                                            <button
-                                                type="button"
-                                                class="navai-searchable-select-option<?php echo $isSelectedModel ? ' is-selected' : ''; ?>"
-                                                data-navai-searchable-option
-                                                data-value="<?php echo esc_attr($modelId); ?>"
-                                                data-label="<?php echo esc_attr($modelId); ?>"
-                                            >
-                                                <?php echo esc_html($modelId); ?>
-                                            </button>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <p class="navai-searchable-select-empty" hidden>
-                                        <?php echo esc_html__('No se encontraron modelos.', 'navai-voice'); ?>
-                                    </p>
-                                </div>
-                                <select
-                                    class="navai-searchable-select-native"
-                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_model]"
-                                    hidden
-                                >
-                                    <?php foreach ($realtimeModelOptions as $modelOption) : ?>
-                                        <?php
-                                        $modelId = sanitize_text_field((string) $modelOption);
-                                        if ($modelId === '') {
-                                            continue;
-                                        }
-                                        ?>
-                                        <option value="<?php echo esc_attr($modelId); ?>" <?php selected($defaultModel, $modelId); ?>>
-                                            <?php echo esc_html($modelId); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <select
+                                class="regular-text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_model]"
+                            >
+                                <?php foreach ($realtimeModelOptions as $modelOption) : ?>
+                                    <?php
+                                    $modelId = sanitize_text_field((string) $modelOption);
+                                    if ($modelId === '') {
+                                        continue;
+                                    }
+                                    ?>
+                                    <option value="<?php echo esc_attr($modelId); ?>" <?php selected($defaultModel, $modelId); ?>>
+                                        <?php echo esc_html($modelId); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </label>
 
-                        <label class="navai-admin-searchable-field">
+                        <label>
                             <span><?php echo esc_html__('Voz', 'navai-voice'); ?></span>
-                            <div class="navai-searchable-select" data-navai-searchable-select>
-                                <button
-                                    type="button"
-                                    class="navai-searchable-select-toggle"
-                                    aria-expanded="false"
-                                >
-                                    <span class="navai-searchable-select-value"><?php echo esc_html($defaultVoice); ?></span>
-                                </button>
-                                <div class="navai-searchable-select-dropdown" hidden>
-                                    <input
-                                        type="search"
-                                        class="regular-text navai-searchable-select-search"
-                                        placeholder="<?php echo esc_attr__('Buscar voz...', 'navai-voice'); ?>"
-                                        autocomplete="off"
-                                    />
-                                    <div class="navai-searchable-select-options">
-                                        <?php foreach ($realtimeVoiceOptions as $voiceOption) : ?>
-                                            <?php
-                                            $voiceId = sanitize_text_field((string) $voiceOption);
-                                            if ($voiceId === '') {
-                                                continue;
-                                            }
-                                            $isSelectedVoice = $voiceId === $defaultVoice;
-                                            ?>
-                                            <button
-                                                type="button"
-                                                class="navai-searchable-select-option<?php echo $isSelectedVoice ? ' is-selected' : ''; ?>"
-                                                data-navai-searchable-option
-                                                data-value="<?php echo esc_attr($voiceId); ?>"
-                                                data-label="<?php echo esc_attr($voiceId); ?>"
-                                            >
-                                                <?php echo esc_html($voiceId); ?>
-                                            </button>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <p class="navai-searchable-select-empty" hidden>
-                                        <?php echo esc_html__('No se encontraron voces.', 'navai-voice'); ?>
-                                    </p>
-                                </div>
-                                <select
-                                    class="navai-searchable-select-native"
-                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_voice]"
-                                    hidden
-                                >
-                                    <?php foreach ($realtimeVoiceOptions as $voiceOption) : ?>
-                                        <?php
-                                        $voiceId = sanitize_text_field((string) $voiceOption);
-                                        if ($voiceId === '') {
-                                            continue;
-                                        }
-                                        ?>
-                                        <option value="<?php echo esc_attr($voiceId); ?>" <?php selected($defaultVoice, $voiceId); ?>>
-                                            <?php echo esc_html($voiceId); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <select
+                                class="regular-text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_voice]"
+                            >
+                                <?php foreach ($realtimeVoiceOptions as $voiceOption) : ?>
+                                    <?php
+                                    $voiceId = sanitize_text_field((string) $voiceOption);
+                                    if ($voiceId === '') {
+                                        continue;
+                                    }
+                                    ?>
+                                    <option value="<?php echo esc_attr($voiceId); ?>" <?php selected($defaultVoice, $voiceId); ?>>
+                                        <?php echo esc_html($voiceId); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </label>
 
                         <label class="navai-admin-full-width">
@@ -894,65 +758,24 @@ trait Navai_Voice_Settings_Render_Page_Trait
                             ><?php echo esc_textarea((string) ($settings['default_instructions'] ?? '')); ?></textarea>
                         </label>
 
-                        <label class="navai-admin-language-field">
+                        <label>
                             <span><?php echo esc_html__('Idioma', 'navai-voice'); ?></span>
-                            <div class="navai-searchable-select" data-navai-searchable-select>
-                                <button
-                                    type="button"
-                                    class="navai-searchable-select-toggle"
-                                    aria-expanded="false"
-                                >
-                                    <span class="navai-searchable-select-value"><?php echo esc_html($defaultLanguage); ?></span>
-                                </button>
-                                <div class="navai-searchable-select-dropdown" hidden>
-                                    <input
-                                        type="search"
-                                        class="regular-text navai-searchable-select-search"
-                                        placeholder="<?php echo esc_attr__('Buscar idioma...', 'navai-voice'); ?>"
-                                        autocomplete="off"
-                                    />
-                                    <div class="navai-searchable-select-options">
-                                        <?php foreach ($realtimeLanguageOptions as $languageOption) : ?>
-                                            <?php
-                                            $languageLabel = sanitize_text_field((string) $languageOption);
-                                            if ($languageLabel === '') {
-                                                continue;
-                                            }
-                                            $isSelectedLanguage = $languageLabel === $defaultLanguage;
-                                            ?>
-                                            <button
-                                                type="button"
-                                                class="navai-searchable-select-option<?php echo $isSelectedLanguage ? ' is-selected' : ''; ?>"
-                                                data-navai-searchable-option
-                                                data-value="<?php echo esc_attr($languageLabel); ?>"
-                                                data-label="<?php echo esc_attr($languageLabel); ?>"
-                                            >
-                                                <?php echo esc_html($languageLabel); ?>
-                                            </button>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <p class="navai-searchable-select-empty" hidden>
-                                        <?php echo esc_html__('No se encontraron idiomas.', 'navai-voice'); ?>
-                                    </p>
-                                </div>
-                                <select
-                                    class="navai-searchable-select-native"
-                                    name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_language]"
-                                    hidden
-                                >
-                                    <?php foreach ($realtimeLanguageOptions as $languageOption) : ?>
-                                        <?php
-                                        $languageLabel = sanitize_text_field((string) $languageOption);
-                                        if ($languageLabel === '') {
-                                            continue;
-                                        }
-                                        ?>
-                                        <option value="<?php echo esc_attr($languageLabel); ?>" <?php selected($defaultLanguage, $languageLabel); ?>>
-                                            <?php echo esc_html($languageLabel); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <select
+                                class="regular-text"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[default_language]"
+                            >
+                                <?php foreach ($realtimeLanguageOptions as $languageOption) : ?>
+                                    <?php
+                                    $languageLabel = sanitize_text_field((string) $languageOption);
+                                    if ($languageLabel === '') {
+                                        continue;
+                                    }
+                                    ?>
+                                    <option value="<?php echo esc_attr($languageLabel); ?>" <?php selected($defaultLanguage, $languageLabel); ?>>
+                                        <?php echo esc_html($languageLabel); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </label>
 
                         <label>

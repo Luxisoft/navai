@@ -253,7 +253,7 @@ if (!isset($mcpEnabled)) {
                             </select>
                         </label>
                         <label>
-                            <span><?php echo esc_html__('Tool name o *', 'navai-voice'); ?></span>
+                            <span><?php echo esc_html__('Tool name or *', 'navai-voice'); ?></span>
                             <input type="text" class="regular-text navai-mcp-policy-form-tool-name" value="*" />
                         </label>
                         <label>

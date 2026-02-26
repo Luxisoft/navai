@@ -44,7 +44,7 @@
     ["Ajustes", "Settings"],
     ["Documentacion", "Documentation"],
     ["Idioma del panel", "Panel language"],
-    ["Selecciona rutas permitidas para la tool navigate_to.", "Select allowed routes for the navigate_to tool."],
+    ["Selecciona rutas permitidas para navegacion con NAVAI.", "Select routes allowed for navigation with NAVAI."],
     ["Disponibles para visitantes, usuarios e invitados.", "Available for visitors, users, and guests."],
     ["Rutas privadas personalizadas por rol.", "Custom private routes by role."],
     ["Menus publicos", "Public menus"],
@@ -410,7 +410,147 @@
     ["Ruta publica seleccionada en menus de WordPress.", "Public route selected from WordPress menus."],
     ["Ruta privada seleccionada en WordPress.", "Private route selected in WordPress."],
     ["Funcion personalizada de plugin.", "Custom plugin function."]
+
+    ["0 funciones visibles", "0 visible functions"],
+    ["Activar modo claro", "Activate light mode"],
+    ["Activar modo oscuro", "Activate dark mode"],
+    ["Agent keys (csv opcional)", "Agent keys (optional csv)"],
+    ["Agente de navegacion", "Navigation agent"],
+    ["Agente IA permitido (opcional)", "Allowed AI agent (optional)"],
+    ["Asigna esta funcion a un agente existente. Se sincroniza con las tools permitidas del agente por function_name.", "Assign this function to an existing agent. It syncs with the agent allowed tools by function_name."],
+    ["Tipo de autenticación", "Auth type"],
+    ["Authorization", "Authorization"],
+    ["Basic (usuario:clave)", "Basic (user:pass)"],
+    ["Token Bearer", "Bearer token"],
+    ["Cargando politicas MCP...", "Loading MCP policies..."],
+    ["Cargando servidores MCP...", "Loading MCP servers..."],
+    ["Configura servidores MCP, sincroniza tools remotas y define allowlists/denylists por rol o agente.", "Configure MCP servers, synchronize remote tools and define allowlists/denylists by role or agent."],
+    ["Crea allowlists/denylists por tool (o *), rol y/o agent_key.", "Create allowlists/denylists by tool (or *), role and/or agent_key."],
+    ["Dejar vacio para conservar el existente", "Leave empty to keep the existing value"],
+    ["Delegar checkout a ecommerce", "Delegate checkout to ecommerce"],
+    ["Deny", "Deny"],
+    ["Desactivado (manual/PTT)", "Disabled (manual/PTT)"],
+    ["Detalle MCP", "MCP detail"],
+    ["Ej: buscar_productos_catalogo", "Example: buscar_productos_catalogo"],
+    ["Ejecuta health check y sincroniza tools remotas por servidor.", "Run health check and synchronize remote tools per server."],
+    ["El JSON de headers extra debe ser un objeto JSON.", "The extra headers JSON must be a JSON object."],
+    ["El JSON debe ser un objeto JSON.", "The JSON must be a JSON object."],
+    ["El nombre de la funcion es invalido.", "The function name is invalid."],
+    ["El nombre del servidor MCP es obligatorio.", "The MCP server name is required."],
+    ["Eliminar esta politica MCP?", "Delete this MCP policy?"],
+    ["Eliminar este servidor MCP?", "Delete this MCP server?"],
+    ["Error", "Error"],
+    ["Especialista para tareas concretas", "Specialist for specific tasks"],
+    ["Nombre de función (runtime)", "Function name (runtime)"],
+    ["Global", "Global"],
+    ["Guardar politica", "Save policy"],
+    ["Guardar servidor", "Save server"],
+    ["Habilitar input de texto (modo hibrido)", "Enable text input (hybrid mode)"],
+    ["Header auth (si custom)", "Auth header (if custom)"],
+    ["Header custom", "Header custom"],
+    ["Headers extra (JSON opcional)", "Extra headers (optional JSON)"],
+    ["Health", "Health"],
+    ["Instrucciones para este especialista...", "Instructions for this specialist..."],
+    ["Ir a NAVAI", "Go to NAVAI"],
+    ["La URL del servidor MCP es obligatoria.", "The MCP server URL is required."],
+    ["La funcion se guardo, pero fallo la sincronizacion con agentes.", "The function was saved, but synchronization with agents failed."],
+    ["Las denylists aplican primero; si hay allowlists para una tool, todo lo demas queda bloqueado.", "Denylists apply first; If there are allowlists for a tool, everything else is blocked."],
+    ["Los ajustes de VAD aplican cuando el modo de voz usa microfono abierto. En Push-to-talk, el envio del turno es manual.", "VAD settings apply when voice mode uses an open microphone. In Push-to-talk, turn sending is manual."],
+    ["MCP", "MCP"],
+    ["Microfono abierto (VAD)", "Open microphone (VAD)"],
+    ["Modo", "Modo"],
+    ["Modo de entrada de voz", "Voice input mode"],
+    ["NAVAI", "NAVAI"],
+    ["NAVAI sections", "NAVAI sections"],
+    ["No", "No"],
+    ["No hay agentes configurados. Crea agentes en la pestaña Agents.", "No agents configured. Create agents in the Agents tab."],
+    ["No hay agentes disponibles", "No agents available"],
+    ["No hay politicas MCP configuradas.", "There are no MCP policies configured."],
+    ["No hay servidores MCP configurados.", "No MCP servers are configured."],
+    ["No hay tools sincronizadas.", "There are no synchronized tools."],
+    ["No se pudieron cargar las tools MCP.", "No se pudieron cargar las tools MCP."],
+    ["No se pudieron cargar los agentes.", "Agents could not be loaded."],
+    ["No se pudieron sincronizar los agentes.", "Agents could not be synchronized."],
+    ["No se pudo ejecutar el health check MCP.", "No se pudo ejecutar el health check MCP."],
+    ["No se pudo eliminar el servidor MCP.", "Could not delete the MCP server."],
+    ["No se pudo eliminar la politica MCP.", "Could not delete the MCP policy."],
+    ["No se pudo guardar el servidor MCP.", "The MCP server could not be saved."],
+    ["No se pudo guardar la politica MCP.", "The MCP policy could not be saved."],
+    ["Nombre de funcion (tool)", "Function name (tool)"],
+    ["Notas (opcional)", "Notes (optional)"],
+    ["Permitir interrumpir la respuesta al hablar", "Allow interrupting the response while speaking"],
+    ["Placeholder del input de texto", "Text input placeholder"],
+    ["Politica MCP eliminada.", "MCP policy removed."],
+    ["Politica MCP guardada correctamente.", "MCP policy saved correctly."],
+    ["Politica activa", "Active policy"],
+    ["Politicas configuradas", "Configured policies"],
+    ["Prefijo VAD (ms)", "VAD prefix padding (ms)"],
+    ["Push-to-talk (mantener pulsado)", "Push-to-talk (hold to speak)"],
+    ["Recargar politicas", "Reload policies"],
+    ["Refrescar tools", "Refresh tools"],
+    ["Registra URL, auth y timeouts para conectarte a tools remotas via JSON-RPC.", "Registra URL, auth y timeouts para conectarte a tools remotas via JSON-RPC."],
+    ["Roles (csv opcional)", "Roles (optional csv)"],
+    ["Saludable", "Saludable"],
+    ["Schema", "Schema"],
+    ["Se normaliza a snake_case al guardar para el agente IA.", "It is normalized to snake_case when saving for the AI agent."],
+    ["Secciones de ajustes", "Settings sections"],
+    ["Secret / token (opcional en edicion)", "Secret / token (optional in edition)"],
+    ["Seleccion cargada desde las tools permitidas actuales del agente.", "Selection loaded from the agent's current allowed tools."],
+    ["Selecciona el agente IA permitido para esta funcion", "Select the allowed AI agent for this function"],
+    ["Selecciona el agente que podra usar esta funcion.", "Select the agent that can use this function."],
+    ["Sin agente asignado", "No assigned agent"],
+    ["Esta funcion esta asignada a multiples agentes. Selecciona uno para conservarlo.", "This function is assigned to multiple agents. Select one to keep."],
+    ["Selecciona un servidor", "Select a server"],
+    ["Selecciona un servidor para listar tools.", "Select a server to list tools."],
+    ["Selecciona un servidor para ver tools sincronizadas y su runtime function name.", "Select a server to see synchronized tools and its runtime function name."],
+    ["VAD semántico", "Semantic VAD"],
+    ["Sensibilidad VAD (0.10 - 0.99)", "VAD sensitivity (0.10 - 0.99)"],
+    ["VAD de servidor", "Server VAD"],
+    ["Clave de servidor", "Server key"],
+    ["Servidor", "Servidor"],
+    ["Servidor (opcional)", "Server (optional)"],
+    ["Servidor MCP eliminado.", "MCP server removed."],
+    ["Servidor MCP guardado correctamente.", "MCP server saved successfully."],
+    ["Servidor activo", "Server active"],
+    ["Servidores MCP", "MCP Servers"],
+    ["Silencio para cortar turno (ms)", "Silence to end turn (ms)"],
+    ["Sin auth", "No auth"],
+    ["Sin check", "No check"],
+    ["Soporte MCP", "Support MCP"],
+    ["Sincronizar tools", "Sync tools"],
+    ["Sí", "Yes"],
+    ["Test payload invalido.", "Test payload invalid."],
+    ["Timeout conexion (s)", "Connection timeout (s)"],
+    ["Timeout lectura (s)", "Reading timeout (s)"],
+    ["Tipos de menus", "Menu types"],
+    ["Tool MCP", "Tool MCP"],
+    ["Nombre de tool o *", "Tool name or *"],
+    ["Tools MCP actualizadas.", "Tools MCP actualizadas."],
+    ["Tools remotas cacheadas", "Cached remote tools"],
+    ["Detección de turno", "Turn detection"],
+    ["URL base", "Base URL"],
+    ["Ultimo check", "Last check"],
+    ["Usa 'Ver tools' o 'Refrescar tools'.", "Usa 'Ver tools' o 'Refrescar tools'."],
+    ["Ver tools", "Ver tools"],
+    ["Verificar SSL", "Verify SSL"],
+    ["administrador, cliente", "administrator, customer"],
+    ["administrador, editor, invitado", "administrator, editor, guest"],
+    ["carrito, sku, pedido", "cart, sku, order"],
+    ["pago, compra, pedido", "checkout, compra, pedido"],
+    ["context_equals (JSON opcional)", "context_equals (optional JSON)"],
+    ["deshabilitado", "deshabilitado"],
+    ["funciones importadas correctamente.", "functions imported correctly."],
+    ["guest,subscriber,administrator", "guest,subscriber,administrator"],
+    ["https://mcp.example.com", "https://mcp.example.com"],
+    ["navegar_a, navai_custom_checkout", "navigate_to, navai_custom_checkout"],
+    ["navigation", "navigation"],
+    ["soporte, comercio electrónico", "support, ecommerce"],
+    ["support_mcp", "support_mcp"],
+    ["woocommerce,run_plugin_action", "woocommerce,run_plugin_action"],
   ];
+  var DASHBOARD_TRANSLATIONS_EXTRA = (window.NAVAI_VOICE_ADMIN_DASHBOARD_TRANSLATIONS_EXTRA && typeof window.NAVAI_VOICE_ADMIN_DASHBOARD_TRANSLATIONS_EXTRA === "object")
+    ? window.NAVAI_VOICE_ADMIN_DASHBOARD_TRANSLATIONS_EXTRA
+    : {};
 
   function getAdminConfig() {
     return window.NAVAI_VOICE_ADMIN_CONFIG || {};
@@ -459,8 +599,34 @@
       var pair = DASHBOARD_TRANSLATIONS[i];
       var es = pair[0];
       var en = pair[1];
-      if (core === es || core === en) {
-        return start + (targetLang === "es" ? es : en) + end;
+      var pt = DASHBOARD_TRANSLATIONS_EXTRA.pt && DASHBOARD_TRANSLATIONS_EXTRA.pt[en] ? DASHBOARD_TRANSLATIONS_EXTRA.pt[en] : "";
+      var fr = DASHBOARD_TRANSLATIONS_EXTRA.fr && DASHBOARD_TRANSLATIONS_EXTRA.fr[en] ? DASHBOARD_TRANSLATIONS_EXTRA.fr[en] : "";
+      var ru = DASHBOARD_TRANSLATIONS_EXTRA.ru && DASHBOARD_TRANSLATIONS_EXTRA.ru[en] ? DASHBOARD_TRANSLATIONS_EXTRA.ru[en] : "";
+      var ko = DASHBOARD_TRANSLATIONS_EXTRA.ko && DASHBOARD_TRANSLATIONS_EXTRA.ko[en] ? DASHBOARD_TRANSLATIONS_EXTRA.ko[en] : "";
+      var ja = DASHBOARD_TRANSLATIONS_EXTRA.ja && DASHBOARD_TRANSLATIONS_EXTRA.ja[en] ? DASHBOARD_TRANSLATIONS_EXTRA.ja[en] : "";
+      var zh = DASHBOARD_TRANSLATIONS_EXTRA.zh && DASHBOARD_TRANSLATIONS_EXTRA.zh[en] ? DASHBOARD_TRANSLATIONS_EXTRA.zh[en] : "";
+      var hi = DASHBOARD_TRANSLATIONS_EXTRA.hi && DASHBOARD_TRANSLATIONS_EXTRA.hi[en] ? DASHBOARD_TRANSLATIONS_EXTRA.hi[en] : "";
+
+      if (core === es || core === en || core === pt || core === fr || core === ru || core === ko || core === ja || core === zh || core === hi) {
+        var translated = en;
+        if (targetLang === "es") {
+          translated = es;
+        } else if (targetLang === "pt") {
+          translated = pt || en;
+        } else if (targetLang === "fr") {
+          translated = fr || en;
+        } else if (targetLang === "ru") {
+          translated = ru || en;
+        } else if (targetLang === "ko") {
+          translated = ko || en;
+        } else if (targetLang === "ja") {
+          translated = ja || en;
+        } else if (targetLang === "zh") {
+          translated = zh || en;
+        } else if (targetLang === "hi") {
+          translated = hi || en;
+        }
+        return start + translated + end;
       }
     }
 

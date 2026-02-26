@@ -41,6 +41,19 @@
     return typeof translateValue === "function" ? translateValue(String(text || ""), currentDashboardLanguage()) : String(text || "");
   }
 
+  function preventModalBackdropClose(modalNode) {
+    if (!modalNode || modalNode.__navaiBackdropCloseBlocked) {
+      return;
+    }
+    modalNode.__navaiBackdropCloseBlocked = true;
+    modalNode.addEventListener("click", function (event) {
+      if (event.target === modalNode) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+  }
+
   async function adminApiRequest(path, method, body) {
     var config = getAdminApiConfig();
     if (!config.restBaseUrl) {
@@ -511,6 +524,9 @@
         if (!pluginEditorSelect || !roleEditorSelect || !nameEditorInput || !codeEditorInput || !descriptionEditorInput || !scopeEditorSelect || !timeoutEditorInput || !retriesEditorInput || !requiresApprovalEditorInput || !editorStatusNode || !editorIdInput || !editorIndexInput || !saveButton || !cancelButton) {
           return;
         }
+        preventModalBackdropClose(modal);
+        preventModalBackdropClose(exportModal);
+        preventModalBackdropClose(importModal);
         var editorArgumentSchemaJson = "";
         var functionCodeEditor = null;
         var functionSaveInFlight = false;
@@ -531,7 +547,9 @@
         function getActiveDashboardLanguage() {
           var wrapNode = document.querySelector(".navai-admin-wrap");
           var activeLang = wrapNode ? String(wrapNode.getAttribute("data-navai-dashboard-language") || "") : "";
-          if (activeLang !== "es" && activeLang !== "en") {
+          if (typeof normalizeDashboardLanguage === "function") {
+            activeLang = normalizeDashboardLanguage(activeLang, "en");
+          } else if (!activeLang) {
             activeLang = "en";
           }
           return activeLang;
@@ -734,11 +752,8 @@
             return;
           }
 
-          var selectedLookup = {};
           var normalizedSelected = normalizeAgentKeyList(selectedAgentKeys || []);
-          for (var selectedIndex = 0; selectedIndex < normalizedSelected.length; selectedIndex += 1) {
-            selectedLookup[normalizedSelected[selectedIndex]] = true;
-          }
+          var selectedAgentKey = normalizedSelected.length ? normalizedSelected[0] : "";
 
           agentAssignmentsEditorSelect.innerHTML = "";
 
@@ -752,6 +767,12 @@
             agentAssignmentsEditorSelect.disabled = true;
             return;
           }
+
+          var noneOption = document.createElement("option");
+          noneOption.value = "";
+          noneOption.textContent = tAdmin("Sin agente asignado");
+          noneOption.selected = selectedAgentKey === "";
+          agentAssignmentsEditorSelect.appendChild(noneOption);
 
           var hasOptions = false;
           for (var agentIndex = 0; agentIndex < functionAgentsCache.length; agentIndex += 1) {
@@ -770,12 +791,13 @@
             if (agent && agent.enabled === false) {
               option.textContent += " [" + tAdmin("deshabilitado") + "]";
             }
-            option.selected = !!selectedLookup[agentKey];
+            option.selected = selectedAgentKey === agentKey;
             agentAssignmentsEditorSelect.appendChild(option);
             hasOptions = true;
           }
 
           if (!hasOptions) {
+            agentAssignmentsEditorSelect.innerHTML = "";
             var invalidOption = document.createElement("option");
             invalidOption.value = "";
             invalidOption.textContent = tAdmin("No hay agentes disponibles");
@@ -794,17 +816,8 @@
             return [];
           }
 
-          var selectedKeys = [];
-          var options = agentAssignmentsEditorSelect.options || [];
-          for (var optionIndex = 0; optionIndex < options.length; optionIndex += 1) {
-            var option = options[optionIndex];
-            if (!option || option.disabled || !option.selected) {
-              continue;
-            }
-            selectedKeys.push(option.value);
-          }
-
-          return normalizeAgentKeyList(selectedKeys);
+          var selectedKey = sanitizeAgentKeyValue(agentAssignmentsEditorSelect.value || "");
+          return selectedKey ? [selectedKey] : [];
         }
 
         function getAgentKeysAssignedToFunction(functionName) {
@@ -898,14 +911,17 @@
             }
 
             var assignedAgentKeys = getAgentKeysAssignedToFunction(functionName);
-            renderFunctionAgentAssignmentOptions(assignedAgentKeys);
+            var selectedAgentKeys = assignedAgentKeys.length ? [assignedAgentKeys[0]] : [];
+            renderFunctionAgentAssignmentOptions(selectedAgentKeys);
 
             if (!functionAgentsCache.length) {
               setAgentAssignmentEditorStatus(tAdmin("No hay agentes configurados. Crea agentes en la pestaña Agents."), "info");
+            } else if (assignedAgentKeys.length > 1) {
+              setAgentAssignmentEditorStatus(tAdmin("Esta funcion esta asignada a multiples agentes. Selecciona uno para conservarlo."), "info");
             } else if (assignedAgentKeys.length) {
               setAgentAssignmentEditorStatus(tAdmin("Seleccion cargada desde las tools permitidas actuales del agente."), "info");
             } else {
-              setAgentAssignmentEditorStatus(tAdmin("Selecciona los agentes que podran usar esta funcion. Usa Ctrl/Cmd para seleccion multiple."), "info");
+              setAgentAssignmentEditorStatus(tAdmin("Selecciona el agente que podra usar esta funcion."), "info");
             }
 
             return assignedAgentKeys;
@@ -3028,9 +3044,6 @@
                 return;
               }
             }
-            if (event.target === modalNode) {
-              closeTransferModal(modalNode);
-            }
           });
         }
 
@@ -3046,27 +3059,6 @@
               closeEditorModal(true);
               return;
             }
-          }
-
-          if (event.target === modal) {
-            closeEditorModal(true);
-          }
-        });
-
-        document.addEventListener("keydown", function (event) {
-          if (!event || event.key !== "Escape") {
-            return;
-          }
-          if (modal && !modal.hasAttribute("hidden")) {
-            closeEditorModal(true);
-            return;
-          }
-          if (exportModal && !exportModal.hasAttribute("hidden")) {
-            closeTransferModal(exportModal);
-            return;
-          }
-          if (importModal && !importModal.hasAttribute("hidden")) {
-            closeTransferModal(importModal);
           }
         });
 
@@ -3226,6 +3218,8 @@
     if (!openButtons.length || !modal || !modalTitle || !editor || !idInput || !nameInput || !scopeSelect || !typeSelect || !actionSelect || !rolesInput || !pluginsInput || !priorityInput || !enabledInput || !patternInput || !saveButton || !cancelButton || !resetButton || !reloadButton || !statusNode || !tbody) {
       return;
     }
+    preventModalBackdropClose(modal);
+    preventModalBackdropClose(testModal);
 
     var state = {
       rules: [],
@@ -3782,10 +3776,6 @@
           return;
         }
       }
-
-      if (event.target === modal) {
-        closeEditorModal(true);
-      }
     });
 
     if (testModal) {
@@ -3799,25 +3789,8 @@
             return;
           }
         }
-
-        if (event.target === testModal) {
-          closeTestModal();
-        }
       });
     }
-
-    document.addEventListener("keydown", function (event) {
-      if (!event || event.key !== "Escape") {
-        return;
-      }
-      if (testModal && !testModal.hasAttribute("hidden")) {
-        closeTestModal();
-        return;
-      }
-      if (!modal.hasAttribute("hidden")) {
-        closeEditorModal(true);
-      }
-    });
 
     resetEditor(false);
     setModalOpenState(false);
@@ -4747,6 +4720,8 @@
     if (!agentsTbody || !handoffsTbody) {
       return;
     }
+    preventModalBackdropClose(agentModal);
+    preventModalBackdropClose(handoffModal);
 
     var state = {
       agents: [],
@@ -5439,14 +5414,26 @@
 
     if (agentModal) {
       agentModal.addEventListener("click", function (event) {
-        if (event.target === agentModal) {
+        var target = event.target;
+        if (!target || !target.closest) {
+          return;
+        }
+        var dismissButton = target.closest(".navai-agent-modal-dismiss");
+        if (dismissButton && agentModal.contains(dismissButton)) {
+          event.preventDefault();
           closeAgentModal(true);
         }
       });
     }
     if (handoffModal) {
       handoffModal.addEventListener("click", function (event) {
-        if (event.target === handoffModal) {
+        var target = event.target;
+        if (!target || !target.closest) {
+          return;
+        }
+        var dismissButton = target.closest(".navai-handoff-modal-dismiss");
+        if (dismissButton && handoffModal.contains(dismissButton)) {
+          event.preventDefault();
           closeHandoffModal(true);
         }
       });
@@ -5576,6 +5563,8 @@
     if (!serversTbody || !toolsTbody || !policiesTbody) {
       return;
     }
+    preventModalBackdropClose(serverModal);
+    preventModalBackdropClose(policyModal);
 
     var state = { servers: [], policies: [], toolsByServerId: {} };
 
@@ -6159,14 +6148,26 @@
     }
     if (serverModal) {
       serverModal.addEventListener("click", function (event) {
-        if (event.target === serverModal) {
+        var target = event.target;
+        if (!target || !target.closest) {
+          return;
+        }
+        var dismissButton = target.closest(".navai-mcp-server-modal-dismiss");
+        if (dismissButton && serverModal.contains(dismissButton)) {
+          event.preventDefault();
           closeServerModal(true);
         }
       });
     }
     if (policyModal) {
       policyModal.addEventListener("click", function (event) {
-        if (event.target === policyModal) {
+        var target = event.target;
+        if (!target || !target.closest) {
+          return;
+        }
+        var dismissButton = target.closest(".navai-mcp-policy-modal-dismiss");
+        if (dismissButton && policyModal.contains(dismissButton)) {
+          event.preventDefault();
           closePolicyModal(true);
         }
       });
