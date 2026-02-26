@@ -298,7 +298,7 @@
   grid-template-columns: 1fr;
 }
 
-.navai-mcp-panel .navai-agents-actions + .navai-agents-table-wrap {
+.navai-mcp-panel .navai-agents-section-head--with-actions + .navai-agents-table-wrap {
   margin-top: 10px;
 }
 
@@ -785,6 +785,10 @@
   display: block;
 }
 
+.navai-admin-divider + .navai-admin-panel {
+  margin-top: 14px;
+}
+
 .navai-admin-panel > h2 {
   margin: 0 0 6px;
 }
@@ -971,10 +975,19 @@
   border-radius: 10px;
   padding: 10px;
   background: #ffffff;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .navai-private-route-row label {
   display: block;
+}
+
+.navai-private-route-row > label,
+.navai-private-route-row > button {
+  min-width: 0;
 }
 
 .navai-private-route-row label > span {
@@ -1076,7 +1089,7 @@
 .navai-plugin-function-modal-dialog,
 .navai-plugin-function-transfer-modal-dialog {
   width: min(960px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
+  max-height: min(760px, calc(100vh - 110px));
   overflow: auto;
   border: 1px solid #d4deed;
   border-radius: 14px;
@@ -1344,8 +1357,8 @@
 
 .navai-plugin-function-code-wrap .CodeMirror {
   width: 100%;
-  min-height: 320px;
-  height: min(48vh, 440px);
+  min-height: 220px;
+  height: min(34vh, 320px);
   border: 1px solid #cfd9e7;
   border-radius: 8px;
   background: #fbfdff;
@@ -1355,7 +1368,7 @@
 }
 
 .navai-plugin-function-code-wrap .CodeMirror-scroll {
-  min-height: 320px;
+  min-height: 220px;
 }
 
 .navai-plugin-function-code-wrap .CodeMirror-focused {
@@ -2815,7 +2828,7 @@
 }
 
 .navai-admin-wrap .navai-admin-panel.is-active {
-  animation: navaiPanelFadeIn 180ms ease;
+  animation: none;
 }
 
 @keyframes navaiPanelFadeIn {
@@ -3016,6 +3029,11 @@ body.navai-admin-theme-dark #wpbody-content {
 .navai-admin-wrap[data-navai-theme="dark"] .navai-admin-panel[data-navai-panel="settings"] > .navai-admin-card.navai-admin-settings-shell,
 .navai-admin-wrap[data-navai-theme="dark"] .navai-nav-card {
   background: linear-gradient(180deg, rgba(16, 27, 46, 0.98), rgba(13, 22, 38, 0.98));
+  border-color: rgba(43, 63, 91, 0.95);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-private-route-row {
+  background: linear-gradient(180deg, rgba(18, 29, 49, 0.98), rgba(15, 25, 42, 0.98));
   border-color: rgba(43, 63, 91, 0.95);
 }
 

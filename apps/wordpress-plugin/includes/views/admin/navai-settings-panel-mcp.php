@@ -25,21 +25,23 @@ if (!isset($mcpEnabled)) {
 
         <div class="navai-agents-grid">
             <section class="navai-agents-list">
-                <div class="navai-agents-section-head">
-                    <h3><?php echo esc_html__('Servidores MCP', 'navai-voice'); ?></h3>
-                    <p class="navai-admin-description"><?php echo esc_html__('Ejecuta health check y sincroniza tools remotas por servidor.', 'navai-voice'); ?></p>
-                </div>
-                <div class="navai-agents-actions">
-                    <button type="button" class="button button-primary navai-mcp-server-open"><?php echo esc_html__('Crear servidor', 'navai-voice'); ?></button>
-                    <button
-                        type="button"
-                        class="button button-secondary navai-refresh-icon-button navai-mcp-servers-reload"
-                        aria-label="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
-                        title="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
-                    >
-                        <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
-                        <span class="screen-reader-text"><?php echo esc_html__('Recargar', 'navai-voice'); ?></span>
-                    </button>
+                <div class="navai-agents-section-head navai-agents-section-head--with-actions">
+                    <div class="navai-agents-section-head-copy">
+                        <h3><?php echo esc_html__('Servidores MCP', 'navai-voice'); ?></h3>
+                        <p class="navai-admin-description"><?php echo esc_html__('Ejecuta health check y sincroniza tools remotas por servidor.', 'navai-voice'); ?></p>
+                    </div>
+                    <div class="navai-agents-actions navai-agents-section-head-actions">
+                        <button type="button" class="button button-primary navai-mcp-server-open"><?php echo esc_html__('Crear servidor', 'navai-voice'); ?></button>
+                        <button
+                            type="button"
+                            class="button button-secondary navai-refresh-icon-button navai-mcp-servers-reload"
+                            aria-label="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                            title="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                        >
+                            <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                            <span class="screen-reader-text"><?php echo esc_html__('Recargar', 'navai-voice'); ?></span>
+                        </button>
+                    </div>
                 </div>
                 <div class="navai-agents-table-wrap">
                     <table class="widefat striped navai-mcp-servers-table">
@@ -99,21 +101,23 @@ if (!isset($mcpEnabled)) {
 
         <div class="navai-handoffs-grid">
             <section class="navai-handoffs-list">
-                <div class="navai-agents-section-head">
-                    <h3><?php echo esc_html__('Politicas configuradas', 'navai-voice'); ?></h3>
-                    <p class="navai-admin-description"><?php echo esc_html__('Las denylists aplican primero; si hay allowlists para una tool, todo lo demas queda bloqueado.', 'navai-voice'); ?></p>
-                </div>
-                <div class="navai-agents-actions">
-                    <button type="button" class="button button-primary navai-mcp-policy-open"><?php echo esc_html__('Crear politica', 'navai-voice'); ?></button>
-                    <button
-                        type="button"
-                        class="button button-secondary navai-refresh-icon-button navai-mcp-policies-reload"
-                        aria-label="<?php echo esc_attr__('Recargar politicas', 'navai-voice'); ?>"
-                        title="<?php echo esc_attr__('Recargar politicas', 'navai-voice'); ?>"
-                    >
-                        <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
-                        <span class="screen-reader-text"><?php echo esc_html__('Recargar politicas', 'navai-voice'); ?></span>
-                    </button>
+                <div class="navai-agents-section-head navai-agents-section-head--with-actions">
+                    <div class="navai-agents-section-head-copy">
+                        <h3><?php echo esc_html__('Politicas configuradas', 'navai-voice'); ?></h3>
+                        <p class="navai-admin-description"><?php echo esc_html__('Las denylists aplican primero; si hay allowlists para una tool, todo lo demas queda bloqueado.', 'navai-voice'); ?></p>
+                    </div>
+                    <div class="navai-agents-actions navai-agents-section-head-actions">
+                        <button type="button" class="button button-primary navai-mcp-policy-open"><?php echo esc_html__('Crear politica', 'navai-voice'); ?></button>
+                        <button
+                            type="button"
+                            class="button button-secondary navai-refresh-icon-button navai-mcp-policies-reload"
+                            aria-label="<?php echo esc_attr__('Recargar politicas', 'navai-voice'); ?>"
+                            title="<?php echo esc_attr__('Recargar politicas', 'navai-voice'); ?>"
+                        >
+                            <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                            <span class="screen-reader-text"><?php echo esc_html__('Recargar politicas', 'navai-voice'); ?></span>
+                        </button>
+                    </div>
                 </div>
                 <div class="navai-agents-table-wrap">
                     <table class="widefat striped navai-mcp-policies-table">
