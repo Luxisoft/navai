@@ -16,10 +16,12 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
 }
 ?>
 <section class="navai-admin-panel" data-navai-panel="history">
-    <h2><?php echo esc_html__('Historial', 'navai-voice'); ?></h2>
-    <p><?php echo esc_html__('Consulta sesiones persistidas, transcriptos y tool calls. Tambien puedes limpiar sesiones y aplicar retencion.', 'navai-voice'); ?></p>
-
     <div class="navai-admin-card navai-history-panel" data-navai-history-panel>
+        <div class="navai-admin-settings-section-head">
+            <h3><?php echo esc_html__('Historial', 'navai-voice'); ?></h3>
+            <p class="navai-admin-description"><?php echo esc_html__('Consulta sesiones persistidas, transcriptos y tool calls. Tambien puedes limpiar sesiones y aplicar retencion.', 'navai-voice'); ?></p>
+        </div>
+
         <div class="navai-guardrails-top">
             <label class="navai-guardrails-toggle">
                 <input
@@ -100,8 +102,14 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
                 />
             </label>
             <div class="navai-history-toolbar-actions">
-                <button type="button" class="button button-secondary navai-history-reload">
-                    <?php echo esc_html__('Recargar', 'navai-voice'); ?>
+                <button
+                    type="button"
+                    class="button button-secondary navai-refresh-icon-button navai-history-reload"
+                    aria-label="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                    title="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                >
+                    <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                    <span class="screen-reader-text"><?php echo esc_html__('Recargar', 'navai-voice'); ?></span>
                 </button>
                 <button type="button" class="button button-secondary navai-history-cleanup">
                     <?php echo esc_html__('Aplicar retencion', 'navai-voice'); ?>

@@ -325,7 +325,16 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                                         <?php checked($isChecked, true); ?>
                                                     />
                                                     <span class="navai-nav-route-main">
-                                                        <strong><?php echo esc_html($routeTitle); ?></strong>
+                                                        <span class="navai-nav-route-title-row">
+                                                            <strong><?php echo esc_html($routeTitle); ?></strong>
+                                                            <button
+                                                                type="button"
+                                                                class="button-link navai-nav-url-button"
+                                                                data-navai-url-target="<?php echo esc_attr($urlBoxId); ?>"
+                                                            >
+                                                                <?php echo esc_html__('URL', 'navai-voice'); ?>
+                                                            </button>
+                                                        </span>
                                                         <input
                                                             type="text"
                                                             class="regular-text navai-nav-route-description"
@@ -333,17 +342,10 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                                             value="<?php echo esc_attr($routeDescription); ?>"
                                                             placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
                                                         />
+                                                        <div class="navai-nav-url-box" id="<?php echo esc_attr($urlBoxId); ?>" hidden>
+                                                            <code><?php echo esc_html($routeUrl); ?></code>
+                                                        </div>
                                                     </span>
-                                                    <button
-                                                        type="button"
-                                                        class="button-link navai-nav-url-button"
-                                                        data-navai-url-target="<?php echo esc_attr($urlBoxId); ?>"
-                                                    >
-                                                        <?php echo esc_html__('URL', 'navai-voice'); ?>
-                                                    </button>
-                                                    <div class="navai-nav-url-box" id="<?php echo esc_attr($urlBoxId); ?>" hidden>
-                                                        <code><?php echo esc_html($routeUrl); ?></code>
-                                                    </div>
                                                 </label>
                                             <?php endforeach; ?>
                                         </div>
@@ -621,7 +623,16 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                                         <?php checked($isChecked, true); ?>
                                                     />
                                                     <span class="navai-nav-route-main">
-                                                        <strong><?php echo esc_html($routeTitle); ?></strong>
+                                                        <span class="navai-nav-route-title-row">
+                                                            <strong><?php echo esc_html($routeTitle); ?></strong>
+                                                            <button
+                                                                type="button"
+                                                                class="button-link navai-nav-url-button"
+                                                                data-navai-url-target="<?php echo esc_attr($urlBoxId); ?>"
+                                                            >
+                                                                <?php echo esc_html__('URL', 'navai-voice'); ?>
+                                                            </button>
+                                                        </span>
                                                         <input
                                                             type="text"
                                                             class="regular-text navai-nav-route-description"
@@ -629,6 +640,9 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                                             value="<?php echo esc_attr($routeDescription); ?>"
                                                             placeholder="<?php echo esc_attr__('Describe when NAVAI should use this route', 'navai-voice'); ?>"
                                                         />
+                                                        <div class="navai-nav-url-box" id="<?php echo esc_attr($urlBoxId); ?>" hidden>
+                                                            <code><?php echo esc_html($routeUrl); ?></code>
+                                                        </div>
                                                         <?php if (count($routeRoleBadges) > 0) : ?>
                                                             <small class="navai-nav-route-roles">
                                                                 <?php foreach ($routeRoleBadges as $roleBadge) : ?>
@@ -642,16 +656,6 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                                             </small>
                                                         <?php endif; ?>
                                                     </span>
-                                                    <button
-                                                        type="button"
-                                                        class="button-link navai-nav-url-button"
-                                                        data-navai-url-target="<?php echo esc_attr($urlBoxId); ?>"
-                                                    >
-                                                        <?php echo esc_html__('URL', 'navai-voice'); ?>
-                                                    </button>
-                                                    <div class="navai-nav-url-box" id="<?php echo esc_attr($urlBoxId); ?>" hidden>
-                                                        <code><?php echo esc_html($routeUrl); ?></code>
-                                                    </div>
                                                 </label>
                                             <?php endforeach; ?>
                                         </div>

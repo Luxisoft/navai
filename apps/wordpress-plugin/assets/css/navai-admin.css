@@ -605,11 +605,7 @@
 
 @media (max-width: 1320px) {
   .navai-plugin-function-meta-grid {
-    grid-template-columns: repeat(3, minmax(180px, 1fr));
-  }
-
-  .navai-plugin-function-meta-grid .navai-plugin-function-agent-assignment {
-    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
 }
 
@@ -1306,8 +1302,7 @@
     minmax(220px, 2fr)
     minmax(150px, 1fr)
     minmax(130px, 0.8fr)
-    minmax(180px, 1fr)
-    minmax(260px, 2fr);
+    minmax(220px, 1.2fr);
   gap: 12px;
   align-items: end;
 }
@@ -1317,11 +1312,11 @@
 }
 
 .navai-plugin-function-meta-grid .navai-plugin-function-agent-assignment {
-  grid-column: auto;
+  grid-column: 1 / -1;
 }
 
 .navai-plugin-function-agent-assignment {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
 .navai-plugin-function-agent-assignment select {
@@ -1332,6 +1327,10 @@
 .navai-plugin-function-agent-assignment .navai-admin-description {
   display: block;
   margin-top: 4px;
+}
+
+.navai-plugin-function-row > .navai-plugin-function-agent-assignment {
+  align-self: start;
 }
 
 .navai-plugin-function-code {
@@ -1558,13 +1557,24 @@
 }
 
 .navai-nav-route-main {
-  display: block;
+  display: grid;
+  gap: 6px;
   min-width: 0;
   grid-column: 2 / 3;
 }
 
+.navai-nav-route-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
 .navai-nav-route-main strong {
   display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .navai-nav-route-description {
@@ -1595,8 +1605,8 @@
 .navai-nav-url-button {
   font-weight: 600;
   text-decoration: none;
-  grid-column: 2 / 3;
-  justify-self: start;
+  flex: 0 0 auto;
+  align-self: center;
 }
 
 .navai-nav-url-button.is-active {
@@ -1604,18 +1614,23 @@
 }
 
 .navai-nav-url-box {
-  grid-column: 2 / 3;
   width: 100%;
-  margin-top: 6px;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 2px;
   padding: 8px;
   border: 1px dashed #cdd8e8;
   border-radius: 8px;
   background: #f4f8ff;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .navai-nav-url-box code {
   display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   white-space: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
@@ -2092,11 +2107,6 @@
   .navai-admin-check.navai-nav-route-item {
     grid-template-columns: auto 1fr;
   }
-
-  .navai-nav-url-button {
-    grid-column: 2 / 3;
-    justify-self: start;
-  }
 }
 
 /* Visual refresh overrides (global admin UI polish). */
@@ -2503,6 +2513,22 @@
   color: #22344d;
 }
 
+.navai-admin-wrap .navai-refresh-icon-button.button {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navai-admin-wrap .navai-refresh-icon-button .dashicons {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 16px;
+}
+
 .navai-admin-wrap .navai-searchable-select-toggle {
   width: 100%;
   min-height: 40px;
@@ -2673,8 +2699,7 @@
 }
 
 .navai-admin-wrap .navai-nav-url-button {
-  grid-column: 2 / 3;
-  justify-self: start;
+  justify-self: auto;
 }
 
 .navai-admin-wrap .navai-nav-route-item:hover,

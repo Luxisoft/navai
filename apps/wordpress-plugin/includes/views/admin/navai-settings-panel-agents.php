@@ -43,8 +43,14 @@ if (!isset($agentsEnabled)) {
                         <button type="button" class="button button-primary navai-agent-open">
                             <?php echo esc_html__('Crear agente', 'navai-voice'); ?>
                         </button>
-                        <button type="button" class="button button-secondary navai-agents-reload">
-                            <?php echo esc_html__('Recargar', 'navai-voice'); ?>
+                        <button
+                            type="button"
+                            class="button button-secondary navai-refresh-icon-button navai-agents-reload"
+                            aria-label="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                            title="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                        >
+                            <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                            <span class="screen-reader-text"><?php echo esc_html__('Recargar', 'navai-voice'); ?></span>
                         </button>
                     </div>
                 </div>
@@ -82,8 +88,15 @@ if (!isset($agentsEnabled)) {
                         <button type="button" class="button button-primary navai-handoff-open">
                             <?php echo esc_html__('Crear regla', 'navai-voice'); ?>
                         </button>
-                        <button type="button" class="button button-secondary navai-handoffs-reload">
-                            <?php echo esc_html__('Recargar reglas', 'navai-voice'); ?></button>
+                        <button
+                            type="button"
+                            class="button button-secondary navai-refresh-icon-button navai-handoffs-reload"
+                            aria-label="<?php echo esc_attr__('Recargar reglas', 'navai-voice'); ?>"
+                            title="<?php echo esc_attr__('Recargar reglas', 'navai-voice'); ?>"
+                        >
+                            <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                            <span class="screen-reader-text"><?php echo esc_html__('Recargar reglas', 'navai-voice'); ?></span>
+                        </button>
                     </div>
                 </div>
 

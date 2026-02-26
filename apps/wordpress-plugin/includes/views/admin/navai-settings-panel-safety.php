@@ -4,10 +4,12 @@ if (!isset($guardrailsEnabled)) {
 }
 ?>
 <section class="navai-admin-panel" data-navai-panel="safety">
-    <h2><?php echo esc_html__('Seguridad', 'navai-voice'); ?></h2>
-    <p><?php echo esc_html__('Configura guardrails para bloquear o advertir sobre entradas, herramientas y salidas del agente.', 'navai-voice'); ?></p>
-
     <div class="navai-admin-card navai-guardrails-panel" data-navai-guardrails-panel>
+        <div class="navai-admin-settings-section-head">
+            <h3><?php echo esc_html__('Seguridad', 'navai-voice'); ?></h3>
+            <p class="navai-admin-description"><?php echo esc_html__('Configura guardrails para bloquear o advertir sobre entradas, herramientas y salidas del agente.', 'navai-voice'); ?></p>
+        </div>
+
         <div class="navai-guardrails-top">
             <label class="navai-guardrails-toggle">
                 <input
@@ -227,8 +229,14 @@ if (!isset($guardrailsEnabled)) {
                     <button type="button" class="button button-secondary navai-guardrail-test-open">
                         <?php echo esc_html__('Abrir probador', 'navai-voice'); ?>
                     </button>
-                    <button type="button" class="button button-secondary navai-guardrail-reload">
-                        <?php echo esc_html__('Recargar', 'navai-voice'); ?>
+                    <button
+                        type="button"
+                        class="button button-secondary navai-refresh-icon-button navai-guardrail-reload"
+                        aria-label="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                        title="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                    >
+                        <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                        <span class="screen-reader-text"><?php echo esc_html__('Recargar', 'navai-voice'); ?></span>
                     </button>
                 </div>
             </div>

@@ -31,7 +31,15 @@ if (!isset($mcpEnabled)) {
                 </div>
                 <div class="navai-agents-actions">
                     <button type="button" class="button button-primary navai-mcp-server-open"><?php echo esc_html__('Crear servidor', 'navai-voice'); ?></button>
-                    <button type="button" class="button button-secondary navai-mcp-servers-reload"><?php echo esc_html__('Recargar', 'navai-voice'); ?></button>
+                    <button
+                        type="button"
+                        class="button button-secondary navai-refresh-icon-button navai-mcp-servers-reload"
+                        aria-label="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                        title="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                    >
+                        <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                        <span class="screen-reader-text"><?php echo esc_html__('Recargar', 'navai-voice'); ?></span>
+                    </button>
                 </div>
                 <div class="navai-agents-table-wrap">
                     <table class="widefat striped navai-mcp-servers-table">
@@ -97,7 +105,15 @@ if (!isset($mcpEnabled)) {
                 </div>
                 <div class="navai-agents-actions">
                     <button type="button" class="button button-primary navai-mcp-policy-open"><?php echo esc_html__('Crear politica', 'navai-voice'); ?></button>
-                    <button type="button" class="button button-secondary navai-mcp-policies-reload"><?php echo esc_html__('Recargar politicas', 'navai-voice'); ?></button>
+                    <button
+                        type="button"
+                        class="button button-secondary navai-refresh-icon-button navai-mcp-policies-reload"
+                        aria-label="<?php echo esc_attr__('Recargar politicas', 'navai-voice'); ?>"
+                        title="<?php echo esc_attr__('Recargar politicas', 'navai-voice'); ?>"
+                    >
+                        <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                        <span class="screen-reader-text"><?php echo esc_html__('Recargar politicas', 'navai-voice'); ?></span>
+                    </button>
                 </div>
                 <div class="navai-agents-table-wrap">
                     <table class="widefat striped navai-mcp-policies-table">

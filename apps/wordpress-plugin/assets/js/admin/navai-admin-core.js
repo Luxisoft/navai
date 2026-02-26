@@ -409,7 +409,7 @@
     ["Pagina principal del sitio.", "Main site page."],
     ["Ruta publica seleccionada en menus de WordPress.", "Public route selected from WordPress menus."],
     ["Ruta privada seleccionada en WordPress.", "Private route selected in WordPress."],
-    ["Funcion personalizada de plugin.", "Custom plugin function."]
+    ["Funcion personalizada de plugin.", "Custom plugin function."],
 
     ["0 funciones visibles", "0 visible functions"],
     ["Activar modo claro", "Activate light mode"],
@@ -597,6 +597,9 @@
 
     for (var i = 0; i < DASHBOARD_TRANSLATIONS.length; i += 1) {
       var pair = DASHBOARD_TRANSLATIONS[i];
+      if (!pair || !Array.isArray(pair) || pair.length < 2) {
+        continue;
+      }
       var es = pair[0];
       var en = pair[1];
       var pt = DASHBOARD_TRANSLATIONS_EXTRA.pt && DASHBOARD_TRANSLATIONS_EXTRA.pt[en] ? DASHBOARD_TRANSLATIONS_EXTRA.pt[en] : "";

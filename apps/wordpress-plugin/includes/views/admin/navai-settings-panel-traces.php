@@ -4,10 +4,12 @@ if (!isset($tracingEnabled)) {
 }
 ?>
 <section class="navai-admin-panel" data-navai-panel="traces">
-    <h2><?php echo esc_html__('Trazas', 'navai-voice'); ?></h2>
-    <p><?php echo esc_html__('Consulta eventos de ejecucion para depurar llamadas de herramientas, bloqueos y aprobaciones.', 'navai-voice'); ?></p>
-
     <div class="navai-admin-card navai-traces-panel" data-navai-traces-panel>
+        <div class="navai-admin-settings-section-head">
+            <h3><?php echo esc_html__('Trazas', 'navai-voice'); ?></h3>
+            <p class="navai-admin-description"><?php echo esc_html__('Consulta eventos de ejecucion para depurar llamadas de herramientas, bloqueos y aprobaciones.', 'navai-voice'); ?></p>
+        </div>
+
         <div class="navai-guardrails-top">
             <label class="navai-guardrails-toggle">
                 <input
@@ -48,8 +50,14 @@ if (!isset($tracingEnabled)) {
                 </select>
             </label>
             <div class="navai-traces-toolbar-actions">
-                <button type="button" class="button button-secondary navai-traces-reload">
-                    <?php echo esc_html__('Recargar', 'navai-voice'); ?>
+                <button
+                    type="button"
+                    class="button button-secondary navai-refresh-icon-button navai-traces-reload"
+                    aria-label="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                    title="<?php echo esc_attr__('Recargar', 'navai-voice'); ?>"
+                >
+                    <span class="dashicons dashicons-update-alt" aria-hidden="true"></span>
+                    <span class="screen-reader-text"><?php echo esc_html__('Recargar', 'navai-voice'); ?></span>
                 </button>
             </div>
         </div>

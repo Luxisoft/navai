@@ -2924,8 +2924,7 @@
 
         });
 
-        openCreateButton.addEventListener("click", function (event) {
-          event.preventDefault();
+        function openCreateEditorModal() {
           resetEditor(false);
           openEditorModal();
           void refreshFunctionAgentAssignmentEditor("", true);
@@ -2934,7 +2933,15 @@
           } else {
             focusFunctionCodeInput();
           }
-        });
+        }
+
+        if (openCreateButton) {
+          openCreateButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            openCreateEditorModal();
+          });
+        }
 
         if (exportOpenButton) {
           exportOpenButton.addEventListener("click", function (event) {
@@ -3064,14 +3071,7 @@
 
         builder.__navaiPluginEditorApi = {
           openCreate: function () {
-            resetEditor(false);
-            openEditorModal();
-            void refreshFunctionAgentAssignmentEditor("", true);
-            if (nameEditorInput && typeof nameEditorInput.focus === "function") {
-              nameEditorInput.focus();
-            } else {
-              focusFunctionCodeInput();
-            }
+            openCreateEditorModal();
           },
           editById: function (rowId) {
             var rowNode = getStorageRowById(rowId);
@@ -3125,6 +3125,20 @@
     pluginPanel.addEventListener("click", function (event) {
       var target = event.target;
       if (!target || !target.closest) {
+        return;
+      }
+
+      var createButton = target.closest(".navai-plugin-function-open");
+      if (createButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        var createBuilderNodes = pluginPanel.querySelectorAll(".navai-plugin-functions-builder");
+        for (var createIndex = 0; createIndex < createBuilderNodes.length; createIndex += 1) {
+          var createApi = createBuilderNodes[createIndex].__navaiPluginEditorApi;
+          if (createApi && typeof createApi.openCreate === "function") {
+            createApi.openCreate();
+          }
+        }
         return;
       }
 
@@ -4801,59 +4815,6 @@
       titleNode.textContent = tAdmin(nextLabel || createLabel || editLabel || "");
     }
 
-    function openServerModal(mode) {
-      updateInlineModalTitle(serverModalTitle, mode === "edit" ? "edit" : "create");
-      setInlineModalOpenState(serverModal, true);
-      if (serverNameInput && typeof serverNameInput.focus === "function") {
-        serverNameInput.focus();
-      }
-    }
-
-    function closeServerModal(shouldReset) {
-      setInlineModalOpenState(serverModal, false);
-      if (shouldReset) {
-        resetServerForm();
-      }
-    }
-
-    function openPolicyModal(mode) {
-      updateInlineModalTitle(policyModalTitle, mode === "edit" ? "edit" : "create");
-      setInlineModalOpenState(policyModal, true);
-      if (policyToolNameInput && typeof policyToolNameInput.focus === "function") {
-        policyToolNameInput.focus();
-      }
-    }
-
-    function closePolicyModal(shouldReset) {
-      setInlineModalOpenState(policyModal, false);
-      if (shouldReset) {
-        resetPolicyForm();
-      }
-    }
-
-    function setInlineModalOpenState(modalNode, isOpen) {
-      if (!modalNode) {
-        return;
-      }
-      if (isOpen) {
-        modalNode.removeAttribute("hidden");
-        modalNode.classList.add("is-open");
-      } else {
-        modalNode.classList.remove("is-open");
-        modalNode.setAttribute("hidden", "hidden");
-      }
-    }
-
-    function updateInlineModalTitle(titleNode, mode) {
-      if (!titleNode) {
-        return;
-      }
-      var createLabel = String(titleNode.getAttribute("data-label-create") || "");
-      var editLabel = String(titleNode.getAttribute("data-label-edit") || "");
-      var nextLabel = mode === "edit" ? editLabel : createLabel;
-      titleNode.textContent = tAdmin(nextLabel || createLabel || editLabel || "");
-    }
-
     function setAgentsSubtab(tabKey) {
       var nextTab = String(tabKey || "agents");
       var hasMatch = false;
@@ -5567,6 +5528,59 @@
     preventModalBackdropClose(policyModal);
 
     var state = { servers: [], policies: [], toolsByServerId: {} };
+
+    function setInlineModalOpenState(modalNode, isOpen) {
+      if (!modalNode) {
+        return;
+      }
+      if (isOpen) {
+        modalNode.removeAttribute("hidden");
+        modalNode.classList.add("is-open");
+      } else {
+        modalNode.classList.remove("is-open");
+        modalNode.setAttribute("hidden", "hidden");
+      }
+    }
+
+    function updateInlineModalTitle(titleNode, mode) {
+      if (!titleNode) {
+        return;
+      }
+      var createLabel = String(titleNode.getAttribute("data-label-create") || "");
+      var editLabel = String(titleNode.getAttribute("data-label-edit") || "");
+      var nextLabel = mode === "edit" ? editLabel : createLabel;
+      titleNode.textContent = tAdmin(nextLabel || createLabel || editLabel || "");
+    }
+
+    function openServerModal(mode) {
+      updateInlineModalTitle(serverModalTitle, mode === "edit" ? "edit" : "create");
+      setInlineModalOpenState(serverModal, true);
+      if (serverNameInput && typeof serverNameInput.focus === "function") {
+        serverNameInput.focus();
+      }
+    }
+
+    function closeServerModal(shouldReset) {
+      setInlineModalOpenState(serverModal, false);
+      if (shouldReset) {
+        resetServerForm();
+      }
+    }
+
+    function openPolicyModal(mode) {
+      updateInlineModalTitle(policyModalTitle, mode === "edit" ? "edit" : "create");
+      setInlineModalOpenState(policyModal, true);
+      if (policyToolNameInput && typeof policyToolNameInput.focus === "function") {
+        policyToolNameInput.focus();
+      }
+    }
+
+    function closePolicyModal(shouldReset) {
+      setInlineModalOpenState(policyModal, false);
+      if (shouldReset) {
+        resetPolicyForm();
+      }
+    }
 
     function csvToList(value) {
       if (Array.isArray(value)) {

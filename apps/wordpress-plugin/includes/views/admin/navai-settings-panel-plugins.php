@@ -111,6 +111,18 @@
                                                 </small>
                                             </label>
 
+                                            <label class="navai-plugin-function-agent-assignment">
+                                                <span><?php echo esc_html__('Agente IA permitido (opcional)', 'navai-voice'); ?></span>
+                                                <select
+                                                    class="navai-plugin-function-editor-agents"
+                                                    aria-label="<?php echo esc_attr__('Selecciona el agente IA permitido para esta funcion', 'navai-voice'); ?>"
+                                                ></select>
+                                                <small class="navai-admin-description">
+                                                    <?php echo esc_html__('Asigna esta funcion a un agente existente. Se sincroniza con las tools permitidas del agente por function_name.', 'navai-voice'); ?>
+                                                </small>
+                                                <small class="navai-admin-description navai-plugin-function-editor-agents-status" hidden></small>
+                                            </label>
+
                                             <label class="navai-plugin-function-code-wrap">
                                                 <span><?php echo esc_html__('Funcion NAVAI (JavaScript)', 'navai-voice'); ?></span>
                                                 <textarea
@@ -176,17 +188,6 @@
                                                     </span>
                                                 </label>
 
-                                                <label class="navai-plugin-function-agent-assignment">
-                                                    <span><?php echo esc_html__('Agente IA permitido (opcional)', 'navai-voice'); ?></span>
-                                                    <select
-                                                        class="navai-plugin-function-editor-agents"
-                                                        aria-label="<?php echo esc_attr__('Selecciona el agente IA permitido para esta funcion', 'navai-voice'); ?>"
-                                                    ></select>
-                                                    <small class="navai-admin-description">
-                                                        <?php echo esc_html__('Asigna esta funcion a un agente existente. Se sincroniza con las tools permitidas del agente por function_name.', 'navai-voice'); ?>
-                                                    </small>
-                                                    <small class="navai-admin-description navai-plugin-function-editor-agents-status" hidden></small>
-                                                </label>
                                             </div>
 
                                             <div class="navai-plugin-function-test-tools">
