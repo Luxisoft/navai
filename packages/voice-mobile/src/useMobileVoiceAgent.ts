@@ -18,6 +18,7 @@ import {
 } from "./session";
 
 type SessionStatus = "idle" | "connecting" | "connected" | "error";
+type AgentVoiceState = "idle" | "speaking";
 
 type WebRtcRuntime = {
   mediaDevices: unknown;
@@ -35,9 +36,11 @@ export type UseMobileVoiceAgentOptions = {
 
 export type UseMobileVoiceAgentResult = {
   status: SessionStatus;
+  agentVoiceState: AgentVoiceState;
   error: string | null;
   isConnecting: boolean;
   isConnected: boolean;
+  isAgentSpeaking: boolean;
   start: () => Promise<void>;
   stop: () => Promise<void>;
 };
@@ -159,8 +162,48 @@ function emitWarnings(warnings: string[]): void {
   }
 }
 
+function readRealtimeEventType(event: unknown): string {
+  if (!isRecord(event) || typeof event.type !== "string") {
+    return "";
+  }
+
+  return event.type.trim().toLowerCase();
+}
+
+function resolveAgentVoiceStateFromRealtimeEvent(event: unknown): AgentVoiceState | null {
+  const eventType = readRealtimeEventType(event);
+  if (!eventType) {
+    return null;
+  }
+
+  if (
+    eventType === "response.output_audio.delta" ||
+    eventType === "response.audio.delta" ||
+    eventType === "output_audio_buffer.started"
+  ) {
+    return "speaking";
+  }
+
+  if (
+    eventType === "response.output_audio.done" ||
+    eventType === "response.audio.done" ||
+    eventType === "response.done" ||
+    eventType === "response.canceled" ||
+    eventType === "response.cancelled" ||
+    eventType === "conversation.interrupted" ||
+    eventType === "output_audio_buffer.stopped" ||
+    eventType === "output_audio_buffer.cleared" ||
+    eventType === "error"
+  ) {
+    return "idle";
+  }
+
+  return null;
+}
+
 export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMobileVoiceAgentResult {
   const [status, setStatus] = useState<SessionStatus>("idle");
+  const [agentVoiceState, setAgentVoiceState] = useState<AgentVoiceState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [functionsReady, setFunctionsReady] = useState(false);
 
@@ -171,6 +214,10 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
   const handledToolCallIdsRef = useRef<Set<string>>(new Set());
   const toolCallNamesByIdRef = useRef<Map<string, string>>(new Map());
   const pendingToolCallsRef = useRef<Map<string, PendingToolCall>>(new Map());
+
+  const setAgentVoiceStateIfChanged = useCallback((next: AgentVoiceState) => {
+    setAgentVoiceState((current) => (current === next ? current : next));
+  }, []);
 
   const resetSessionState = useCallback(() => {
     sessionRef.current = null;
@@ -225,6 +272,11 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
 
   const handleRealtimeEvent = useCallback(
     (event: unknown) => {
+      const nextVoiceState = resolveAgentVoiceStateFromRealtimeEvent(event);
+      if (nextVoiceState) {
+        setAgentVoiceStateIfChanged(nextVoiceState);
+      }
+
       for (const descriptor of readToolCallDescriptors(event)) {
         toolCallNamesByIdRef.current.set(descriptor.callId, descriptor.name);
       }
@@ -241,7 +293,7 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
         });
       }
     },
-    [handleRealtimeToolCall]
+    [handleRealtimeToolCall, setAgentVoiceStateIfChanged]
   );
 
   useEffect(() => {
@@ -293,6 +345,7 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
     }
 
     setError(null);
+    setAgentVoiceStateIfChanged("idle");
 
     if (webRtc.error || !webRtc.runtime) {
       setError(webRtc.error ?? "WebRTC native module is not available.");
@@ -351,6 +404,7 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
         onRealtimeError: (nextError) => {
           setError(formatError(nextError));
           setStatus("error");
+          setAgentVoiceStateIfChanged("idle");
         }
       });
       sessionRef.current = session;
@@ -390,6 +444,7 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
     } catch (nextError) {
       setError(formatError(nextError));
       setStatus("error");
+      setAgentVoiceStateIfChanged("idle");
 
       try {
         await sessionRef.current?.stop();
@@ -408,6 +463,7 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
     options.runtimeError,
     options.runtimeLoading,
     resetSessionState,
+    setAgentVoiceStateIfChanged,
     status,
     webRtc.error,
     webRtc.runtime
@@ -417,19 +473,23 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
     try {
       await sessionRef.current?.stop();
       setStatus("idle");
+      setAgentVoiceStateIfChanged("idle");
     } catch (nextError) {
       setError(formatError(nextError));
       setStatus("error");
+      setAgentVoiceStateIfChanged("idle");
     } finally {
       resetSessionState();
     }
-  }, [resetSessionState]);
+  }, [resetSessionState, setAgentVoiceStateIfChanged]);
 
   return {
     status,
+    agentVoiceState,
     error,
     isConnecting: status === "connecting",
     isConnected: status === "connected",
+    isAgentSpeaking: agentVoiceState === "speaking",
     start,
     stop
   };

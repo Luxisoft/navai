@@ -261,6 +261,13 @@ Hook states:
 - `connected`
 - `error`
 
+Agent voice state exposed by the hook:
+
+- `agentVoiceState`: `idle | speaking`
+- `isAgentSpeaking`: `boolean`
+
+`agentVoiceState` is inferred from realtime audio events (`response.output_audio.delta`, `response.output_audio.done`, `output_audio_buffer.started`, `output_audio_buffer.stopped`, `response.done`).
+
 ## Generated Loader CLI
 
 This package ships:

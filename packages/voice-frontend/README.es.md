@@ -81,6 +81,13 @@ Maquina de estados expuesta por el hook:
 - `connected`
 - `error`
 
+Estado de voz del agente expuesto por el hook:
+
+- `agentVoiceState`: `idle | speaking`
+- `isAgentSpeaking`: `boolean`
+
+`agentVoiceState` se actualiza con los eventos realtime `audio_start`, `audio_stopped` y `audio_interrupted`.
+
 ## API Publica
 
 Exports principales:

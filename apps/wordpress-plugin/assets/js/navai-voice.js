@@ -102,6 +102,8 @@
 
     this.state = "idle";
     this.activityState = "idle";
+    this.lastPublishedAgentStateKey = "";
+    this.lastPublishedAssistantVoiceState = "idle";
     this.localStream = null;
     this.peerConnection = null;
     this.eventsChannel = null;
@@ -221,6 +223,80 @@
     if (this.statusEl) {
       this.statusEl.textContent = message;
     }
+  };
+
+  NavaiVoiceWidget.prototype.getAssistantVoiceState = function () {
+    if (this.state === "connected" && this.activityState === "speaking") {
+      return "speaking";
+    }
+
+    return "idle";
+  };
+
+  NavaiVoiceWidget.prototype.emitWidgetStateEvent = function (eventName, detail) {
+    if (!eventName || typeof window.CustomEvent !== "function") {
+      return;
+    }
+
+    var payload = isRecord(detail) ? detail : {};
+
+    try {
+      if (this.container && typeof this.container.dispatchEvent === "function") {
+        this.container.dispatchEvent(new window.CustomEvent(eventName, { detail: payload }));
+      }
+    } catch (_error) {
+      // noop
+    }
+
+    try {
+      if (typeof window.dispatchEvent === "function") {
+        window.dispatchEvent(new window.CustomEvent(eventName, { detail: payload }));
+      }
+    } catch (_error2) {
+      // noop
+    }
+  };
+
+  NavaiVoiceWidget.prototype.publishAgentState = function (reason) {
+    var assistantVoiceState = this.getAssistantVoiceState();
+    var payload = {
+      reason: asTrimmedString(reason) || "state_update",
+      connection_state: this.state,
+      activity_state: this.activityState,
+      assistant_voice_state: assistantVoiceState,
+      is_assistant_speaking: assistantVoiceState === "speaking",
+      connection_mode: this.connectionMode,
+      widget_mode: this.widgetMode
+    };
+    var nextStateKey = [
+      payload.connection_state,
+      payload.activity_state,
+      payload.assistant_voice_state,
+      payload.connection_mode
+    ].join("|");
+    if (this.lastPublishedAgentStateKey === nextStateKey) {
+      return;
+    }
+
+    this.lastPublishedAgentStateKey = nextStateKey;
+
+    if (this.container && this.container.dataset) {
+      this.container.dataset.navaiConnectionState = payload.connection_state;
+      this.container.dataset.navaiActivityState = payload.activity_state;
+      this.container.dataset.navaiAssistantVoiceState = payload.assistant_voice_state;
+      this.container.dataset.navaiAssistantSpeaking = payload.is_assistant_speaking ? "1" : "0";
+    }
+
+    this.emitWidgetStateEvent("navai:agent-state", payload);
+
+    var previousAssistantVoiceState = this.lastPublishedAssistantVoiceState || "idle";
+    if (payload.assistant_voice_state === "speaking" && previousAssistantVoiceState !== "speaking") {
+      this.emitWidgetStateEvent("navai:agent-speaking-start", payload);
+    } else if (payload.assistant_voice_state !== "speaking" && previousAssistantVoiceState === "speaking") {
+      this.emitWidgetStateEvent("navai:agent-speaking-stop", payload);
+    }
+
+    this.lastPublishedAssistantVoiceState = payload.assistant_voice_state;
   };
 
   NavaiVoiceWidget.prototype.resolveRealtimeSettings = function () {
@@ -640,6 +716,8 @@
     } else if (this.state === "connected" && this.activityState === "interrupted") {
       this.container.classList.add("is-interrupted");
     }
+
+    this.publishAgentState("apply_state_class");
   };
 
   NavaiVoiceWidget.prototype.storeActivePreference = function (enabled) {

@@ -252,6 +252,44 @@ Supported shortcode attributes:
 - `debug` (`0` or `1`)
 - `class`
 
+## Agent state events (frontend)
+
+The widget emits state events on the `.navai-voice-widget` element and also on `window`, so external projects can react to voice lifecycle changes.
+
+Events:
+
+- `navai:agent-state` (on each state change)
+- `navai:agent-speaking-start` (agent started speaking)
+- `navai:agent-speaking-stop` (agent finished/interrupted speaking)
+
+`event.detail` includes:
+
+- `connection_state`: `idle | connecting | connected | error`
+- `activity_state`: `idle | listening | speaking | interrupted`
+- `assistant_voice_state`: `idle | speaking`
+- `is_assistant_speaking`: `boolean`
+- `connection_mode`: `voice | text`
+- `widget_mode`
+
+The widget container also updates these `data-*` attributes:
+
+- `data-navai-connection-state`
+- `data-navai-activity-state`
+- `data-navai-assistant-voice-state`
+- `data-navai-assistant-speaking` (`1`/`0`)
+
+Quick example:
+
+```js
+const widget = document.querySelector(".navai-voice-widget");
+if (widget) {
+  widget.addEventListener("navai:agent-state", (event) => {
+    const state = event.detail || {};
+    console.log("NAVAI state:", state.assistant_voice_state, state.connection_state);
+  });
+}
+```
+
 ## Navigation tab (allowed routes for AI)
 
 Use this tab to control where the AI can navigate when it calls `navigate_to`.

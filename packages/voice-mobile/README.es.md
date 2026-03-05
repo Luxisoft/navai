@@ -261,6 +261,13 @@ Estados del hook:
 - `connected`
 - `error`
 
+Estado de voz del agente expuesto por el hook:
+
+- `agentVoiceState`: `idle | speaking`
+- `isAgentSpeaking`: `boolean`
+
+`agentVoiceState` se infiere desde eventos realtime de audio (`response.output_audio.delta`, `response.output_audio.done`, `output_audio_buffer.started`, `output_audio_buffer.stopped`, `response.done`).
+
 ## CLI de Generacion de Loaders
 
 Este paquete incluye:
