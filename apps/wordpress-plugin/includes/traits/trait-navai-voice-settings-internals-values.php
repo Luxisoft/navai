@@ -255,7 +255,7 @@ trait Navai_Voice_Settings_Internals_Values_Trait
     private function sanitize_dashboard_language($value): string
     {
         $lang = sanitize_key((string) $value);
-        if (!in_array($lang, ['en', 'es'], true)) {
+        if (!in_array($lang, ['en', 'es', 'pt', 'fr', 'ru', 'ko', 'ja', 'zh', 'hi'], true)) {
             return 'en';
         }
 
@@ -275,49 +275,43 @@ trait Navai_Voice_Settings_Internals_Values_Trait
             'Arabic',
             'Armenian',
             'Azerbaijani',
-            'Basque',
             'Belarusian',
-            'Bengali',
             'Bosnian',
             'Bulgarian',
             'Catalan',
-            'Chinese (Cantonese)',
-            'Chinese (Mandarin)',
+            'Chinese',
             'Croatian',
             'Czech',
             'Danish',
             'Dutch',
             'English',
             'Estonian',
-            'Filipino (Tagalog)',
             'Finnish',
             'French',
             'Galician',
             'German',
             'Greek',
-            'Gujarati',
             'Hebrew',
             'Hindi',
             'Hungarian',
             'Icelandic',
             'Indonesian',
-            'Irish',
             'Italian',
             'Japanese',
             'Kannada',
+            'Kazakh',
             'Korean',
             'Latvian',
             'Lithuanian',
             'Macedonian',
             'Malay',
-            'Malayalam',
             'Marathi',
+            'Maori',
             'Nepali',
             'Norwegian',
             'Persian',
             'Polish',
             'Portuguese',
-            'Punjabi',
             'Romanian',
             'Russian',
             'Serbian',
@@ -326,16 +320,14 @@ trait Navai_Voice_Settings_Internals_Values_Trait
             'Spanish',
             'Swahili',
             'Swedish',
+            'Tagalog',
             'Tamil',
-            'Telugu',
             'Thai',
             'Turkish',
             'Ukrainian',
             'Urdu',
             'Vietnamese',
             'Welsh',
-            'Yoruba',
-            'Zulu',
         ];
     }
 
@@ -347,9 +339,16 @@ trait Navai_Voice_Settings_Internals_Values_Trait
     private function get_realtime_model_options(): array
     {
         return [
+            'gpt-realtime-mini',
+            'gpt-realtime-mini-2025-10-06',
+            'gpt-realtime-mini-2025-12-15',
+            'gpt-realtime',
             'gpt-realtime-1.5',
+            'gpt-realtime-2025-08-28',
             'gpt-4o-realtime-preview',
-            'gpt-4o-mini-realtime-preview',
+            'gpt-4o-realtime-preview-2024-10-01',
+            'gpt-4o-realtime-preview-2024-12-17',
+            'gpt-4o-realtime-preview-2025-06-03',
         ];
     }
 
@@ -364,13 +363,13 @@ trait Navai_Voice_Settings_Internals_Values_Trait
             'alloy',
             'ash',
             'ballad',
-            'cedar',
             'coral',
             'echo',
-            'marin',
             'sage',
             'shimmer',
             'verse',
+            'marin',
+            'cedar',
         ];
     }
 
@@ -521,6 +520,58 @@ trait Navai_Voice_Settings_Internals_Values_Trait
         }
 
         return array_values(array_unique($roles));
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_realtime_turn_detection_mode($value): string
+    {
+        $mode = sanitize_key((string) $value);
+        if (!in_array($mode, ['server_vad', 'semantic_vad', 'none'], true)) {
+            return 'server_vad';
+        }
+
+        return $mode;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_frontend_voice_input_mode($value): string
+    {
+        $mode = sanitize_key((string) $value);
+        if (!in_array($mode, ['vad', 'ptt'], true)) {
+            return 'vad';
+        }
+
+        return $mode;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_int_range_value($value, int $fallback, int $min, int $max): int
+    {
+        $number = is_numeric($value) ? (int) $value : $fallback;
+        if ($number < $min || $number > $max) {
+            return $fallback;
+        }
+
+        return $number;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function sanitize_float_range_value($value, float $fallback, float $min, float $max, int $precision = 2): float
+    {
+        $number = is_numeric($value) ? (float) $value : $fallback;
+        if (!is_finite($number) || $number < $min || $number > $max) {
+            $number = $fallback;
+        }
+
+        return round($number, $precision);
     }
 
     /**

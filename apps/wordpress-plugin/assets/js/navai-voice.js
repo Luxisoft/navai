@@ -7,15 +7,19 @@
   var DEFAULT_MODEL = runtime.DEFAULT_MODEL || "gpt-realtime";
   var MAX_LOG_LINES = typeof runtime.MAX_LOG_LINES === "number" ? runtime.MAX_LOG_LINES : 120;
   var GLOBAL_ACTIVE_STORAGE_KEY = runtime.GLOBAL_ACTIVE_STORAGE_KEY || "navai_voice_global_active";
+  var GLOBAL_SESSION_KEY_STORAGE_KEY = runtime.GLOBAL_SESSION_KEY_STORAGE_KEY || "navai_voice_session_key";
   var isRecord = runtime.isRecord;
   var asTrimmedString = runtime.asTrimmedString;
   var parseJsonSafe = runtime.parseJsonSafe;
   var getSafeStorage = runtime.getSafeStorage;
   var safeJsonStringify = runtime.safeJsonStringify;
+  var sanitizeSessionKey = runtime.sanitizeSessionKey;
+  var generateSessionKey = runtime.generateSessionKey;
   var normalizeMatchValue = runtime.normalizeMatchValue;
   var getGlobalConfig = runtime.getGlobalConfig;
   var getMessage = runtime.getMessage;
   var normalizeRoutes = runtime.normalizeRoutes;
+  var normalizeRoadmapPhases = runtime.normalizeRoadmapPhases;
   var resolveAllowedRoute = runtime.resolveAllowedRoute;
   var buildToolDefinitions = runtime.buildToolDefinitions;
   var buildAssistantInstructions = runtime.buildAssistantInstructions;
@@ -24,25 +28,90 @@
   var requestBackendFunctions = runtime.requestBackendFunctions;
   var requestRoutes = runtime.requestRoutes;
   var executeBackendFunction = runtime.executeBackendFunction;
+  var sendSessionMessages = runtime.sendSessionMessages;
+  var INTERRUPTED_STATE_RESET_MS = 900;
+
+  function toConfigBool(value, fallback) {
+    if (typeof value === "boolean") {
+      return value;
+    }
+    if (typeof value === "string") {
+      var normalized = value.trim().toLowerCase();
+      if (normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on") {
+        return true;
+      }
+      if (normalized === "0" || normalized === "false" || normalized === "no" || normalized === "off") {
+        return false;
+      }
+    }
+    return !!fallback;
+  }
+
+  function clampNumber(value, fallback, min, max) {
+    var number = typeof value === "number" ? value : Number(value);
+    if (!isFinite(number)) {
+      number = fallback;
+    }
+    if (typeof min === "number" && number < min) {
+      number = min;
+    }
+    if (typeof max === "number" && number > max) {
+      number = max;
+    }
+    return number;
+  }
+
+  function normalizeVoiceInputMode(value) {
+    var mode = asTrimmedString(value).toLowerCase();
+    return mode === "ptt" ? "ptt" : "vad";
+  }
+
+  function normalizeTurnDetectionMode(value) {
+    var mode = asTrimmedString(value).toLowerCase();
+    if (mode === "semantic_vad") {
+      return "semantic_vad";
+    }
+    if (mode === "none" || mode === "disabled") {
+      return "none";
+    }
+    return "server_vad";
+  }
 
   function NavaiVoiceWidget(container) {
     this.container = container;
     this.button = container.querySelector(".navai-voice-toggle");
     this.buttonLabelEl = this.button ? this.button.querySelector(".navai-voice-toggle-text") : null;
+    this.pttButton = container.querySelector(".navai-voice-ptt");
+    this.pttButtonTextEl = this.pttButton ? this.pttButton.querySelector(".navai-voice-ptt-text") : null;
+    this.textForm = container.querySelector(".navai-voice-text-form");
+    this.textInput = container.querySelector(".navai-voice-text-input");
+    this.textSendButton = container.querySelector(".navai-voice-text-send");
     this.statusEl = container.querySelector(".navai-voice-status");
     this.logEl = container.querySelector(".navai-voice-log");
+    this.logCopyButton = container.querySelector(".navai-voice-log-copy");
+    this.logFilterInputs = Array.prototype.slice.call(container.querySelectorAll("[data-navai-log-filter]"));
     this.globalConfig = getGlobalConfig();
 
     this.routes = normalizeRoutes(this.globalConfig.routes || []);
+    this.roadmapPhases = normalizeRoadmapPhases(this.globalConfig.roadmapPhases || []);
     this.backendFunctions = [];
     this.directAliases = [];
     this.handledCalls = {};
+    this.logEntries = [];
+    this.logFilterState = this.createDefaultLogFilterState();
 
     this.state = "idle";
+    this.activityState = "idle";
+    this.lastPublishedAgentStateKey = "";
+    this.lastPublishedAssistantVoiceState = "idle";
     this.localStream = null;
     this.peerConnection = null;
     this.eventsChannel = null;
     this.remoteAudioEl = null;
+    this.connectionMode = "voice";
+    this.pendingTextMessages = [];
+    this.interruptedResetTimer = 0;
+    this.pttPressed = false;
 
     this.startLabel = asTrimmedString(container.dataset.startLabel) || "Start Voice";
     this.stopLabel = asTrimmedString(container.dataset.stopLabel) || "Stop Voice";
@@ -51,8 +120,28 @@
     this.isFloating = container.dataset.floating === "1";
     this.persistActive = container.dataset.persistActive === "1";
     this.buttonSide = asTrimmedString(container.dataset.buttonSide) === "right" ? "right" : "left";
+    this.voiceInputMode = normalizeVoiceInputMode(
+      container.dataset.voiceInputMode ||
+        (isRecord(this.globalConfig.realtime) ? this.globalConfig.realtime.voiceInputMode : "")
+    );
+    this.textInputEnabled = container.dataset.textEnabled === "1";
+    this.textPlaceholder =
+      asTrimmedString(container.dataset.textPlaceholder) ||
+      (isRecord(this.globalConfig.realtime) ? asTrimmedString(this.globalConfig.realtime.textPlaceholder) : "") ||
+      "Write a message...";
+    var widgetConfig = isRecord(this.globalConfig.widget) ? this.globalConfig.widget : {};
+    this.autoInitializeOnLoad = toConfigBool(container.dataset.autoInitialize, widgetConfig.autoInitializeOnLoad);
+    this.assistantStopToolEnabled = toConfigBool(
+      container.dataset.assistantStopToolEnabled,
+      widgetConfig.allowAssistantStopTool
+    );
     this.navigationInProgress = false;
     this.storage = getSafeStorage();
+    this.sessionKey = "";
+    this.sessionMessageQueue = [];
+    this.sessionFlushTimer = 0;
+    this.sessionFlushInFlight = false;
+    this.realtimeSettings = this.resolveRealtimeSettings();
 
     this.modelOverride = asTrimmedString(container.dataset.model);
     this.voiceOverride = asTrimmedString(container.dataset.voice);
@@ -70,20 +159,45 @@
       this.button.addEventListener("click", this.handleToggle.bind(this));
     }
 
+    if (this.textInput) {
+      this.textInput.placeholder = this.textPlaceholder;
+    }
+
+    if (this.textForm) {
+      this.textForm.addEventListener("submit", this.handleTextSubmit.bind(this));
+    }
+
+    if (this.pttButton) {
+      this.bindPushToTalkEvents();
+    }
+
     if (this.persistActive) {
       var widget = this;
       window.addEventListener("beforeunload", function () {
+        widget.flushSessionMessages(true);
         if (widget.state === "connected" || widget.state === "connecting" || widget.navigationInProgress) {
           widget.storeActivePreference(true);
         }
       });
     }
 
+    this.sessionKey = this.loadSessionKey();
+
     this.applyStateClass();
     this.refreshButton();
-    this.setStatus(getMessage(this.globalConfig, "idle", "Idle"));
+    this.updatePttButton();
+    this.updateTextControlsDisabledState(false);
+    this.updateStatusIndicator();
+    this.bindLogControls();
+    this.renderLog();
 
-    if (this.persistActive && this.shouldAutoResume()) {
+    if (this.autoInitializeOnLoad) {
+      this.appendLog("Auto-starting NAVAI voice widget on page load.", "info");
+      var autoStartWidget = this;
+      window.setTimeout(function () {
+        autoStartWidget.start();
+      }, 350);
+    } else if (this.persistActive && this.shouldAutoResume()) {
       this.appendLog("Auto-resuming global voice widget from previous page.", "info");
       var resumeWidget = this;
       window.setTimeout(function () {
@@ -111,25 +225,499 @@
     }
   };
 
-  NavaiVoiceWidget.prototype.applyStateClass = function () {
-    this.container.classList.remove("is-idle", "is-connecting", "is-connected", "is-error");
+  NavaiVoiceWidget.prototype.getAssistantVoiceState = function () {
+    if (this.state === "connected" && this.activityState === "speaking") {
+      return "speaking";
+    }
 
-    if (this.state === "connected") {
-      this.container.classList.add("is-connected");
+    return "idle";
+  };
+
+  NavaiVoiceWidget.prototype.emitWidgetStateEvent = function (eventName, detail) {
+    if (!eventName || typeof window.CustomEvent !== "function") {
+      return;
+    }
+
+    var payload = isRecord(detail) ? detail : {};
+
+    try {
+      if (this.container && typeof this.container.dispatchEvent === "function") {
+        this.container.dispatchEvent(new window.CustomEvent(eventName, { detail: payload }));
+      }
+    } catch (_error) {
+      // noop
+    }
+
+    try {
+      if (typeof window.dispatchEvent === "function") {
+        window.dispatchEvent(new window.CustomEvent(eventName, { detail: payload }));
+      }
+    } catch (_error2) {
+      // noop
+    }
+  };
+
+  NavaiVoiceWidget.prototype.publishAgentState = function (reason) {
+    var assistantVoiceState = this.getAssistantVoiceState();
+    var payload = {
+      reason: asTrimmedString(reason) || "state_update",
+      connection_state: this.state,
+      activity_state: this.activityState,
+      assistant_voice_state: assistantVoiceState,
+      is_assistant_speaking: assistantVoiceState === "speaking",
+      connection_mode: this.connectionMode,
+      widget_mode: this.widgetMode
+    };
+    var nextStateKey = [
+      payload.connection_state,
+      payload.activity_state,
+      payload.assistant_voice_state,
+      payload.connection_mode
+    ].join("|");
+    if (this.lastPublishedAgentStateKey === nextStateKey) {
+      return;
+    }
+
+    this.lastPublishedAgentStateKey = nextStateKey;
+
+    if (this.container && this.container.dataset) {
+      this.container.dataset.navaiConnectionState = payload.connection_state;
+      this.container.dataset.navaiActivityState = payload.activity_state;
+      this.container.dataset.navaiAssistantVoiceState = payload.assistant_voice_state;
+      this.container.dataset.navaiAssistantSpeaking = payload.is_assistant_speaking ? "1" : "0";
+    }
+
+    this.emitWidgetStateEvent("navai:agent-state", payload);
+
+    var previousAssistantVoiceState = this.lastPublishedAssistantVoiceState || "idle";
+    if (payload.assistant_voice_state === "speaking" && previousAssistantVoiceState !== "speaking") {
+      this.emitWidgetStateEvent("navai:agent-speaking-start", payload);
+    } else if (payload.assistant_voice_state !== "speaking" && previousAssistantVoiceState === "speaking") {
+      this.emitWidgetStateEvent("navai:agent-speaking-stop", payload);
+    }
+
+    this.lastPublishedAssistantVoiceState = payload.assistant_voice_state;
+  };
+
+  NavaiVoiceWidget.prototype.resolveRealtimeSettings = function () {
+    var config = isRecord(this.globalConfig.realtime) ? this.globalConfig.realtime : {};
+    var vadConfig = isRecord(config.vad) ? config.vad : {};
+
+    return {
+      turnDetectionMode: normalizeTurnDetectionMode(config.turnDetectionMode),
+      interruptResponse: toConfigBool(config.interruptResponse, true),
+      vadThreshold: clampNumber(vadConfig.threshold, 0.5, 0.1, 0.99),
+      vadSilenceDurationMs: Math.round(clampNumber(vadConfig.silenceDurationMs, 800, 100, 5000)),
+      vadPrefixPaddingMs: Math.round(clampNumber(vadConfig.prefixPaddingMs, 300, 0, 2000))
+    };
+  };
+
+  NavaiVoiceWidget.prototype.isPushToTalkMode = function () {
+    return this.voiceInputMode === "ptt";
+  };
+
+  NavaiVoiceWidget.prototype.getEffectiveTurnDetectionMode = function () {
+    if (this.isPushToTalkMode()) {
+      return "none";
+    }
+    return normalizeTurnDetectionMode(this.realtimeSettings.turnDetectionMode);
+  };
+
+  NavaiVoiceWidget.prototype.buildTurnDetectionConfig = function () {
+    var mode = this.getEffectiveTurnDetectionMode();
+    if (mode === "none") {
+      return null;
+    }
+
+    var config = {
+      type: mode,
+      interrupt_response: !!this.realtimeSettings.interruptResponse
+    };
+
+    if (mode === "server_vad") {
+      config.threshold = this.realtimeSettings.vadThreshold;
+      config.silence_duration_ms = this.realtimeSettings.vadSilenceDurationMs;
+      config.prefix_padding_ms = this.realtimeSettings.vadPrefixPaddingMs;
+    }
+
+    return config;
+  };
+
+  NavaiVoiceWidget.prototype.clearInterruptedStateTimer = function () {
+    if (this.interruptedResetTimer) {
+      window.clearTimeout(this.interruptedResetTimer);
+      this.interruptedResetTimer = 0;
+    }
+  };
+
+  NavaiVoiceWidget.prototype.setActivityState = function (activity, options) {
+    var next = asTrimmedString(activity).toLowerCase();
+    if (!next || ["idle", "listening", "speaking", "interrupted"].indexOf(next) === -1) {
+      next = "idle";
+    }
+
+    var opts = isRecord(options) ? options : {};
+    this.clearInterruptedStateTimer();
+    this.activityState = next;
+    this.applyStateClass();
+    this.updatePttButton();
+    this.updateStatusIndicator();
+
+    if (next === "interrupted") {
+      var widget = this;
+      this.interruptedResetTimer = window.setTimeout(function () {
+        widget.interruptedResetTimer = 0;
+        if (widget.state === "connected") {
+          widget.activityState = widget.pttPressed ? "listening" : "idle";
+          widget.applyStateClass();
+          widget.updatePttButton();
+          widget.updateStatusIndicator();
+        }
+      }, typeof opts.resetAfterMs === "number" ? opts.resetAfterMs : INTERRUPTED_STATE_RESET_MS);
+    }
+  };
+
+  NavaiVoiceWidget.prototype.updateStatusIndicator = function (overrideMessage) {
+    if (!this.statusEl) {
+      return;
+    }
+
+    if (typeof overrideMessage === "string" && overrideMessage.trim() !== "") {
+      this.setStatus(overrideMessage);
       return;
     }
 
     if (this.state === "connecting") {
-      this.container.classList.add("is-connecting");
       return;
     }
 
     if (this.state === "error") {
-      this.container.classList.add("is-error");
       return;
     }
 
-    this.container.classList.add("is-idle");
+    if (this.state === "idle") {
+      this.setStatus(getMessage(this.globalConfig, "idle", "Idle"));
+      return;
+    }
+
+    if (this.activityState === "interrupted") {
+      this.setStatus(getMessage(this.globalConfig, "interrupted", "Interrupted"));
+      return;
+    }
+
+    if (this.activityState === "speaking") {
+      this.setStatus(getMessage(this.globalConfig, "speaking", "Speaking..."));
+      return;
+    }
+
+    if (this.activityState === "listening") {
+      if (this.isPushToTalkMode() && this.pttPressed) {
+        this.setStatus(getMessage(this.globalConfig, "pttRelease", "Release to send"));
+      } else {
+        this.setStatus(getMessage(this.globalConfig, "listening", "Listening..."));
+      }
+      return;
+    }
+
+    if (this.connectionMode === "text") {
+      this.setStatus(getMessage(this.globalConfig, "connectedText", "Connected (text mode)"));
+      return;
+    }
+
+    if (this.isPushToTalkMode()) {
+      this.setStatus(getMessage(this.globalConfig, "pttHold", "Hold to talk"));
+      return;
+    }
+
+    this.setStatus(getMessage(this.globalConfig, "connected", "Connected"));
+  };
+
+  NavaiVoiceWidget.prototype.updatePttButton = function () {
+    if (!this.pttButton) {
+      return;
+    }
+
+    var enabled = this.isPushToTalkMode() && this.state === "connected" && this.connectionMode !== "text";
+    this.pttButton.disabled = !enabled;
+    this.pttButton.setAttribute("aria-pressed", this.pttPressed ? "true" : "false");
+    this.pttButton.classList.toggle("is-active", this.pttPressed);
+
+    if (this.pttButtonTextEl) {
+      if (!enabled) {
+        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttHold", "Hold to talk");
+      } else if (this.pttPressed) {
+        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttRelease", "Release to send");
+      } else {
+        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttHold", "Hold to talk");
+      }
+    }
+  };
+
+  NavaiVoiceWidget.prototype.updateTextControlsDisabledState = function (busy) {
+    if (!this.textInputEnabled) {
+      return;
+    }
+    var disableInput = !!busy || this.state === "connecting";
+    if (this.textInput) {
+      this.textInput.disabled = disableInput;
+    }
+    if (this.textSendButton) {
+      this.textSendButton.disabled = disableInput;
+    }
+  };
+
+  NavaiVoiceWidget.prototype.bindPushToTalkEvents = function () {
+    if (!this.pttButton) {
+      return;
+    }
+
+    var widget = this;
+    function onPress(event) {
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      widget.handlePttPress();
+    }
+
+    function onRelease(event) {
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      widget.handlePttRelease();
+    }
+
+    this.pttButton.addEventListener("mousedown", onPress);
+    this.pttButton.addEventListener("mouseup", onRelease);
+    this.pttButton.addEventListener("mouseleave", onRelease);
+    this.pttButton.addEventListener("touchstart", onPress, { passive: false });
+    this.pttButton.addEventListener("touchend", onRelease);
+    this.pttButton.addEventListener("touchcancel", onRelease);
+    this.pttButton.addEventListener("keydown", function (event) {
+      var key = event && event.key ? String(event.key).toLowerCase() : "";
+      if (key === " " || key === "spacebar" || key === "enter") {
+        onPress(event);
+      }
+    });
+    this.pttButton.addEventListener("keyup", function (event) {
+      var key = event && event.key ? String(event.key).toLowerCase() : "";
+      if (key === " " || key === "spacebar" || key === "enter") {
+        onRelease(event);
+      }
+    });
+  };
+
+  NavaiVoiceWidget.prototype.requestRealtimeInterruption = function () {
+    if (!this.realtimeSettings.interruptResponse) {
+      return;
+    }
+
+    try {
+      this.sendRealtimeEvent({ type: "response.cancel" });
+    } catch (_error) {
+      // noop
+    }
+    try {
+      this.sendRealtimeEvent({ type: "output_audio_buffer.clear" });
+    } catch (_error2) {
+      // noop
+    }
+    this.setActivityState("interrupted");
+  };
+
+  NavaiVoiceWidget.prototype.handlePttPress = function () {
+    if (!this.isPushToTalkMode() || this.state !== "connected" || this.connectionMode === "text") {
+      return;
+    }
+    if (this.pttPressed) {
+      return;
+    }
+
+    this.pttPressed = true;
+    if (this.activityState === "speaking") {
+      this.requestRealtimeInterruption();
+    }
+
+    try {
+      this.sendRealtimeEvent({ type: "input_audio_buffer.clear" });
+    } catch (error) {
+      this.appendLog("Failed to start push-to-talk: " + String(error), "error");
+      this.pttPressed = false;
+      this.updatePttButton();
+      return;
+    }
+
+    this.setActivityState("listening");
+  };
+
+  NavaiVoiceWidget.prototype.handlePttRelease = function () {
+    if (!this.pttPressed) {
+      return;
+    }
+    this.pttPressed = false;
+
+    if (this.state !== "connected" || this.connectionMode === "text") {
+      this.updatePttButton();
+      this.updateStatusIndicator();
+      return;
+    }
+
+    try {
+      this.sendRealtimeEvent({ type: "input_audio_buffer.commit" });
+      this.sendRealtimeEvent({ type: "response.create" });
+      this.setActivityState("idle");
+    } catch (error) {
+      this.appendLog("Failed to finish push-to-talk: " + String(error), "error");
+      this.setActivityState("idle");
+    }
+  };
+
+  NavaiVoiceWidget.prototype.handleTextSubmit = function (event) {
+    if (event && typeof event.preventDefault === "function") {
+      event.preventDefault();
+    }
+
+    if (!this.textInput) {
+      return;
+    }
+
+    var text = asTrimmedString(this.textInput.value);
+    if (!text) {
+      return;
+    }
+
+    this.textInput.value = "";
+    this.sendTextMessage(text);
+  };
+
+  NavaiVoiceWidget.prototype.flushPendingTextMessages = function () {
+    if (!Array.isArray(this.pendingTextMessages) || this.pendingTextMessages.length === 0) {
+      return;
+    }
+    if (this.state !== "connected") {
+      return;
+    }
+
+    var queued = this.pendingTextMessages.slice(0);
+    this.pendingTextMessages = [];
+    for (var i = 0; i < queued.length; i += 1) {
+      this.sendRealtimeTextInput(queued[i]);
+      if (this.state !== "connected") {
+        break;
+      }
+    }
+  };
+
+  NavaiVoiceWidget.prototype.sendTextMessage = function (text) {
+    var message = asTrimmedString(text);
+    if (!message) {
+      return;
+    }
+
+    this.queueSessionMessage({
+      direction: "user",
+      message_type: "text",
+      content_text: message,
+      content_json: {
+        type: "text_input_manual",
+        mode: this.state === "connected" ? this.connectionMode : "text"
+      }
+    });
+
+    if (this.state === "connected") {
+      this.updateTextControlsDisabledState(true);
+      this.setStatus(getMessage(this.globalConfig, "sendingText", "Sending text..."));
+      this.sendRealtimeTextInput(message);
+      return;
+    }
+
+    this.pendingTextMessages.push(message);
+    this.updateTextControlsDisabledState(true);
+    this.setStatus(getMessage(this.globalConfig, "sendingText", "Sending text..."));
+
+    if (this.state === "connecting") {
+      return;
+    }
+
+    this.start({ skipMicrophone: true, reason: "text" });
+  };
+
+  NavaiVoiceWidget.prototype.sendRealtimeTextInput = function (text) {
+    var message = asTrimmedString(text);
+    if (!message) {
+      return;
+    }
+    if (this.state !== "connected") {
+      this.pendingTextMessages.push(message);
+      return;
+    }
+
+    try {
+      this.sendRealtimeEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: message
+            }
+          ]
+        }
+      });
+      this.sendRealtimeEvent({ type: "response.create" });
+      if (this.activityState !== "speaking") {
+        this.setActivityState("idle");
+      }
+    } catch (error) {
+      this.appendLog("Failed to send text message: " + String(error), "error");
+      this.pendingTextMessages.unshift(message);
+    } finally {
+      this.updateTextControlsDisabledState(false);
+      this.updateStatusIndicator();
+    }
+  };
+
+  NavaiVoiceWidget.prototype.applyStateClass = function () {
+    this.container.classList.remove(
+      "is-idle",
+      "is-connecting",
+      "is-connected",
+      "is-error",
+      "is-listening",
+      "is-speaking",
+      "is-interrupted",
+      "is-text-mode",
+      "is-ptt-mode"
+    );
+
+    if (this.state === "connected") {
+      this.container.classList.add("is-connected");
+    } else if (this.state === "connecting") {
+      this.container.classList.add("is-connecting");
+    } else if (this.state === "error") {
+      this.container.classList.add("is-error");
+    } else {
+      this.container.classList.add("is-idle");
+    }
+
+    if (this.isPushToTalkMode()) {
+      this.container.classList.add("is-ptt-mode");
+    }
+
+    if (this.connectionMode === "text" && (this.state === "connected" || this.state === "connecting")) {
+      this.container.classList.add("is-text-mode");
+    }
+
+    if (this.state === "connected" && this.activityState === "listening") {
+      this.container.classList.add("is-listening");
+    } else if (this.state === "connected" && this.activityState === "speaking") {
+      this.container.classList.add("is-speaking");
+    } else if (this.state === "connected" && this.activityState === "interrupted") {
+      this.container.classList.add("is-interrupted");
+    }
+
+    this.publishAgentState("apply_state_class");
   };
 
   NavaiVoiceWidget.prototype.storeActivePreference = function (enabled) {
@@ -160,7 +748,302 @@
     }
   };
 
-  NavaiVoiceWidget.prototype.appendLog = function (message, level) {
+  NavaiVoiceWidget.prototype.getSessionStorageKey = function () {
+    if (this.widgetMode === "global") {
+      return GLOBAL_SESSION_KEY_STORAGE_KEY;
+    }
+    return GLOBAL_SESSION_KEY_STORAGE_KEY + "_" + this.widgetMode;
+  };
+
+  NavaiVoiceWidget.prototype.loadSessionKey = function () {
+    if (!this.storage) {
+      return "";
+    }
+
+    try {
+      var stored = this.storage.getItem(this.getSessionStorageKey());
+      if (typeof sanitizeSessionKey === "function") {
+        return sanitizeSessionKey(stored || "");
+      }
+      return asTrimmedString(stored);
+    } catch (_error) {
+      return "";
+    }
+  };
+
+  NavaiVoiceWidget.prototype.storeSessionKey = function (sessionKey) {
+    if (!this.storage) {
+      return;
+    }
+
+    var clean = typeof sanitizeSessionKey === "function" ? sanitizeSessionKey(sessionKey || "") : asTrimmedString(sessionKey);
+    if (!clean) {
+      return;
+    }
+
+    try {
+      this.storage.setItem(this.getSessionStorageKey(), clean);
+    } catch (_error) {
+      // noop
+    }
+  };
+
+  NavaiVoiceWidget.prototype.ensureSessionKey = function () {
+    var clean = typeof sanitizeSessionKey === "function" ? sanitizeSessionKey(this.sessionKey || "") : asTrimmedString(this.sessionKey);
+    if (!clean) {
+      clean = this.loadSessionKey();
+    }
+    if (!clean) {
+      clean = typeof generateSessionKey === "function"
+        ? generateSessionKey()
+        : ("navai_" + (Date.now ? Date.now() : new Date().getTime()) + "_" + Math.random().toString(36).slice(2, 10));
+    }
+
+    this.sessionKey = clean;
+    this.storeSessionKey(clean);
+    return clean;
+  };
+
+  NavaiVoiceWidget.prototype.setSessionKey = function (sessionKey) {
+    var clean = typeof sanitizeSessionKey === "function" ? sanitizeSessionKey(sessionKey || "") : asTrimmedString(sessionKey);
+    if (!clean) {
+      return;
+    }
+    this.sessionKey = clean;
+    this.storeSessionKey(clean);
+  };
+
+  NavaiVoiceWidget.prototype.createDefaultLogFilterState = function () {
+    return {
+      agent_response: true,
+      function_response: true,
+      functions_loaded: true,
+      routes_loaded: true,
+      realtime_sent: true,
+      realtime_recv: true,
+      connection: true,
+      phases_loaded: true,
+      other: true,
+      warn: true,
+      error: true
+    };
+  };
+
+  NavaiVoiceWidget.prototype.bindLogControls = function () {
+    if (!this.debugEnabled) {
+      return;
+    }
+
+    var widget = this;
+    if (this.logCopyButton) {
+      this.logCopyButton.addEventListener("click", function () {
+        widget.copyVisibleLog();
+      });
+    }
+
+    for (var i = 0; i < this.logFilterInputs.length; i += 1) {
+      var input = this.logFilterInputs[i];
+      var key = asTrimmedString(input && input.getAttribute("data-navai-log-filter")).toLowerCase();
+      if (!key) {
+        continue;
+      }
+      input.checked = widget.logFilterState[key] !== false;
+      input.addEventListener("change", function (event) {
+        var target = event && event.target ? event.target : null;
+        if (!target) {
+          return;
+        }
+        var filterKey = asTrimmedString(target.getAttribute("data-navai-log-filter")).toLowerCase();
+        if (!filterKey) {
+          return;
+        }
+        widget.logFilterState[filterKey] = !!target.checked;
+        widget.renderLog();
+      });
+    }
+  };
+
+  NavaiVoiceWidget.prototype.copyVisibleLog = function () {
+    if (!this.logEl) {
+      return;
+    }
+
+    var text = this.logEl.textContent || "";
+    var widget = this;
+    var onCopied = function () {
+      if (widget.logCopyButton) {
+        var original = widget.logCopyButton.textContent;
+        widget.logCopyButton.textContent = "Copiado";
+        window.setTimeout(function () {
+          if (widget.logCopyButton) {
+            widget.logCopyButton.textContent = original || "Copiar log";
+          }
+        }, 1200);
+      }
+    };
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(text).then(onCopied).catch(function () {
+        widget.copyVisibleLogFallback(text);
+      });
+      return;
+    }
+
+    this.copyVisibleLogFallback(text);
+  };
+
+  NavaiVoiceWidget.prototype.copyVisibleLogFallback = function (text) {
+    try {
+      var helper = document.createElement("textarea");
+      helper.value = text;
+      helper.setAttribute("readonly", "readonly");
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      helper.style.pointerEvents = "none";
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand("copy");
+      document.body.removeChild(helper);
+      if (this.logCopyButton) {
+        var original = this.logCopyButton.textContent;
+        this.logCopyButton.textContent = "Copiado";
+        var button = this.logCopyButton;
+        window.setTimeout(function () {
+          if (button) {
+            button.textContent = original || "Copiar log";
+          }
+        }, 1200);
+      }
+    } catch (_error) {
+      // noop
+    }
+  };
+
+  NavaiVoiceWidget.prototype.classifyRealtimeLogEntry = function (direction, event) {
+    var type = asTrimmedString(event && event.type).toLowerCase();
+    var item = isRecord(event) && isRecord(event.item) ? event.item : null;
+    var itemType = item && typeof item.type === "string" ? item.type.toLowerCase() : "";
+    var itemRole = item && typeof item.role === "string" ? item.role.toLowerCase() : "";
+
+    if (type === "error") {
+      return "error";
+    }
+
+    if (type === "response.function_call_arguments.done" || type === "response.function_call_arguments.delta") {
+      return "function_response";
+    }
+
+    if ((type.indexOf("conversation.item.") === 0 || type.indexOf("response.output_item.") === 0) && itemType === "function_call_output") {
+      return "function_response";
+    }
+
+    if (direction === "sent" && type === "conversation.item.create" && isRecord(event.item) && event.item.type === "function_call_output") {
+      return "function_response";
+    }
+
+    if (
+      type.indexOf("response.output_audio_transcript.") === 0 ||
+      type.indexOf("response.audio_transcript.") === 0 ||
+      type.indexOf("response.output_text.") === 0 ||
+      type.indexOf("response.text.") === 0
+    ) {
+      return "agent_response";
+    }
+
+    if ((type === "conversation.item.added" || type === "conversation.item.done" || type === "response.output_item.done") && itemType === "message" && itemRole === "assistant") {
+      return "agent_response";
+    }
+
+    if (
+      type === "session.created" ||
+      type === "session.updated" ||
+      type === "response.created" ||
+      type === "response.done" ||
+      type === "session.update"
+    ) {
+      return direction === "sent" ? "realtime_sent" : "realtime_recv";
+    }
+
+    return direction === "sent" ? "realtime_sent" : "realtime_recv";
+  };
+
+  NavaiVoiceWidget.prototype.classifyLogEntry = function (message, level, meta) {
+    var cleanLevel = asTrimmedString(level).toLowerCase();
+    if (cleanLevel === "error") {
+      return "error";
+    }
+    if (cleanLevel === "warn") {
+      return "warn";
+    }
+
+    if (isRecord(meta) && typeof meta.category === "string" && meta.category.trim() !== "") {
+      return meta.category;
+    }
+
+    if (typeof meta === "string" && meta.trim() !== "") {
+      return meta;
+    }
+
+    var text = asTrimmedString(message);
+    if (!text) {
+      return "other";
+    }
+
+    if (text.indexOf("Loaded routes (") === 0) {
+      return "routes_loaded";
+    }
+    if (text.indexOf("Loaded functions (") === 0) {
+      return "functions_loaded";
+    }
+    if (text.indexOf("Loaded roadmap phases (") === 0) {
+      return "phases_loaded";
+    }
+    if (
+      text.indexOf("Peer connection state:") === 0 ||
+      text.indexOf("Realtime data channel ") === 0 ||
+      text.indexOf("Auto-resuming global voice widget") === 0
+    ) {
+      return "connection";
+    }
+    if (text.indexOf("sent: ") === 0 || text.indexOf("recv: ") === 0) {
+      return text.indexOf("sent: ") === 0 ? "realtime_sent" : "realtime_recv";
+    }
+
+    return "other";
+  };
+
+  NavaiVoiceWidget.prototype.shouldShowLogEntry = function (entry) {
+    if (!entry || !entry.category) {
+      return !!this.logFilterState.other;
+    }
+    if (Object.prototype.hasOwnProperty.call(this.logFilterState, entry.category)) {
+      return this.logFilterState[entry.category] !== false;
+    }
+    return this.logFilterState.other !== false;
+  };
+
+  NavaiVoiceWidget.prototype.renderLog = function () {
+    if (!this.logEl) {
+      return;
+    }
+    if (!this.debugEnabled) {
+      this.logEl.textContent = "";
+      return;
+    }
+
+    var visible = [];
+    for (var i = 0; i < this.logEntries.length; i += 1) {
+      var entry = this.logEntries[i];
+      if (!this.shouldShowLogEntry(entry)) {
+        continue;
+      }
+      visible.push(entry.line);
+    }
+    this.logEl.textContent = visible.join("\n");
+    this.logEl.scrollTop = this.logEl.scrollHeight;
+  };
+
+  NavaiVoiceWidget.prototype.appendLog = function (message, level, meta) {
     var cleanLevel = asTrimmedString(level) || "info";
     var line = "[" + cleanLevel + "] " + message;
 
@@ -176,19 +1059,22 @@
       return;
     }
 
-    var existing = this.logEl.textContent ? this.logEl.textContent.split("\n") : [];
-    existing.push(line);
-    if (existing.length > MAX_LOG_LINES) {
-      existing = existing.slice(existing.length - MAX_LOG_LINES);
+    this.logEntries.push({
+      level: cleanLevel,
+      category: this.classifyLogEntry(message, cleanLevel, meta),
+      line: line
+    });
+    if (this.logEntries.length > MAX_LOG_LINES) {
+      this.logEntries = this.logEntries.slice(this.logEntries.length - MAX_LOG_LINES);
     }
-
-    this.logEl.textContent = existing.join("\n");
-    this.logEl.scrollTop = this.logEl.scrollHeight;
+    this.renderLog();
   };
 
   NavaiVoiceWidget.prototype.refreshButton = function () {
     if (!this.button) {
       this.applyStateClass();
+      this.updatePttButton();
+      this.updateTextControlsDisabledState(false);
       return;
     }
 
@@ -200,6 +1086,8 @@
       this.button.setAttribute("aria-pressed", "false");
       this.button.setAttribute("aria-label", this.startLabel);
       this.applyStateClass();
+      this.updatePttButton();
+      this.updateTextControlsDisabledState(true);
       return;
     }
 
@@ -209,30 +1097,52 @@
     this.button.setAttribute("aria-pressed", this.state === "connected" ? "true" : "false");
     this.button.setAttribute("aria-label", buttonText);
     this.applyStateClass();
+    this.updatePttButton();
+    this.updateTextControlsDisabledState(false);
   };
 
-  NavaiVoiceWidget.prototype.start = async function () {
+  NavaiVoiceWidget.prototype.start = async function (options) {
     if (this.state === "connecting" || this.state === "connected") {
       return;
     }
 
+    var startOptions = isRecord(options) ? options : {};
+    var skipMicrophone = !!startOptions.skipMicrophone;
+
     if (!window.RTCPeerConnection) {
       this.storeActivePreference(false);
       this.setStatus("WebRTC is not supported in this browser.");
+      this.updateTextControlsDisabledState(false);
       return;
     }
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (!skipMicrophone && (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
       this.storeActivePreference(false);
       this.setStatus("Microphone capture is not supported in this browser.");
+      this.updateTextControlsDisabledState(false);
       return;
     }
 
     this.state = "connecting";
+    this.connectionMode = skipMicrophone ? "text" : "voice";
+    this.activityState = "idle";
+    this.pttPressed = false;
     this.navigationInProgress = false;
     this.storeActivePreference(true);
     this.refreshButton();
+    this.updateStatusIndicator();
     this.handledCalls = {};
+    this.ensureSessionKey();
+    this.queueSessionMessage({
+      direction: "system",
+      message_type: "event",
+      content_text: "Widget start requested.",
+      content_json: {
+        type: "widget_start",
+        widget_mode: this.widgetMode,
+        connection_mode: this.connectionMode
+      }
+    });
 
     try {
       this.setStatus(getMessage(this.globalConfig, "requestingSecret", "Requesting client secret..."));
@@ -248,11 +1158,13 @@
         "Loaded routes (" +
           this.routes.length +
           "): " +
-          this.routes
-            .map(function (item) {
-              return item.name;
-            })
-            .join(", "),
+          (this.routes.length
+            ? this.routes
+                .map(function (item) {
+                  return item.name;
+                })
+                .join(", ")
+            : "none"),
         "info"
       );
 
@@ -261,15 +1173,80 @@
       for (var i = 0; i < functionResult.warnings.length; i += 1) {
         this.appendLog(functionResult.warnings[i], "warn");
       }
+      this.appendLog(
+        "Loaded functions (" +
+          this.backendFunctions.length +
+          "): " +
+          (this.backendFunctions.length
+            ? this.backendFunctions
+                .map(function (item) {
+                  return item && item.name ? item.name : "";
+                })
+                .filter(function (name) {
+                  return !!name;
+                })
+                .join(", ")
+            : "none"),
+        "info"
+      );
+
+      var customJsFunctionsCount = 0;
+      var mcpFunctionsCount = 0;
+      for (var bf = 0; bf < this.backendFunctions.length; bf += 1) {
+        var backendFn = this.backendFunctions[bf];
+        var source = backendFn && backendFn.source ? String(backendFn.source).toLowerCase() : "";
+        if (source === "navai-dashboard-custom") {
+          customJsFunctionsCount += 1;
+        } else if (source.indexOf("mcp:") === 0) {
+          mcpFunctionsCount += 1;
+        }
+      }
+
+      var phaseLabels = [];
+      for (var p = 0; p < this.roadmapPhases.length; p += 1) {
+        var phase = this.roadmapPhases[p];
+        if (!phase) {
+          continue;
+        }
+
+        var label = "Fase " + String(phase.phase || p + 1) + " " + (phase.label || "");
+        var details = Array.isArray(phase.details) ? phase.details.slice(0) : [];
+        if ((phase.phase || 0) === 5) {
+          details.push("loaded_js_functions:" + String(customJsFunctionsCount));
+        } else if ((phase.phase || 0) === 7) {
+          details.push("loaded_mcp_functions:" + String(mcpFunctionsCount));
+        }
+
+        label += " [" + (phase.enabled ? "enabled" : "disabled");
+        if (details.length) {
+          label += "; " + details.join(", ");
+        }
+        label += "]";
+        phaseLabels.push(label);
+      }
+
+      this.appendLog(
+        "Loaded roadmap phases (" +
+          this.roadmapPhases.length +
+          "): " +
+          (phaseLabels.length ? phaseLabels.join(" | ") : "none"),
+        "info"
+      );
 
       var secretInput = this.resolveClientSecretInput();
       var model = asTrimmedString(secretInput.model) || DEFAULT_MODEL;
       var secret = await requestClientSecret(this.globalConfig, secretInput);
+      if (secret && secret.session && typeof secret.session.key === "string") {
+        this.setSessionKey(secret.session.key);
+      }
 
-      this.setStatus(getMessage(this.globalConfig, "requestingMicrophone", "Requesting microphone permission..."));
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        audio: true
-      });
+      this.localStream = null;
+      if (!skipMicrophone) {
+        this.setStatus(getMessage(this.globalConfig, "requestingMicrophone", "Requesting microphone permission..."));
+        this.localStream = await navigator.mediaDevices.getUserMedia({
+          audio: true
+        });
+      }
 
       this.setStatus(getMessage(this.globalConfig, "connectingRealtime", "Connecting realtime session..."));
       await this.openRealtimeSession(secret.value, model);
@@ -277,14 +1254,38 @@
       this.state = "connected";
       this.storeActivePreference(true);
       this.refreshButton();
-      this.setStatus(getMessage(this.globalConfig, "connected", "Connected"));
+      this.setActivityState("idle");
+      this.updateStatusIndicator();
+      this.queueSessionMessage({
+        direction: "system",
+        message_type: "event",
+        content_text: "Realtime session connected.",
+        content_json: {
+          type: "realtime_connected",
+          model: model,
+          connection_mode: this.connectionMode
+        }
+      });
+      this.flushPendingTextMessages();
     } catch (error) {
       this.appendLog("Failed to start voice: " + String(error), "error");
       this.stopInternal();
       this.state = "error";
+      this.connectionMode = skipMicrophone ? "text" : "voice";
       this.storeActivePreference(false);
       this.refreshButton();
       this.setStatus(getMessage(this.globalConfig, "failed", "Failed to start voice session."));
+      this.updateTextControlsDisabledState(false);
+      this.queueSessionMessage({
+        direction: "system",
+        message_type: "event",
+        content_text: "Widget failed to start.",
+        content_json: {
+          type: "widget_start_failed",
+          error: String(error),
+          connection_mode: this.connectionMode
+        }
+      });
     }
   };
 
@@ -297,13 +1298,32 @@
     var keepActiveAcrossNavigation = this.navigationInProgress;
     this.stopInternal();
     this.state = "idle";
+    this.connectionMode = "voice";
+    this.activityState = "idle";
     this.storeActivePreference(keepActiveAcrossNavigation);
     this.navigationInProgress = false;
     this.refreshButton();
     this.setStatus(getMessage(this.globalConfig, "stopped", "Stopped"));
+    this.queueSessionMessage({
+      direction: "system",
+      message_type: "event",
+      content_text: "Widget stopped.",
+      content_json: {
+        type: "widget_stopped",
+        navigated: !!keepActiveAcrossNavigation
+      }
+    });
+    this.flushSessionMessages(false);
   };
 
   NavaiVoiceWidget.prototype.stopInternal = function () {
+    if (this.sessionFlushTimer) {
+      window.clearTimeout(this.sessionFlushTimer);
+      this.sessionFlushTimer = 0;
+    }
+    this.clearInterruptedStateTimer();
+    this.pttPressed = false;
+
     if (this.eventsChannel) {
       try {
         this.eventsChannel.close();
@@ -339,6 +1359,8 @@
 
     this.directAliases = [];
     this.handledCalls = {};
+    this.updatePttButton();
+    this.updateTextControlsDisabledState(false);
   };
 
   NavaiVoiceWidget.prototype.resolveClientSecretInput = function () {
@@ -370,6 +1392,9 @@
     if (voiceTone) {
       input.voiceTone = voiceTone;
     }
+    if (this.ensureSessionKey()) {
+      input.session_key = this.sessionKey;
+    }
 
     return input;
   };
@@ -386,9 +1411,13 @@
     this.peerConnection.ontrack = this.handlePeerTrack.bind(this);
     this.peerConnection.onconnectionstatechange = this.handleConnectionStateChange.bind(this);
 
-    var tracks = this.localStream.getTracks();
-    for (var i = 0; i < tracks.length; i += 1) {
-      this.peerConnection.addTrack(tracks[i], this.localStream);
+    if (this.localStream && typeof this.localStream.getTracks === "function") {
+      var tracks = this.localStream.getTracks();
+      for (var i = 0; i < tracks.length; i += 1) {
+        this.peerConnection.addTrack(tracks[i], this.localStream);
+      }
+    } else if (typeof this.peerConnection.addTransceiver === "function") {
+      this.peerConnection.addTransceiver("audio", { direction: "recvonly" });
     }
 
     var channelReadyPromise = this.createEventsChannel();
@@ -484,14 +1513,24 @@
     var defaults = isRecord(this.globalConfig.defaults) ? this.globalConfig.defaults : {};
     var baseInstructions = this.instructionsOverride || asTrimmedString(defaults.instructions);
     var voice = this.voiceOverride || asTrimmedString(defaults.voice);
-    var toolsResult = buildToolDefinitions(this.routes, this.backendFunctions);
+    var turnDetection = this.buildTurnDetectionConfig();
+    var toolOptions = {
+      allowStopTool: this.assistantStopToolEnabled
+    };
+    var toolsResult = buildToolDefinitions(this.routes, this.backendFunctions, toolOptions);
     this.directAliases = toolsResult.directAliases;
 
     for (var i = 0; i < toolsResult.warnings.length; i += 1) {
       this.appendLog(toolsResult.warnings[i], "warn");
     }
 
-    var instructions = buildAssistantInstructions(baseInstructions, this.routes, this.backendFunctions);
+    var instructions = buildAssistantInstructions(
+      baseInstructions,
+      this.routes,
+      this.backendFunctions,
+      this.roadmapPhases,
+      toolOptions
+    );
     var session = {
       type: "realtime",
       instructions: instructions,
@@ -499,11 +1538,19 @@
       tool_choice: "auto"
     };
 
+    if (voice || turnDetection !== undefined) {
+      session.audio = {};
+    }
+
     if (voice) {
-      session.audio = {
-        output: {
-          voice: voice
-        }
+      session.audio.output = {
+        voice: voice
+      };
+    }
+
+    if (turnDetection !== undefined) {
+      session.audio.input = {
+        turn_detection: turnDetection
       };
     }
 
@@ -520,7 +1567,79 @@
 
     var payload = safeJsonStringify(event);
     this.eventsChannel.send(payload);
-    this.appendLog("sent: " + payload, "info");
+    this.appendLog("sent: " + payload, "info", {
+      category: this.classifyRealtimeLogEntry("sent", event)
+    });
+  };
+
+  NavaiVoiceWidget.prototype.updateRealtimeActivityFromEvent = function (type, event) {
+    if (this.state !== "connected") {
+      return;
+    }
+
+    var normalizedType = asTrimmedString(type).toLowerCase();
+    if (!normalizedType) {
+      return;
+    }
+
+    if (normalizedType === "session.created" || normalizedType === "session.updated") {
+      this.flushPendingTextMessages();
+      this.updateStatusIndicator();
+      return;
+    }
+
+    if (normalizedType === "input_audio_buffer.speech_started" || normalizedType === "conversation.item.input_audio_transcription.started") {
+      this.setActivityState("listening");
+      return;
+    }
+
+    if (
+      normalizedType === "conversation.interrupted" ||
+      normalizedType === "output_audio_buffer.cleared" ||
+      normalizedType === "response.canceled" ||
+      normalizedType === "response.cancelled"
+    ) {
+      this.setActivityState("interrupted");
+      return;
+    }
+
+    if (
+      normalizedType === "response.audio.delta" ||
+      normalizedType === "response.audio_transcript.delta" ||
+      normalizedType === "response.output_text.delta" ||
+      normalizedType === "response.text.delta"
+    ) {
+      this.setActivityState("speaking");
+      return;
+    }
+
+    if (normalizedType === "response.created") {
+      this.setActivityState("speaking");
+      return;
+    }
+
+    if (normalizedType === "input_audio_buffer.speech_stopped") {
+      if (this.pttPressed) {
+        this.setActivityState("listening");
+      } else if (this.activityState !== "speaking") {
+        this.setActivityState("idle");
+      }
+      return;
+    }
+
+    if (normalizedType === "response.audio.done" || normalizedType === "response.done") {
+      this.setActivityState(this.pttPressed ? "listening" : "idle");
+      return;
+    }
+
+    if (normalizedType === "error") {
+      this.setActivityState("idle");
+      return;
+    }
+
+    if (normalizedType === "response.output_item.done" && isRecord(event) && isRecord(event.item) && event.item.type === "message") {
+      this.setActivityState(this.pttPressed ? "listening" : "idle");
+    }
   };
 
   NavaiVoiceWidget.prototype.handleRealtimeEvent = function (rawEvent) {
@@ -529,11 +1648,19 @@
       return;
     }
 
-    this.appendLog("recv: " + safeJsonStringify(parsed), "info");
+    this.appendLog("recv: " + safeJsonStringify(parsed), "info", {
+      category: this.classifyRealtimeLogEntry("recv", parsed)
+    });
     var type = asTrimmedString(parsed.type);
     if (!type) {
       return;
     }
+
+    var sessionMessages = this.extractSessionMessagesFromRealtimeEvent(parsed);
+    for (var s = 0; s < sessionMessages.length; s += 1) {
+      this.queueSessionMessage(sessionMessages[s]);
+    }
+    this.updateRealtimeActivityFromEvent(type, parsed);
 
     if (type === "error") {
       var errorMessage = "Realtime error event received.";
@@ -579,6 +1706,211 @@
         });
       }
     }
+  };
+
+  NavaiVoiceWidget.prototype.extractSessionMessagesFromRealtimeEvent = function (event) {
+    var messages = [];
+    var type = asTrimmedString(event && event.type);
+    if (!type) {
+      return messages;
+    }
+
+    function push(direction, messageType, contentText, contentJson, meta) {
+      messages.push({
+        direction: direction,
+        message_type: messageType,
+        content_text: contentText || "",
+        content_json: contentJson || null,
+        meta: meta || null
+      });
+    }
+
+    if (type === "conversation.item.input_audio_transcription.completed") {
+      push(
+        "user",
+        "text",
+        asTrimmedString(event.transcript || ""),
+        {
+          type: type,
+          transcript: event.transcript || ""
+        },
+        {
+          item_id: event.item_id || null
+        }
+      );
+      return messages;
+    }
+
+    if (type === "response.audio_transcript.done" || type === "response.output_text.done" || type === "response.text.done") {
+      var text = asTrimmedString(event.transcript || event.text || "");
+      push(
+        "assistant",
+        "text",
+        text,
+        {
+          type: type,
+          transcript: event.transcript || null,
+          text: event.text || null
+        },
+        {
+          response_id: event.response_id || null,
+          item_id: event.item_id || null
+        }
+      );
+      return messages;
+    }
+
+    if (type === "response.function_call_arguments.done") {
+      push(
+        "tool",
+        "tool_call",
+        asTrimmedString(event.name || ""),
+        {
+          type: type,
+          name: event.name || "",
+          call_id: event.call_id || "",
+          arguments: event.arguments || null
+        },
+        null
+      );
+      return messages;
+    }
+
+    if (type === "response.output_item.done" && isRecord(event.item) && event.item.type === "function_call") {
+      push(
+        "tool",
+        "tool_call",
+        asTrimmedString(event.item.name || ""),
+        {
+          type: type,
+          item: event.item
+        },
+        null
+      );
+      return messages;
+    }
+
+    if (type === "error") {
+      var errorMessage = "";
+      if (isRecord(event.error) && typeof event.error.message === "string") {
+        errorMessage = event.error.message;
+      }
+      push(
+        "system",
+        "event",
+        errorMessage || "Realtime error event",
+        {
+          type: type,
+          error: event.error || null
+        },
+        null
+      );
+      return messages;
+    }
+
+    if (type === "session.created" || type === "session.updated" || type === "response.done") {
+      push(
+        "system",
+        "event",
+        type,
+        {
+          type: type
+        },
+        null
+      );
+    }
+
+    return messages;
+  };
+
+  NavaiVoiceWidget.prototype.queueSessionMessage = function (message) {
+    if (!message || typeof message !== "object") {
+      return;
+    }
+
+    if (this.globalConfig && this.globalConfig.sessionMemoryEnabled === false) {
+      return;
+    }
+
+    if (!this.ensureSessionKey()) {
+      return;
+    }
+
+    this.sessionMessageQueue.push(message);
+    if (this.sessionMessageQueue.length > 60) {
+      this.sessionMessageQueue = this.sessionMessageQueue.slice(this.sessionMessageQueue.length - 60);
+    }
+    this.scheduleSessionFlush();
+  };
+
+  NavaiVoiceWidget.prototype.scheduleSessionFlush = function () {
+    if (this.sessionFlushInFlight || this.sessionFlushTimer) {
+      return;
+    }
+
+    var widget = this;
+    this.sessionFlushTimer = window.setTimeout(function () {
+      widget.sessionFlushTimer = 0;
+      widget.flushSessionMessages(false);
+    }, 700);
+  };
+
+  NavaiVoiceWidget.prototype.flushSessionMessages = function (syncMode) {
+    if (!Array.isArray(this.sessionMessageQueue) || this.sessionMessageQueue.length === 0) {
+      return;
+    }
+    if (this.sessionFlushInFlight) {
+      return;
+    }
+    if (typeof sendSessionMessages !== "function") {
+      return;
+    }
+
+    var sessionKey = this.ensureSessionKey();
+    if (!sessionKey) {
+      return;
+    }
+
+    var batch = this.sessionMessageQueue.splice(0, 20);
+    if (!batch.length) {
+      return;
+    }
+
+    if (syncMode && navigator && typeof navigator.sendBeacon === "function" && this.globalConfig && this.globalConfig.restBaseUrl) {
+      try {
+        var url = String(this.globalConfig.restBaseUrl).replace(/\/+$/, "") + "/sessions";
+        var body = safeJsonStringify({
+          session_key: sessionKey,
+          items: batch
+        });
+        navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
+      } catch (_error) {
+        // noop
+      }
+      return;
+    }
+
+    this.sessionFlushInFlight = true;
+    var widget = this;
+    sendSessionMessages(this.globalConfig, sessionKey, batch)
+      .then(function (response) {
+        if (!isRecord(response) || response.ok === false) {
+          widget.sessionMessageQueue = batch.concat(widget.sessionMessageQueue);
+          return;
+        }
+        if (isRecord(response) && isRecord(response.session) && typeof response.session.session_key === "string") {
+          widget.setSessionKey(response.session.session_key);
+        }
+      })
+      .catch(function () {
+        widget.sessionMessageQueue = batch.concat(widget.sessionMessageQueue);
+      })
+      .finally(function () {
+        widget.sessionFlushInFlight = false;
+        if (widget.sessionMessageQueue.length > 0) {
+          widget.scheduleSessionFlush();
+        }
+      });
   };
 
   NavaiVoiceWidget.prototype.processFunctionCall = function (input) {
@@ -641,6 +1973,11 @@
       return this.runNavigateTo(target);
     }
 
+    if (functionName === "stop_navai_voice") {
+      var reason = typeof args.reason === "string" ? args.reason : "";
+      return this.runStopNavaiVoice(reason);
+    }
+
     if (functionName === "execute_app_function") {
       var requested = asTrimmedString(args.function_name).toLowerCase();
       var payload = isRecord(args.payload) || args.payload === null ? args.payload : null;
@@ -656,6 +1993,38 @@
       ok: false,
       error: "Unknown or disallowed function.",
       available_functions: this.directAliases
+    };
+  };
+
+  NavaiVoiceWidget.prototype.runStopNavaiVoice = function (reason) {
+    if (!this.assistantStopToolEnabled) {
+      return {
+        ok: false,
+        error: "stop_navai_voice is disabled by configuration."
+      };
+    }
+
+    var cleanReason = asTrimmedString(reason);
+    if (this.state === "idle") {
+      return {
+        ok: true,
+        stopping: false,
+        status: "already_stopped",
+        reason: cleanReason || null
+      };
+    }
+
+    var widget = this;
+    window.setTimeout(function () {
+      widget.stop();
+    }, 220);
+
+    this.appendLog("Assistant requested NAVAI shutdown.", "info");
+    return {
+      ok: true,
+      stopping: true,
+      status: "stopping",
+      reason: cleanReason || null
     };
   };
 
@@ -691,7 +2060,12 @@
     }
 
     try {
-      var backendResult = await executeBackendFunction(this.globalConfig, cleanName, payload);
+      var backendResult = await executeBackendFunction(this.globalConfig, cleanName, payload, {
+        sessionKey: this.ensureSessionKey()
+      });
+      if (isRecord(backendResult) && isRecord(backendResult.session) && typeof backendResult.session.key === "string") {
+        this.setSessionKey(backendResult.session.key);
+      }
       return await this.maybeExecuteClientFunctionCode(cleanName, payload, backendResult);
     } catch (error) {
       return {
@@ -708,12 +2082,19 @@
       return backendResult;
     }
 
-    var mode = asTrimmedString(backendResult.execution_mode).toLowerCase();
+    var executionSource = backendResult;
+    var wrappedBackendResult = null;
+    if (!asTrimmedString(backendResult.execution_mode) && isRecord(backendResult.result)) {
+      executionSource = backendResult.result;
+      wrappedBackendResult = backendResult;
+    }
+
+    var mode = asTrimmedString(executionSource.execution_mode).toLowerCase();
     if (mode !== "client_js") {
       return backendResult;
     }
 
-    var code = asTrimmedString(backendResult.code);
+    var code = asTrimmedString(executionSource.code);
     if (!code) {
       return {
         ok: false,
@@ -724,11 +2105,16 @@
 
     try {
       var payloadData = isRecord(payload) ? payload : {};
+      if (isRecord(executionSource.payload)) {
+        payloadData = executionSource.payload;
+      }
       var context = {
         function_name: functionName,
         current_url: window.location.href,
         widget_mode: this.widgetMode,
-        page_title: document && typeof document.title === "string" ? document.title : ""
+        page_title: document && typeof document.title === "string" ? document.title : "",
+        trace_id: wrappedBackendResult && typeof wrappedBackendResult.trace_id === "string" ? wrappedBackendResult.trace_id : "",
+        backend_result: wrappedBackendResult || backendResult
       };
 
       var fn = new Function(
@@ -746,20 +2132,37 @@
         result = await result;
       }
 
-      return {
+      var output = {
         ok: true,
         execution_mode: "client_js",
         function_name: functionName,
         result: result
       };
+      if (typeof executionSource.plugin === "string" && executionSource.plugin) {
+        output.plugin = executionSource.plugin;
+      }
+      if (wrappedBackendResult && typeof wrappedBackendResult.trace_id === "string" && wrappedBackendResult.trace_id) {
+        output.trace_id = wrappedBackendResult.trace_id;
+      }
+      if (wrappedBackendResult && wrappedBackendResult.metadata) {
+        output.metadata = wrappedBackendResult.metadata;
+      }
+      return output;
     } catch (error) {
-      return {
+      var failed = {
         ok: false,
         execution_mode: "client_js",
         function_name: functionName,
         error: "Client JavaScript execution failed.",
         details: String(error)
       };
+      if (typeof executionSource.plugin === "string" && executionSource.plugin) {
+        failed.plugin = executionSource.plugin;
+      }
+      if (wrappedBackendResult && typeof wrappedBackendResult.trace_id === "string" && wrappedBackendResult.trace_id) {
+        failed.trace_id = wrappedBackendResult.trace_id;
+      }
+      return failed;
     }
   };
 

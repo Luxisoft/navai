@@ -42,6 +42,11 @@ End-to-end request flow:
 5. Agent calls `POST /navai/functions/execute` with `function_name` and `payload`.
 6. Backend executes only tool names loaded in the registry.
 
+Note about agent voice state:
+
+- The backend does not directly detect when assistant speech starts/stops, because realtime audio runs on the client side.
+- That state is exposed by `@navai/voice-frontend`, `@navai/voice-mobile`, and the WordPress widget through frontend events.
+
 ## Public API
 
 Client secret helpers:

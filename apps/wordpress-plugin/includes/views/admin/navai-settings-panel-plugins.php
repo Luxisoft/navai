@@ -23,6 +23,12 @@
                                     </p>
                                 </div>
                                 <div class="navai-plugin-functions-builder-head-actions">
+                                    <button type="button" class="button button-secondary navai-plugin-function-export-open">
+                                        <?php echo esc_html__('Exportar funciones', 'navai-voice'); ?>
+                                    </button>
+                                    <button type="button" class="button button-secondary navai-plugin-function-import-open">
+                                        <?php echo esc_html__('Importar funciones', 'navai-voice'); ?>
+                                    </button>
                                     <button type="button" class="button button-primary navai-plugin-function-open">
                                         <?php echo esc_html__('Crear funcion', 'navai-voice'); ?>
                                     </button>
@@ -77,7 +83,10 @@
                                             <label>
                                                 <span><?php echo esc_html__('Rol', 'navai-voice'); ?></span>
                                                 <select class="navai-plugin-function-editor-role">
+                                                    <option value="all"><?php echo esc_html__('Todos los roles', 'navai-voice'); ?></option>
+                                                    <option value="guest"><?php echo esc_html__('Visitantes', 'navai-voice'); ?></option>
                                                     <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
+                                                        <?php if ((string) $roleKey === 'guest' || (string) $roleKey === 'all') { continue; } ?>
                                                         <option value="<?php echo esc_attr((string) $roleKey); ?>">
                                                             <?php echo esc_html((string) $roleLabel); ?>
                                                         </option>
@@ -85,12 +94,42 @@
                                                 </select>
                                             </label>
 
+                                            <label>
+                                                <span><?php echo esc_html__('Nombre de funcion (tool)', 'navai-voice'); ?></span>
+                                                <input
+                                                    type="text"
+                                                    class="navai-plugin-function-editor-name"
+                                                    value=""
+                                                    spellcheck="false"
+                                                    autocomplete="off"
+                                                    autocorrect="off"
+                                                    autocapitalize="off"
+                                                    placeholder="<?php echo esc_attr__('Ej: buscar_productos_catalogo', 'navai-voice'); ?>"
+                                                />
+                                                <small class="navai-admin-description">
+                                                    <?php echo esc_html__('Se normaliza a snake_case al guardar para el agente IA.', 'navai-voice'); ?>
+                                                </small>
+                                            </label>
+
+                                            <label class="navai-plugin-function-agent-assignment">
+                                                <span><?php echo esc_html__('Agente IA permitido (opcional)', 'navai-voice'); ?></span>
+                                                <select
+                                                    class="navai-plugin-function-editor-agents"
+                                                    aria-label="<?php echo esc_attr__('Selecciona el agente IA permitido para esta funcion', 'navai-voice'); ?>"
+                                                ></select>
+                                                <small class="navai-admin-description navai-plugin-function-editor-agents-status" hidden></small>
+                                            </label>
+
                                             <label class="navai-plugin-function-code-wrap">
-                                                <span><?php echo esc_html__('Funcion NAVAI', 'navai-voice'); ?></span>
+                                                <span><?php echo esc_html__('Funcion NAVAI (JavaScript)', 'navai-voice'); ?></span>
                                                 <textarea
                                                     class="navai-plugin-function-code navai-plugin-function-editor-code"
                                                     rows="12"
-                                                    placeholder="<?php echo esc_attr__('Pega codigo PHP o JavaScript para NAVAI. Para JavaScript usa prefijo js:.', 'navai-voice'); ?>"
+                                                    spellcheck="false"
+                                                    autocomplete="off"
+                                                    autocorrect="off"
+                                                    autocapitalize="off"
+                                                    placeholder="<?php echo esc_attr__('Pega codigo JavaScript para NAVAI.', 'navai-voice'); ?>"
                                                 ></textarea>
                                             </label>
 
@@ -103,6 +142,54 @@
                                                     placeholder="<?php echo esc_attr__('Describe when NAVAI should execute this function', 'navai-voice'); ?>"
                                                 />
                                             </label>
+
+                                            <div class="navai-plugin-function-meta-grid">
+                                                <label>
+                                                    <span><?php echo esc_html__('Scope de ejecucion', 'navai-voice'); ?></span>
+                                                    <select class="navai-plugin-function-editor-scope">
+                                                        <option value="both"><?php echo esc_html__('Frontend y admin', 'navai-voice'); ?></option>
+                                                        <option value="frontend"><?php echo esc_html__('Solo frontend', 'navai-voice'); ?></option>
+                                                        <option value="admin"><?php echo esc_html__('Solo admin', 'navai-voice'); ?></option>
+                                                    </select>
+                                                </label>
+
+                                                <label>
+                                                    <span><?php echo esc_html__('Timeout (segundos)', 'navai-voice'); ?></span>
+                                                    <input
+                                                        type="number"
+                                                        class="small-text navai-plugin-function-editor-timeout"
+                                                        min="0"
+                                                        max="600"
+                                                        step="1"
+                                                        value="0"
+                                                    />
+                                                </label>
+
+                                                <label>
+                                                    <span><?php echo esc_html__('Retries', 'navai-voice'); ?></span>
+                                                    <input
+                                                        type="number"
+                                                        class="small-text navai-plugin-function-editor-retries"
+                                                        min="0"
+                                                        max="5"
+                                                        step="1"
+                                                        value="0"
+                                                    />
+                                                </label>
+
+                                                <label class="navai-plugin-function-meta-check">
+                                                    <span><?php echo esc_html__('Aprobacion', 'navai-voice'); ?></span>
+                                                    <span class="navai-plugin-function-meta-check-field">
+                                                        <input type="checkbox" class="navai-plugin-function-editor-requires-approval" />
+                                                        <span><?php echo esc_html__('Requiere aprobacion', 'navai-voice'); ?></span>
+                                                    </span>
+                                                </label>
+
+                                            </div>
+
+                                            <div class="navai-plugin-function-test-tools">
+                                                <p class="navai-admin-description navai-plugin-function-editor-status" hidden></p>
+                                            </div>
                                         </div>
 
                                         <div class="navai-plugin-function-editor-actions">
@@ -125,6 +212,169 @@
                                 </div>
                             </div>
 
+                            <div class="navai-plugin-function-transfer-modal navai-plugin-function-export-modal" hidden>
+                                <div
+                                    class="navai-plugin-function-transfer-modal-dialog"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="navai-plugin-function-export-modal-title"
+                                >
+                                    <div class="navai-plugin-function-modal-head">
+                                        <div>
+                                            <h4 id="navai-plugin-function-export-modal-title" class="navai-plugin-function-modal-title">
+                                                <?php echo esc_html__('Exportar funciones', 'navai-voice'); ?>
+                                            </h4>
+                                            <p class="navai-admin-description">
+                                                <?php echo esc_html__('Filtra por plugin y rol. Puedes exportar todas las funciones visibles o seleccionar solo algunas.', 'navai-voice'); ?>
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="button button-secondary button-small navai-plugin-function-transfer-modal-dismiss"
+                                        >
+                                            <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                                        </button>
+                                    </div>
+
+                                    <div class="navai-plugin-function-transfer-panel">
+                                        <div class="navai-plugin-function-row navai-plugin-function-row--editor">
+                                            <label>
+                                                <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
+                                                <select class="navai-plugin-function-export-plugin">
+                                                    <option value=""><?php echo esc_html__('Todos', 'navai-voice'); ?></option>
+                                                    <?php foreach ($pluginFunctionPluginCatalog as $pluginKey => $pluginLabel) : ?>
+                                                        <option value="<?php echo esc_attr((string) $pluginKey); ?>">
+                                                            <?php echo esc_html((string) $pluginLabel); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
+
+                                            <label>
+                                                <span><?php echo esc_html__('Rol', 'navai-voice'); ?></span>
+                                                <select class="navai-plugin-function-export-role">
+                                                    <option value=""><?php echo esc_html__('Todos', 'navai-voice'); ?></option>
+                                                    <option value="all"><?php echo esc_html__('Todos los roles', 'navai-voice'); ?></option>
+                                                    <option value="guest"><?php echo esc_html__('Visitantes', 'navai-voice'); ?></option>
+                                                    <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
+                                                        <?php if ((string) $roleKey === 'guest' || (string) $roleKey === 'all') { continue; } ?>
+                                                        <option value="<?php echo esc_attr((string) $roleKey); ?>">
+                                                            <?php echo esc_html((string) $roleLabel); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
+
+                                            <fieldset class="navai-plugin-function-transfer-mode">
+                                                <legend><?php echo esc_html__('Modo de exportacion', 'navai-voice'); ?></legend>
+                                                <label class="navai-plugin-function-transfer-inline-check">
+                                                    <input type="radio" name="navai_plugin_function_export_mode" class="navai-plugin-function-export-mode" value="all" checked />
+                                                    <span><?php echo esc_html__('Exportar todas las visibles', 'navai-voice'); ?></span>
+                                                </label>
+                                                <label class="navai-plugin-function-transfer-inline-check">
+                                                    <input type="radio" name="navai_plugin_function_export_mode" class="navai-plugin-function-export-mode" value="selected" />
+                                                    <span><?php echo esc_html__('Seleccionar funciones a exportar', 'navai-voice'); ?></span>
+                                                </label>
+                                            </fieldset>
+
+                                            <div class="navai-plugin-function-transfer-tools">
+                                                <button type="button" class="button button-secondary navai-plugin-function-export-select-visible">
+                                                    <?php echo esc_html__('Seleccionar visibles', 'navai-voice'); ?>
+                                                </button>
+                                                <button type="button" class="button button-secondary navai-plugin-function-export-deselect-visible">
+                                                    <?php echo esc_html__('Deseleccionar visibles', 'navai-voice'); ?>
+                                                </button>
+                                                <small class="navai-admin-description navai-plugin-function-export-count"></small>
+                                            </div>
+
+                                            <div class="navai-plugin-function-transfer-list navai-plugin-function-export-list" role="list"></div>
+                                            <p class="navai-admin-description navai-plugin-function-export-status" hidden></p>
+                                        </div>
+
+                                        <div class="navai-plugin-function-editor-actions">
+                                            <button type="button" class="button button-primary navai-plugin-function-export-download">
+                                                <?php echo esc_html__('Exportar archivo .js', 'navai-voice'); ?>
+                                            </button>
+                                            <button type="button" class="button button-secondary navai-plugin-function-transfer-modal-dismiss">
+                                                <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="navai-plugin-function-transfer-modal navai-plugin-function-import-modal" hidden>
+                                <div
+                                    class="navai-plugin-function-transfer-modal-dialog"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="navai-plugin-function-import-modal-title"
+                                >
+                                    <div class="navai-plugin-function-modal-head">
+                                        <div>
+                                            <h4 id="navai-plugin-function-import-modal-title" class="navai-plugin-function-modal-title">
+                                                <?php echo esc_html__('Importar funciones', 'navai-voice'); ?>
+                                            </h4>
+                                            <p class="navai-admin-description">
+                                                <?php echo esc_html__('Selecciona plugin y rol destino. Luego sube un archivo .js exportado desde NAVAI con las funciones a importar.', 'navai-voice'); ?>
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="button button-secondary button-small navai-plugin-function-transfer-modal-dismiss"
+                                        >
+                                            <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                                        </button>
+                                    </div>
+
+                                    <div class="navai-plugin-function-transfer-panel">
+                                        <div class="navai-plugin-function-row navai-plugin-function-row--editor">
+                                            <label>
+                                                <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
+                                                <select class="navai-plugin-function-import-plugin">
+                                                    <?php foreach ($pluginFunctionPluginCatalog as $pluginKey => $pluginLabel) : ?>
+                                                        <option value="<?php echo esc_attr((string) $pluginKey); ?>">
+                                                            <?php echo esc_html((string) $pluginLabel); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
+
+                                            <label>
+                                                <span><?php echo esc_html__('Rol', 'navai-voice'); ?></span>
+                                                <select class="navai-plugin-function-import-role">
+                                                    <option value="all"><?php echo esc_html__('Todos los roles', 'navai-voice'); ?></option>
+                                                    <option value="guest"><?php echo esc_html__('Visitantes', 'navai-voice'); ?></option>
+                                                    <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
+                                                        <?php if ((string) $roleKey === 'guest' || (string) $roleKey === 'all') { continue; } ?>
+                                                        <option value="<?php echo esc_attr((string) $roleKey); ?>">
+                                                            <?php echo esc_html((string) $roleLabel); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
+
+                                            <label class="navai-plugin-function-transfer-file">
+                                                <span><?php echo esc_html__('Archivo .js', 'navai-voice'); ?></span>
+                                                <input type="file" class="navai-plugin-function-import-file" accept=".js,application/javascript,text/javascript" />
+                                            </label>
+
+                                            <div class="navai-plugin-function-transfer-preview navai-plugin-function-import-preview" hidden></div>
+                                            <p class="navai-admin-description navai-plugin-function-import-status" hidden></p>
+                                        </div>
+
+                                        <div class="navai-plugin-function-editor-actions">
+                                            <button type="button" class="button button-primary navai-plugin-function-import-run">
+                                                <?php echo esc_html__('Importar funciones', 'navai-voice'); ?>
+                                            </button>
+                                            <button type="button" class="button button-secondary navai-plugin-function-transfer-modal-dismiss">
+                                                <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="navai-plugin-functions-list navai-plugin-functions-storage" hidden>
                                 <?php foreach ($pluginCustomFunctions as $functionIndex => $functionConfig) : ?>
                                     <?php
@@ -140,6 +390,26 @@
                                     }
                                     $rowFunctionCode = $this->sanitize_plugin_function_code((string) ($functionConfig['function_code'] ?? ''));
                                     $rowDescription = sanitize_text_field((string) ($functionConfig['description'] ?? ''));
+                                    $rowRequiresApproval = !empty($functionConfig['requires_approval']);
+                                    $rowTimeoutSeconds = is_numeric($functionConfig['timeout_seconds'] ?? null) ? (int) $functionConfig['timeout_seconds'] : 0;
+                                    if ($rowTimeoutSeconds < 0) {
+                                        $rowTimeoutSeconds = 0;
+                                    }
+                                    if ($rowTimeoutSeconds > 600) {
+                                        $rowTimeoutSeconds = 600;
+                                    }
+                                    $rowExecutionScope = sanitize_key((string) ($functionConfig['execution_scope'] ?? 'both'));
+                                    if (!in_array($rowExecutionScope, ['frontend', 'admin', 'both'], true)) {
+                                        $rowExecutionScope = 'both';
+                                    }
+                                    $rowRetries = is_numeric($functionConfig['retries'] ?? null) ? (int) $functionConfig['retries'] : 0;
+                                    if ($rowRetries < 0) {
+                                        $rowRetries = 0;
+                                    }
+                                    if ($rowRetries > 5) {
+                                        $rowRetries = 5;
+                                    }
+                                    $rowArgumentSchemaJson = $this->sanitize_plugin_function_argument_schema_json($functionConfig['argument_schema_json'] ?? '');
                                     ?>
                                     <div
                                         class="navai-plugin-function-storage-row"
@@ -182,6 +452,36 @@
                                             name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][description]"
                                             value="<?php echo esc_attr($rowDescription); ?>"
                                         />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-requires-approval"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][requires_approval]"
+                                            value="<?php echo $rowRequiresApproval ? '1' : '0'; ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-timeout"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][timeout_seconds]"
+                                            value="<?php echo esc_attr((string) $rowTimeoutSeconds); ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-scope"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][execution_scope]"
+                                            value="<?php echo esc_attr($rowExecutionScope); ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-retries"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][retries]"
+                                            value="<?php echo esc_attr((string) $rowRetries); ?>"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            class="navai-plugin-function-storage-argument-schema"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][argument_schema_json]"
+                                            value="<?php echo esc_attr($rowArgumentSchemaJson); ?>"
+                                        />
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -222,6 +522,36 @@
                                         type="hidden"
                                         class="navai-plugin-function-storage-description"
                                         name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][description]"
+                                        value=""
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-requires-approval"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][requires_approval]"
+                                        value="0"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-timeout"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][timeout_seconds]"
+                                        value="0"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-scope"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][execution_scope]"
+                                        value="both"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-retries"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][retries]"
+                                        value="0"
+                                    />
+                                    <input
+                                        type="hidden"
+                                        class="navai-plugin-function-storage-argument-schema"
+                                        name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][__INDEX__][argument_schema_json]"
                                         value=""
                                     />
                                 </div>
@@ -345,7 +675,13 @@
                                             }
                                             $functionDescription = sanitize_text_field((string) ($item['description'] ?? ''));
                                             $functionRole = sanitize_key((string) ($item['role'] ?? ''));
-                                            $functionRoleLabel = isset($availableRoles[$functionRole]) ? (string) $availableRoles[$functionRole] : $functionRole;
+                                            if ($functionRole === 'all') {
+                                                $functionRoleLabel = __('Todos los roles', 'navai-voice');
+                                            } elseif ($functionRole === 'guest') {
+                                                $functionRoleLabel = __('Visitantes', 'navai-voice');
+                                            } else {
+                                                $functionRoleLabel = isset($availableRoles[$functionRole]) ? (string) $availableRoles[$functionRole] : $functionRole;
+                                            }
                                             $isChecked = in_array($functionKey, $allowedPluginFunctionKeys, true);
                                             $searchText = trim(implode(' ', array_filter([
                                                 $functionName,

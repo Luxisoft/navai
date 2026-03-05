@@ -124,6 +124,16 @@ body {
   box-shadow: var(--shadow);
 }
 
+.voice-card.is-agent-speaking {
+  border-color: color-mix(in srgb, var(--brand) 48%, #ffffff);
+  background: linear-gradient(180deg, #fffdf8, #d9f4ff);
+}
+
+.voice-card.is-agent-error {
+  border-color: color-mix(in srgb, var(--danger) 54%, #ffffff);
+  background: linear-gradient(180deg, #fff8f8, #ffe4e4);
+}
+
 .voice-row {
   display: flex;
   gap: 0.9rem;
@@ -154,10 +164,29 @@ body {
   background: linear-gradient(120deg, #dd5239, #9b1f0f);
 }
 
+.voice-button.stop.speaking {
+  background: linear-gradient(120deg, #f5872f, #b64c00);
+}
+
 .voice-status {
   margin: 0;
   font-weight: 600;
   color: var(--brand-deep);
+}
+
+.voice-status.speaking {
+  color: #0f6d4c;
+}
+
+.voice-agent-state {
+  margin: 0.65rem 0 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.voice-agent-state.speaking {
+  color: #0c6d4c;
+  font-weight: 600;
 }
 
 .voice-hint {

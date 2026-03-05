@@ -85,6 +85,15 @@ Cuando el agente llama `execute_app_function`:
 - intenta primero funcion local (frontend)
 - si no existe local, ejecuta en backend via `POST /navai/functions/execute`
 
+## Estado del agente (voz)
+
+`useWebVoiceAgent` ahora expone estado de voz del asistente:
+
+- `agentVoiceState`: `idle | speaking`
+- `isAgentSpeaking`: `boolean`
+
+El `VoiceNavigator` de este playground ya usa estos valores para cambiar texto, boton y color cuando el agente empieza y termina de responder por voz.
+
 ## Variables y personalizacion
 
 - `NAVAI_API_URL`: URL base del backend.

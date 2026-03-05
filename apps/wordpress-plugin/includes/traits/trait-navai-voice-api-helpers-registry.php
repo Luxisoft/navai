@@ -13,12 +13,25 @@ trait Navai_Voice_API_Helpers_Registry_Trait
         $ordered = [];
 
         $builtinDefinitions = $this->build_plugin_bridge_functions();
+        $mcpDefinitions = [];
+        if (
+            isset($this->mcpService)
+            && $this->mcpService instanceof Navai_Voice_MCP_Service
+            && method_exists($this, 'should_enforce_mcp')
+            && $this->should_enforce_mcp()
+        ) {
+            $settings = isset($this->settings) && $this->settings instanceof Navai_Voice_Settings
+                ? $this->settings->get_settings()
+                : [];
+            $roles = method_exists($this, 'get_request_roles') ? $this->get_request_roles() : [];
+            $mcpDefinitions = $this->mcpService->build_runtime_tool_definitions($settings, $roles);
+        }
         $rawDefinitions = apply_filters('navai_voice_functions_registry', []);
         if (!is_array($rawDefinitions)) {
             $rawDefinitions = [];
         }
 
-        $allDefinitions = array_merge($builtinDefinitions, $rawDefinitions);
+        $allDefinitions = array_merge($builtinDefinitions, $mcpDefinitions, $rawDefinitions);
         foreach ($allDefinitions as $index => $item) {
             if (!is_array($item)) {
                 $warnings[] = sprintf('[navai] Ignored function #%d: invalid definition.', (int) $index);
@@ -51,6 +64,24 @@ trait Navai_Voice_API_Helpers_Registry_Trait
                 'source' => isset($item['source']) && is_string($item['source']) ? $item['source'] : 'wp-filter',
                 'callback' => $callback,
             ];
+            if (array_key_exists('requires_approval', $item)) {
+                $definition['requires_approval'] = !empty($item['requires_approval']);
+            }
+            if (array_key_exists('timeout_seconds', $item)) {
+                $definition['timeout_seconds'] = is_numeric($item['timeout_seconds']) ? (int) $item['timeout_seconds'] : 0;
+            }
+            if (array_key_exists('execution_scope', $item)) {
+                $definition['execution_scope'] = is_string($item['execution_scope']) ? $item['execution_scope'] : 'both';
+            }
+            if (array_key_exists('retries', $item)) {
+                $definition['retries'] = is_numeric($item['retries']) ? (int) $item['retries'] : 0;
+            }
+            if (array_key_exists('argument_schema', $item) && is_array($item['argument_schema'])) {
+                $definition['argument_schema'] = $item['argument_schema'];
+            }
+            if (array_key_exists('function_id', $item)) {
+                $definition['function_id'] = is_numeric($item['function_id']) ? (int) $item['function_id'] : null;
+            }
 
             $byName[$name] = $definition;
             $ordered[] = $definition;
@@ -229,7 +260,9 @@ trait Navai_Voice_API_Helpers_Registry_Trait
             ],
         ];
 
-        return array_merge($builtinDefinitions, $customDefinitions);
+        // Do not expose plugin bridge helper functions to the AI runtime.
+        // The recommended path is custom dashboard functions (JavaScript) controlled by the user.
+        return $customDefinitions;
     }
 
     /**
@@ -407,6 +440,19 @@ trait Navai_Voice_API_Helpers_Registry_Trait
                 'name' => $functionName,
                 'description' => $description,
                 'source' => 'navai-dashboard-custom',
+                'requires_approval' => !empty($item['requires_approval']),
+                'timeout_seconds' => isset($item['timeout_seconds']) && is_numeric($item['timeout_seconds'])
+                    ? (int) $item['timeout_seconds']
+                    : 0,
+                'execution_scope' => isset($item['execution_scope']) && is_string($item['execution_scope'])
+                    ? $item['execution_scope']
+                    : 'both',
+                'retries' => isset($item['retries']) && is_numeric($item['retries'])
+                    ? (int) $item['retries']
+                    : 0,
+                'argument_schema' => isset($item['argument_schema']) && is_array($item['argument_schema'])
+                    ? $item['argument_schema']
+                    : null,
                 'callback' => function (array $payload, array $context) use ($pluginConfig, $functionCode, $actionsRegistry) {
                     $args = [];
                     if (isset($payload['args']) && is_array($payload['args'])) {
@@ -451,31 +497,29 @@ trait Navai_Voice_API_Helpers_Registry_Trait
                         ];
                     }
 
-                    if (preg_match('/^\s*js\s*:/i', $normalizedCode) === 1) {
-                        $jsCode = preg_replace('/^\s*js\s*:/i', '', $normalizedCode, 1);
-                        $jsCode = is_string($jsCode) ? trim($jsCode) : '';
-                        if ($jsCode === '') {
-                            return [
-                                'ok' => false,
-                                'error' => 'Empty JavaScript code.',
-                            ];
-                        }
-
+                    if (preg_match('/^\s*(<\?(php)?|php\s*:)/i', $normalizedCode) === 1) {
                         return [
-                            'ok' => true,
-                            'plugin' => $pluginConfig['plugin_file'] ?? '',
-                            'execution_mode' => 'client_js',
-                            'code' => $jsCode,
-                            'payload' => $args,
+                            'ok' => false,
+                            'error' => 'Only JavaScript custom code is supported.',
                         ];
                     }
 
-                    return $this->execute_php_custom_function_code(
-                        $normalizedCode,
-                        $args,
-                        $context,
-                        $pluginConfig
-                    );
+                    $jsCode = preg_replace('/^\s*js\s*:/i', '', $normalizedCode, 1);
+                    $jsCode = is_string($jsCode) ? trim($jsCode) : '';
+                    if ($jsCode === '') {
+                        return [
+                            'ok' => false,
+                            'error' => 'Empty JavaScript code.',
+                        ];
+                    }
+
+                    return [
+                        'ok' => true,
+                        'plugin' => $pluginConfig['plugin_file'] ?? '',
+                        'execution_mode' => 'client_js',
+                        'code' => $jsCode,
+                        'payload' => $args,
+                    ];
                 },
             ];
         }

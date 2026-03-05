@@ -42,6 +42,11 @@ Flujo de extremo a extremo:
 5. El agente llama `POST /navai/functions/execute` con `function_name` y `payload`.
 6. Backend ejecuta solo nombres permitidos del registry cargado.
 
+Nota sobre estado de voz del agente:
+
+- El backend no detecta directamente cuando el asistente empieza/termina de hablar, porque la sesion Realtime de audio vive en cliente.
+- Ese estado se expone en `@navai/voice-frontend`, `@navai/voice-mobile` y en el widget de WordPress via eventos frontend.
+
 ## API Publica
 
 Helpers de client secret:

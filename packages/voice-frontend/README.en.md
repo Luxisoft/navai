@@ -81,6 +81,13 @@ State machine exposed by hook:
 - `connected`
 - `error`
 
+Agent voice state exposed by the hook:
+
+- `agentVoiceState`: `idle | speaking`
+- `isAgentSpeaking`: `boolean`
+
+`agentVoiceState` is driven by realtime events `audio_start`, `audio_stopped`, and `audio_interrupted`.
+
 ## Public API
 
 Main exports:

@@ -9,6 +9,606 @@
   display: none !important;
 }
 
+.navai-guardrails-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.navai-guardrails-top {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #d9e4f3;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.navai-guardrails-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.navai-guardrails-editor,
+.navai-guardrails-test,
+.navai-guardrails-list {
+  border: 1px solid #d9e4f3;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+}
+
+.navai-guardrails-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+  align-items: start;
+}
+
+.navai-guardrails-grid label,
+.navai-guardrails-pattern-field,
+.navai-guardrails-test > label {
+  display: grid;
+  gap: 6px;
+}
+
+.navai-guardrails-inline-check {
+  grid-column: span 1;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.navai-guardrails-grid-span-full {
+  grid-column: 1 / -1;
+}
+
+.navai-guardrails-pattern-field {
+  margin-top: 12px;
+}
+
+.navai-guardrails-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.navai-guardrails-status {
+  margin: 10px 0 0;
+  min-height: 20px;
+}
+
+.navai-guardrails-status.is-error {
+  color: #b42318;
+}
+
+.navai-guardrails-status.is-success {
+  color: #027a48;
+}
+
+.navai-guardrails-list-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.navai-guardrails-list-head h3,
+.navai-guardrails-test h3 {
+  margin: 0;
+}
+
+.navai-guardrails-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-guardrail-modal .navai-guardrails-editor {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.navai-guardrail-test-modal .navai-guardrails-test {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.navai-guardrails-table-wrap {
+  overflow-x: auto;
+}
+
+.navai-guardrails-table td code {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.navai-guardrails-row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.navai-status-badge.is-enabled {
+  background: #ecfdf3;
+  color: #027a48;
+  border-color: #abefc6;
+}
+
+.navai-status-badge.is-disabled {
+  background: #fff4ed;
+  color: #b54708;
+  border-color: #fedf89;
+}
+
+.navai-status-badge.is-pending {
+  background: #eef4ff;
+  color: #174ea6;
+  border-color: #bfd3ff;
+}
+
+.navai-guardrails-test-result {
+  margin: 10px 0 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.navai-guardrails-test-result.is-error {
+  background: #3b0d11;
+  color: #fecaca;
+}
+
+.navai-approvals-panel,
+.navai-traces-panel,
+.navai-history-panel,
+.navai-agents-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.navai-approvals-toolbar,
+.navai-traces-toolbar,
+.navai-history-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+
+.navai-approvals-toolbar > label,
+.navai-traces-toolbar > label,
+.navai-history-toolbar > label {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.navai-approvals-toolbar-actions,
+.navai-traces-toolbar-actions,
+.navai-history-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-approvals-table-wrap,
+.navai-traces-table-wrap,
+.navai-history-table-wrap {
+  overflow-x: auto;
+}
+
+.navai-approvals-row-actions,
+.navai-traces-row-actions,
+.navai-history-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-approvals-detail,
+.navai-trace-detail,
+.navai-history-detail,
+.navai-agents-detail {
+  border: 1px solid #d9e4f3;
+  border-radius: 12px;
+  background: #fbfdff;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.navai-approvals-detail-head,
+.navai-trace-detail-head,
+.navai-history-detail-head,
+.navai-agents-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.navai-approvals-detail-head h3,
+.navai-trace-detail-head h3,
+.navai-history-detail-head h3,
+.navai-agents-detail-head h3 {
+  margin: 0;
+}
+
+.navai-approvals-detail-json,
+.navai-trace-detail-meta,
+.navai-history-detail-meta,
+.navai-agents-detail-json {
+  margin: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.navai-trace-detail-meta {
+  white-space: pre-wrap;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.navai-history-detail-meta,
+.navai-history-detail-summary-text,
+.navai-agents-detail-json {
+  white-space: pre-wrap;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.navai-agents-grid,
+.navai-handoffs-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(420px, 1.2fr);
+  gap: 14px;
+}
+
+.navai-mcp-panel .navai-agents-grid,
+.navai-mcp-panel .navai-handoffs-grid {
+  grid-template-columns: 1fr;
+}
+
+.navai-mcp-panel .navai-agents-section-head--with-actions + .navai-agents-table-wrap {
+  margin-top: 10px;
+}
+
+.navai-mcp-panel .navai-agents-section-head + .navai-agents-form-grid {
+  margin-top: 10px;
+}
+
+.navai-mcp-panel .navai-agents-form-grid .navai-agents-actions {
+  margin-top: 0;
+}
+
+.navai-mcp-panel .navai-agents-form-grid + .navai-agents-table-wrap {
+  margin-top: 10px;
+}
+
+.navai-agents-editor,
+.navai-agents-list,
+.navai-handoffs-editor,
+.navai-handoffs-list {
+  border: 1px solid #d9e4f3;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.navai-agents-section-head {
+  margin: 0 0 10px;
+}
+
+.navai-agents-section-head--with-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.navai-agents-section-head-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.navai-agents-section-head h3 {
+  margin: 0;
+}
+
+.navai-agents-section-head .navai-admin-description {
+  margin-top: 4px;
+}
+
+.navai-agents-section-head .navai-agents-section-head-actions {
+  margin-top: 0;
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+.navai-agents-form-grid,
+.navai-handoffs-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.navai-agents-form-grid > label,
+.navai-handoffs-form-grid > label {
+  display: grid;
+  gap: 6px;
+}
+
+.navai-agents-form-grid-span-full {
+  grid-column: 1 / -1;
+}
+
+.navai-agent-form-check {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+
+.navai-agent-form-check > span {
+  margin: 0 !important;
+}
+
+.navai-agents-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.navai-agents-table-wrap {
+  overflow-x: auto;
+}
+
+.navai-agents-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.navai-agents-inline-code {
+  display: inline-block;
+  margin-left: 6px;
+}
+
+.navai-agents-note {
+  display: block;
+  color: #526077;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.navai-history-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.navai-history-config-grid > label {
+  display: grid;
+  gap: 6px;
+}
+
+.navai-history-detail-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.navai-history-detail-summary h4 {
+  margin: 0;
+}
+
+.navai-history-detail-summary-text {
+  margin: 0;
+  background: #101827;
+  color: #dbeafe;
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.navai-history-detail-messages {
+  display: grid;
+  gap: 10px;
+}
+
+.navai-history-message-card {
+  border: 1px solid #d9e4f3;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.navai-history-message-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f4f8ff;
+  border-bottom: 1px solid #e3ebf7;
+}
+
+.navai-history-message-card-head span {
+  color: #55657b;
+  font-size: 12px;
+}
+
+.navai-history-message-card-body {
+  margin: 0;
+  padding: 10px 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.navai-history-message-card-body.is-error {
+  background: #3b0d11;
+  color: #fecaca;
+}
+
+.navai-trace-detail-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.navai-trace-event-card {
+  border: 1px solid #d9e4f3;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.navai-trace-event-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f4f8ff;
+  border-bottom: 1px solid #e3ebf7;
+}
+
+.navai-trace-event-card-head span {
+  color: #55657b;
+  font-size: 12px;
+}
+
+.navai-trace-event-card-body {
+  margin: 0;
+  padding: 10px 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.navai-trace-event-card-body.is-error {
+  background: #3b0d11;
+  color: #fecaca;
+}
+
+.navai-plugin-function-meta-check {
+  display: grid;
+  gap: 6px;
+}
+
+.navai-plugin-function-meta-check-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+
+@media (max-width: 900px) {
+  .navai-guardrails-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .navai-guardrails-list-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .navai-guardrails-row-actions {
+    flex-wrap: wrap;
+  }
+
+  .navai-guardrails-list-actions {
+    width: 100%;
+  }
+
+  .navai-guardrails-list-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navai-approvals-toolbar > label,
+  .navai-traces-toolbar > label,
+  .navai-history-toolbar > label,
+  .navai-approvals-toolbar-actions,
+  .navai-traces-toolbar-actions,
+  .navai-history-toolbar-actions {
+    width: 100%;
+  }
+
+  .navai-approvals-toolbar-actions .button,
+  .navai-traces-toolbar-actions .button,
+  .navai-history-toolbar-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navai-agents-grid,
+  .navai-handoffs-grid,
+  .navai-agents-form-grid,
+  .navai-handoffs-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .navai-agents-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navai-agents-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navai-agents-section-head--with-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navai-agents-section-head .navai-agents-section-head-actions {
+    width: 100%;
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 1320px) {
+  .navai-plugin-function-meta-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
 .navai-admin-wrap {
   max-width: 1200px;
 }
@@ -66,6 +666,9 @@
   padding: 0;
   flex: 0 1 auto;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .navai-admin-banner {
@@ -73,6 +676,19 @@
   width: auto;
   max-width: 100%;
   height: 60px;
+}
+
+.navai-admin-banner-credit {
+  margin: 4px 0 0 56px;
+  font-size: 12px;
+  color: #526077;
+  line-height: 1.2;
+}
+
+.navai-admin-banner-credit a {
+  font-weight: 600;
+  color: #0f62d6;
+  text-decoration: none;
 }
 
 .navai-admin-header-controls {
@@ -169,6 +785,10 @@
   display: block;
 }
 
+.navai-admin-divider + .navai-admin-panel {
+  margin-top: 14px;
+}
+
 .navai-admin-panel > h2 {
   margin: 0 0 6px;
 }
@@ -186,8 +806,36 @@
   margin: 0 0 14px;
 }
 
+.navai-admin-autosave-bar {
+  margin: 4px 0 14px;
+  min-height: 24px;
+}
+
+.navai-admin-autosave-status {
+  margin: 0;
+  color: #526077;
+  font-size: 13px;
+}
+
+.navai-admin-autosave-status:empty {
+  display: none;
+}
+
+.navai-admin-autosave-status.is-saving {
+  color: #0f62d6;
+}
+
+.navai-admin-autosave-status.is-success {
+  color: #027a48;
+}
+
+.navai-admin-autosave-status.is-error {
+  color: #b42318;
+}
+
 .navai-admin-panel[data-navai-panel="navigation"] > .navai-admin-card,
-.navai-admin-panel[data-navai-panel="plugins"] > .navai-admin-card {
+.navai-admin-panel[data-navai-panel="plugins"] > .navai-admin-card,
+.navai-admin-panel[data-navai-panel="settings"] > .navai-admin-card.navai-admin-settings-shell {
   background: linear-gradient(180deg, #fbfdff, #f6faff);
   border-color: #d8e4f2;
 }
@@ -199,6 +847,56 @@
 .navai-nav-card {
   padding-top: 12px;
   background: linear-gradient(180deg, #fbfdff, #f6faff);
+}
+
+.navai-admin-settings-shell {
+  padding-top: 12px;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel]:not([data-navai-settings-subpanel="general"]) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel > .navai-admin-panel {
+  padding-top: 0;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel]:not([data-navai-settings-subpanel="general"]) > .navai-admin-panel > h2 {
+  margin: 0 0 6px;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel]:not([data-navai-settings-subpanel="general"]) > .navai-admin-panel > p {
+  margin: 0 0 14px;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-top,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-list,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="approvals"] .navai-guardrails-top,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="traces"] .navai-guardrails-top,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="history"] .navai-guardrails-top {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-list {
+  margin-top: 14px;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="approvals"] .navai-approvals-toolbar,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="traces"] .navai-traces-toolbar,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="history"] .navai-history-toolbar,
+.navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="history"] .navai-history-config-grid {
+  margin-top: 14px;
+}
+
+.navai-admin-settings-shell > .navai-nav-subpanel > .navai-admin-panel > .navai-admin-card:last-child,
+.navai-admin-settings-shell > .navai-nav-subpanel > .navai-admin-panel > .navai-guardrails-panel:last-child {
+  margin-bottom: 0;
 }
 
 .navai-nav-tabs {
@@ -277,10 +975,19 @@
   border-radius: 10px;
   padding: 10px;
   background: #ffffff;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .navai-private-route-row label {
   display: block;
+}
+
+.navai-private-route-row > label,
+.navai-private-route-row > button {
+  min-width: 0;
 }
 
 .navai-private-route-row label > span {
@@ -361,7 +1068,8 @@
   margin-top: 12px;
 }
 
-.navai-plugin-function-modal {
+.navai-plugin-function-modal,
+.navai-plugin-function-transfer-modal {
   position: fixed;
   inset: 0;
   z-index: 100000;
@@ -373,13 +1081,15 @@
   backdrop-filter: blur(2px);
 }
 
-.navai-plugin-function-modal[hidden] {
+.navai-plugin-function-modal[hidden],
+.navai-plugin-function-transfer-modal[hidden] {
   display: none !important;
 }
 
-.navai-plugin-function-modal-dialog {
+.navai-plugin-function-modal-dialog,
+.navai-plugin-function-transfer-modal-dialog {
   width: min(960px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
+  max-height: min(760px, calc(100vh - 110px));
   overflow: auto;
   border: 1px solid #d4deed;
   border-radius: 14px;
@@ -416,6 +1126,142 @@
 .navai-plugin-function-modal .navai-plugin-function-row {
   background: #ffffff;
   border-color: #dae4f2;
+}
+
+.navai-plugin-function-transfer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.navai-plugin-function-transfer-mode {
+  grid-column: 1 / -1;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+  background: #ffffff;
+}
+
+.navai-plugin-function-transfer-mode > legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.navai-plugin-function-transfer-inline-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+}
+
+.navai-plugin-function-transfer-tools {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.navai-plugin-function-export-count {
+  margin: 0;
+}
+
+.navai-plugin-function-transfer-list {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.navai-plugin-function-transfer-list.is-empty {
+  display: block;
+  color: #526077;
+}
+
+.navai-plugin-function-transfer-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid #e2e9f4;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.navai-plugin-function-transfer-item input[type="checkbox"] {
+  margin-top: 4px;
+}
+
+.navai-plugin-function-transfer-item-main {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.navai-plugin-function-transfer-item-title {
+  font-weight: 600;
+  color: #243145;
+}
+
+.navai-plugin-function-transfer-item-meta {
+  color: #526077;
+  font-size: 12px;
+}
+
+.navai-plugin-function-transfer-item-preview {
+  color: #3f4d62;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.navai-plugin-function-transfer-file {
+  grid-column: 1 / -1;
+}
+
+.navai-plugin-function-transfer-file input[type="file"] {
+  width: 100%;
+}
+
+.navai-plugin-function-transfer-preview {
+  grid-column: 1 / -1;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #fbfdff;
+  padding: 10px;
+  color: #243145;
+}
+
+.navai-plugin-function-transfer-preview-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.navai-plugin-function-transfer-preview-list li {
+  margin: 0 0 4px;
+}
+
+.navai-plugin-function-export-status.is-error,
+.navai-plugin-function-import-status.is-error {
+  color: #b42318;
+}
+
+.navai-plugin-function-export-status.is-success,
+.navai-plugin-function-import-status.is-success {
+  color: #116329;
+}
+
+.navai-plugin-function-export-status.is-info,
+.navai-plugin-function-import-status.is-info {
+  color: #0f62d6;
 }
 
 .navai-plugin-functions-storage {
@@ -462,12 +1308,77 @@
   grid-column: 1 / -1;
 }
 
+.navai-plugin-function-meta-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 2fr)
+    minmax(150px, 1fr)
+    minmax(130px, 0.8fr)
+    minmax(220px, 1.2fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.navai-plugin-function-meta-grid > label {
+  margin: 0;
+}
+
+.navai-plugin-function-meta-grid .navai-plugin-function-agent-assignment {
+  grid-column: 1 / -1;
+}
+
+.navai-plugin-function-agent-assignment {
+  grid-column: auto;
+}
+
+.navai-plugin-function-agent-assignment select {
+  width: 100%;
+  min-height: 40px;
+}
+
+.navai-plugin-function-agent-assignment .navai-admin-description {
+  display: block;
+  margin-top: 4px;
+}
+
+.navai-plugin-function-row > .navai-plugin-function-agent-assignment {
+  align-self: start;
+}
+
 .navai-plugin-function-code {
   width: 100%;
   min-height: 240px;
   font-family: Consolas, "Courier New", monospace;
   line-height: 1.4;
   resize: vertical;
+  tab-size: 2;
+}
+
+.navai-plugin-function-code-wrap .CodeMirror {
+  width: 100%;
+  min-height: 220px;
+  height: min(34vh, 320px);
+  border: 1px solid #cfd9e7;
+  border-radius: 8px;
+  background: #fbfdff;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.navai-plugin-function-code-wrap .CodeMirror-scroll {
+  min-height: 220px;
+}
+
+.navai-plugin-function-code-wrap .CodeMirror-focused {
+  border-color: #0f62d6;
+  box-shadow: 0 0 0 1px rgba(15, 98, 214, 0.18);
+}
+
+.navai-plugin-function-code-wrap .CodeMirror-gutters {
+  border-right: 1px solid #e4ebf6;
+  background: #f3f7fd;
 }
 
 .navai-plugin-function-remove {
@@ -535,40 +1446,75 @@
   color: #243145;
 }
 
-.navai-plugin-func-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  justify-content: space-between;
+.navai-admin-check.navai-plugin-func-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "check role edit delete"
+    "title title title title"
+    "description description description description";
+  align-items: center;
+  gap: 6px 10px;
 }
 
-.navai-plugin-func-item input[type="checkbox"] {
-  margin-top: 4px;
+.navai-admin-check.navai-plugin-func-item input[type="checkbox"] {
+  grid-area: check;
+  margin: 0;
+  align-self: center;
 }
 
-.navai-plugin-func-main {
+.navai-admin-check.navai-plugin-func-item > .navai-plugin-func-main {
+  display: contents !important;
+}
+
+.navai-plugin-func-title {
+  grid-area: title;
   display: block;
   min-width: 0;
-  flex: 1 1 auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.navai-plugin-func-main strong,
-.navai-plugin-func-main small {
+.navai-plugin-func-description-text {
+  grid-area: description;
   display: block;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.navai-plugin-func-item-actions {
-  display: inline-flex;
+.navai-admin-check.navai-plugin-func-item .navai-plugin-func-role-wrap {
+  grid-area: role;
+  justify-self: start;
+  display: inline-flex !important;
   align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  flex: 0 0 auto;
+  min-width: 0;
+}
+
+/* Hide code snippets in the function list cards; keep code only inside the editor modal. */
+.navai-plugin-func-main .navai-plugin-func-code-preview {
+  display: none !important;
+}
+
+.navai-admin-check.navai-plugin-func-item > .navai-plugin-func-item-actions {
+  display: contents !important;
 }
 
 .navai-plugin-func-item-actions .button {
+  margin: 0;
   min-height: 28px;
   line-height: 26px;
   padding: 0 10px;
+}
+
+.navai-plugin-func-item-actions .navai-plugin-func-edit {
+  grid-area: edit;
+  justify-self: end;
+}
+
+.navai-plugin-func-item-actions .navai-plugin-func-delete {
+  grid-area: delete;
+  justify-self: end;
 }
 
 .navai-plugin-func-delete.button {
@@ -610,24 +1556,38 @@
   color: #243145;
 }
 
-.navai-nav-route-item {
+.navai-admin-check.navai-nav-route-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 8px 10px;
   align-items: start;
 }
 
-.navai-nav-route-item input[type="checkbox"] {
+.navai-admin-check.navai-nav-route-item input[type="checkbox"] {
   margin-top: 4px;
+  grid-column: 1 / 2;
+  grid-row: 1 / span 3;
 }
 
 .navai-nav-route-main {
-  display: block;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  grid-column: 2 / 3;
+}
+
+.navai-nav-route-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-width: 0;
 }
 
 .navai-nav-route-main strong {
   display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .navai-nav-route-description {
@@ -658,6 +1618,8 @@
 .navai-nav-url-button {
   font-weight: 600;
   text-decoration: none;
+  flex: 0 0 auto;
+  align-self: center;
 }
 
 .navai-nav-url-button.is-active {
@@ -665,19 +1627,28 @@
 }
 
 .navai-nav-url-box {
-  grid-column: 1 / -1;
   width: 100%;
-  margin-top: 6px;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 2px;
   padding: 8px;
   border: 1px dashed #cdd8e8;
   border-radius: 8px;
   background: #f4f8ff;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .navai-nav-url-box code {
   display: block;
-  word-break: break-all;
-  white-space: pre-wrap;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .navai-nav-route-item.is-hidden,
@@ -764,6 +1735,10 @@
   gap: 14px;
 }
 
+.navai-admin-settings-shell .navai-admin-settings-sections {
+  margin: 0;
+}
+
 .navai-admin-settings-section {
   border: 1px solid #dfe7f3;
   border-radius: 12px;
@@ -782,6 +1757,54 @@
 
 .navai-admin-settings-section-head .navai-admin-description {
   margin: 4px 0 0;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ru"] {
+  font-family: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="zh"] {
+  font-family: "Noto Sans SC", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ja"] {
+  font-family: "Noto Sans JP", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ko"] {
+  font-family: "Noto Sans KR", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="hi"] {
+  font-family: "Noto Sans Devanagari", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ru"] input,
+.navai-admin-wrap[data-navai-dashboard-language="ru"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="ru"] select,
+.navai-admin-wrap[data-navai-dashboard-language="ru"] option,
+.navai-admin-wrap[data-navai-dashboard-language="ru"] button,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] input,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] select,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] option,
+.navai-admin-wrap[data-navai-dashboard-language="zh"] button,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] input,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] select,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] option,
+.navai-admin-wrap[data-navai-dashboard-language="ja"] button,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] input,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] select,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] option,
+.navai-admin-wrap[data-navai-dashboard-language="ko"] button,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] input,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] textarea,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] select,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] option,
+.navai-admin-wrap[data-navai-dashboard-language="hi"] button {
+  font-family: inherit;
 }
 
 .navai-admin-settings-grid > label {
@@ -982,6 +2005,10 @@
     justify-content: flex-start;
   }
 
+  .navai-admin-banner-credit {
+    margin-left: 50px;
+  }
+
   .navai-admin-brand {
     align-items: flex-start;
     flex-direction: column;
@@ -1013,6 +2040,10 @@
     grid-template-columns: 1fr;
   }
 
+  .navai-plugin-function-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
   .navai-plugin-function-editor-actions {
     flex-direction: column;
     align-items: stretch;
@@ -1036,12 +2067,14 @@
     justify-content: center;
   }
 
-  .navai-plugin-function-modal {
+  .navai-plugin-function-modal,
+  .navai-plugin-function-transfer-modal {
     padding: 12px;
     align-items: flex-start;
   }
 
-  .navai-plugin-function-modal-dialog {
+  .navai-plugin-function-modal-dialog,
+  .navai-plugin-function-transfer-modal-dialog {
     width: 100%;
     max-height: calc(100vh - 24px);
     padding: 12px;
@@ -1067,14 +2100,12 @@
     margin-bottom: 0;
   }
 
-  .navai-plugin-func-item {
-    flex-wrap: wrap;
+  .navai-admin-check.navai-plugin-func-item {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
   }
 
   .navai-plugin-func-item-actions {
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-start;
+    display: contents;
   }
 
   .navai-nav-group-head {
@@ -1086,12 +2117,1407 @@
     width: 100%;
   }
 
-  .navai-nav-route-item {
+  .navai-admin-check.navai-nav-route-item {
     grid-template-columns: auto 1fr;
   }
+}
 
-  .navai-nav-url-button {
-    grid-column: 2 / 3;
-    justify-self: start;
+/* Visual refresh overrides (global admin UI polish). */
+.navai-admin-wrap {
+  --navai-ui-font: "Manrope", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --navai-bg-1: #f5f7fc;
+  --navai-bg-2: #edf3ff;
+  --navai-surface: #ffffff;
+  --navai-surface-soft: #f8fbff;
+  --navai-line: #d8e3f3;
+  --navai-line-strong: #c8d7eb;
+  --navai-text: #142033;
+  --navai-text-soft: #52627b;
+  --navai-primary: #0f62d6;
+  --navai-primary-2: #1f7bff;
+  --navai-select-arrow-color: #586a84;
+  --navai-shadow-sm: 0 8px 20px rgba(15, 31, 57, 0.06);
+  --navai-shadow-md: 0 16px 36px rgba(15, 31, 57, 0.09);
+  --navai-shadow-lg: 0 24px 60px rgba(15, 31, 57, 0.14);
+  position: relative;
+  isolation: isolate;
+  max-width: 1320px;
+  font-family: var(--navai-ui-font);
+  color: var(--navai-text);
+}
+
+.navai-admin-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -18px -14px auto -14px;
+  height: 280px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 70% at 12% 8%, rgba(31, 123, 255, 0.14) 0%, rgba(31, 123, 255, 0) 70%),
+    radial-gradient(52% 58% at 82% 5%, rgba(15, 98, 214, 0.12) 0%, rgba(15, 98, 214, 0) 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0));
+  border-radius: 22px;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ru"] {
+  --navai-ui-font: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="zh"] {
+  --navai-ui-font: "Noto Sans SC", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ja"] {
+  --navai-ui-font: "Noto Sans JP", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="ko"] {
+  --navai-ui-font: "Noto Sans KR", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap[data-navai-dashboard-language="hi"] {
+  --navai-ui-font: "Noto Sans Devanagari", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.navai-admin-wrap .navai-admin-form {
+  position: relative;
+}
+
+.navai-admin-wrap,
+.navai-admin-wrap input,
+.navai-admin-wrap textarea,
+.navai-admin-wrap select,
+.navai-admin-wrap option,
+.navai-admin-wrap button {
+  font-family: var(--navai-ui-font);
+}
+
+.navai-admin-wrap .navai-admin-divider {
+  border-top-color: rgba(200, 215, 235, 0.75);
+  margin-bottom: 18px;
+}
+
+.navai-admin-wrap .navai-admin-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 251, 255, 0.92)),
+    radial-gradient(120% 120% at 100% 0%, rgba(31, 123, 255, 0.12), rgba(31, 123, 255, 0));
+  border: 1px solid rgba(207, 220, 238, 0.9);
+  border-radius: 18px;
+  box-shadow: var(--navai-shadow-md);
+  backdrop-filter: blur(8px);
+  padding: 14px 18px;
+}
+
+.navai-admin-wrap .navai-admin-hero-top {
+  gap: 18px;
+}
+
+.navai-admin-wrap .navai-admin-banner {
+  height: 62px;
+  filter: drop-shadow(0 3px 6px rgba(15, 31, 57, 0.08));
+}
+
+.navai-admin-wrap .navai-admin-banner-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 10px;
+  text-decoration: none;
+}
+
+.navai-admin-wrap .navai-admin-banner-link:focus-visible {
+  outline-offset: 3px;
+}
+
+.navai-admin-wrap .navai-admin-banner-credit {
+  color: #62758f;
+  letter-spacing: 0.02em;
+}
+
+.navai-admin-wrap .navai-admin-banner-credit a {
+  color: #0b5ecc;
+}
+
+.navai-admin-wrap .navai-admin-language-select {
+  border-radius: 12px;
+  border-color: rgba(198, 212, 232, 0.95);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 4px 14px rgba(15, 31, 57, 0.05);
+  padding: 6px 8px;
+  min-height: 40px;
+}
+
+.navai-admin-wrap .navai-admin-language-select select {
+  min-width: 148px;
+  font-weight: 600;
+  color: var(--navai-text);
+}
+
+.navai-admin-wrap .navai-admin-header-utilities {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.navai-admin-wrap .navai-admin-theme-toggle.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #f4f8ff);
+  color: #29415f;
+  border-color: rgba(198, 212, 232, 0.95);
+  overflow: hidden;
+}
+
+.navai-admin-wrap .navai-admin-theme-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 11px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 205, 92, 0.22), rgba(255, 205, 92, 0) 55%);
+  opacity: 1;
+  transition: opacity 0.18s ease;
+}
+
+.navai-admin-wrap .navai-admin-theme-toggle-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 16px;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.navai-admin-wrap .navai-admin-theme-toggle-icon--moon {
+  position: absolute;
+  opacity: 0;
+  transform: scale(0.75) rotate(-20deg);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-theme-toggle::before {
+  opacity: 0;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-theme-toggle-icon--sun {
+  opacity: 0;
+  transform: scale(0.75) rotate(20deg);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-theme-toggle-icon--moon {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.navai-admin-wrap .navai-admin-tab-buttons,
+.navai-admin-wrap .navai-nav-tabs,
+.navai-admin-wrap .navai-settings-tabs {
+  gap: 8px;
+}
+
+.navai-admin-wrap .navai-admin-tab-button.button,
+.navai-admin-wrap .navai-admin-doc-link.button,
+.navai-admin-wrap .navai-nav-tab-button.button,
+.navai-admin-wrap .navai-settings-tab-button.button {
+  border-radius: 11px;
+  border: 1px solid rgba(198, 212, 232, 0.95);
+  background: linear-gradient(180deg, #ffffff, #f4f8ff);
+  color: #203149;
+  padding: 6px 14px;
+  min-height: 42px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.navai-admin-wrap .navai-admin-tab-button.button:hover,
+.navai-admin-wrap .navai-admin-doc-link.button:hover,
+.navai-admin-wrap .navai-nav-tab-button.button:hover,
+.navai-admin-wrap .navai-settings-tab-button.button:hover,
+.navai-admin-wrap .navai-admin-tab-button.button:focus,
+.navai-admin-wrap .navai-admin-doc-link.button:focus,
+.navai-admin-wrap .navai-nav-tab-button.button:focus,
+.navai-admin-wrap .navai-settings-tab-button.button:focus {
+  border-color: #b8cde9;
+  background: linear-gradient(180deg, #ffffff, #eef5ff);
+  box-shadow: 0 4px 14px rgba(15, 31, 57, 0.08);
+  transform: translateY(-1px);
+}
+
+.navai-admin-wrap .navai-admin-tab-button.button.is-active,
+.navai-admin-wrap .navai-nav-tab-button.button.is-active,
+.navai-admin-wrap .navai-settings-tab-button.button.is-active {
+  color: #ffffff;
+  border-color: #0f62d6;
+  background:
+    linear-gradient(135deg, #0a5fd5 0%, #1878ff 52%, #43a0ff 100%);
+  box-shadow:
+    0 10px 20px rgba(15, 98, 214, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.navai-admin-wrap .navai-admin-panel > h2 {
+  color: var(--navai-text);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.navai-admin-wrap .navai-admin-panel > p {
+  color: #54657f;
+  max-width: 90ch;
+}
+
+.navai-admin-wrap .navai-admin-card,
+.navai-admin-wrap .navai-guardrails-top,
+.navai-admin-wrap .navai-guardrails-editor,
+.navai-admin-wrap .navai-guardrails-test,
+.navai-admin-wrap .navai-guardrails-list,
+.navai-admin-wrap .navai-approvals-detail,
+.navai-admin-wrap .navai-trace-detail,
+.navai-admin-wrap .navai-history-detail,
+.navai-admin-wrap .navai-agents-detail,
+.navai-admin-wrap .navai-agents-editor,
+.navai-admin-wrap .navai-agents-list,
+.navai-admin-wrap .navai-handoffs-editor,
+.navai-admin-wrap .navai-handoffs-list,
+.navai-admin-wrap .navai-private-routes-builder,
+.navai-admin-wrap .navai-plugin-functions-builder,
+.navai-admin-wrap .navai-plugin-function-editor,
+.navai-admin-wrap .navai-nav-route-group,
+.navai-admin-wrap .navai-plugin-func-group,
+.navai-admin-wrap .navai-admin-settings-section,
+.navai-admin-wrap .navai-admin-check-block {
+  border-radius: 14px;
+  border-color: rgba(214, 225, 241, 0.95);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
+  box-shadow: var(--navai-shadow-sm);
+}
+
+.navai-admin-wrap .navai-admin-card:hover,
+.navai-admin-wrap .navai-guardrails-list:hover,
+.navai-admin-wrap .navai-agents-list:hover,
+.navai-admin-wrap .navai-handoffs-list:hover,
+.navai-admin-wrap .navai-private-routes-builder:hover,
+.navai-admin-wrap .navai-plugin-functions-builder:hover {
+  box-shadow: var(--navai-shadow-md);
+}
+
+.navai-admin-wrap .navai-admin-card h3,
+.navai-admin-wrap .navai-guardrails-list-head h3,
+.navai-admin-wrap .navai-nav-group-head > h4,
+.navai-admin-wrap .navai-plugin-func-group-head > h4,
+.navai-admin-wrap .navai-admin-settings-section-head h3 {
+  color: var(--navai-text);
+  letter-spacing: -0.015em;
+}
+
+.navai-admin-wrap .navai-admin-description {
+  color: var(--navai-text-soft);
+}
+
+.navai-admin-wrap .navai-admin-autosave-bar {
+  margin: 6px 0 16px;
+  min-height: 28px;
+}
+
+.navai-admin-wrap .navai-admin-autosave-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(211, 222, 238, 0.85);
+  box-shadow: 0 4px 12px rgba(15, 31, 57, 0.04);
+}
+
+.navai-admin-wrap .navai-admin-autosave-status:empty {
+  display: none;
+}
+
+.navai-admin-wrap input[type="text"],
+.navai-admin-wrap input[type="password"],
+.navai-admin-wrap input[type="number"],
+.navai-admin-wrap input[type="url"],
+.navai-admin-wrap input[type="search"],
+.navai-admin-wrap select,
+.navai-admin-wrap textarea {
+  border-radius: 10px !important;
+  border-color: rgba(199, 214, 234, 0.95) !important;
+  background: linear-gradient(180deg, #ffffff, #fbfdff) !important;
+  color: var(--navai-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.navai-admin-wrap input[type="text"]:focus,
+.navai-admin-wrap input[type="password"]:focus,
+.navai-admin-wrap input[type="number"]:focus,
+.navai-admin-wrap input[type="url"]:focus,
+.navai-admin-wrap input[type="search"]:focus,
+.navai-admin-wrap select:focus,
+.navai-admin-wrap textarea:focus {
+  border-color: rgba(15, 98, 214, 0.65) !important;
+  box-shadow:
+    0 0 0 3px rgba(15, 98, 214, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  background: #ffffff !important;
+}
+
+.navai-admin-wrap input::placeholder,
+.navai-admin-wrap textarea::placeholder {
+  color: #7a8aa3;
+}
+
+.navai-admin-wrap input[type="checkbox"],
+.navai-admin-wrap input[type="radio"] {
+  accent-color: var(--navai-primary);
+}
+
+.navai-admin-wrap .button {
+  border-radius: 10px;
+  min-height: 34px;
+  line-height: 32px;
+  padding: 0 12px;
+  border-color: rgba(193, 209, 230, 0.95);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.navai-admin-wrap .button:hover,
+.navai-admin-wrap .button:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(15, 31, 57, 0.08);
+}
+
+.navai-admin-wrap .button.button-primary {
+  border-color: #0d5fce;
+  background:
+    linear-gradient(135deg, #0a5fd5 0%, #1878ff 52%, #43a0ff 100%);
+  color: #ffffff;
+  text-shadow: none;
+  box-shadow:
+    0 8px 18px rgba(15, 98, 214, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.navai-admin-wrap .button.button-primary:hover,
+.navai-admin-wrap .button.button-primary:focus {
+  border-color: #0a58c2;
+  box-shadow:
+    0 12px 22px rgba(15, 98, 214, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.navai-admin-wrap .button.button-secondary {
+  background: linear-gradient(180deg, #ffffff, #f5f9ff);
+  color: #22344d;
+}
+
+.navai-admin-wrap .navai-refresh-icon-button.button {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navai-admin-wrap .navai-refresh-icon-button .dashicons {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.navai-admin-wrap .navai-searchable-select-toggle {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 36px 8px 12px;
+  border: 1px solid rgba(199, 214, 234, 0.95);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  color: var(--navai-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.navai-admin-wrap .navai-searchable-select {
+  position: relative;
+}
+
+.navai-admin-wrap .navai-searchable-select.is-open {
+  z-index: 120;
+}
+
+.navai-admin-wrap .navai-searchable-select-toggle::after {
+  content: "";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  margin-left: auto;
+  border-right: 2px solid var(--navai-select-arrow-color);
+  border-bottom: 2px solid var(--navai-select-arrow-color);
+  transform: rotate(45deg) translateY(-1px);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  flex: 0 0 auto;
+}
+
+.navai-admin-wrap .navai-searchable-select.is-open .navai-searchable-select-toggle {
+  border-color: rgba(15, 98, 214, 0.65);
+  box-shadow:
+    0 0 0 3px rgba(15, 98, 214, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: #ffffff;
+}
+
+.navai-admin-wrap .navai-searchable-select.is-open .navai-searchable-select-toggle::after {
+  transform: rotate(-135deg) translate(-1px, 0);
+}
+
+.navai-admin-wrap .navai-searchable-select-dropdown {
+  z-index: 140;
+}
+
+.navai-admin-wrap .navai-searchable-select-native[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.navai-admin-wrap select:not([multiple]) {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 40px !important;
+  background-repeat: no-repeat !important;
+  background-position:
+    calc(100% - 17px) calc(50% - 5px),
+    calc(100% - 11px) calc(50% - 5px),
+    calc(100% - 17px) calc(50% + 4px),
+    calc(100% - 11px) calc(50% + 4px) !important;
+  background-size: 5px 5px, 5px 5px, 5px 5px, 5px 5px !important;
+  background-image:
+    linear-gradient(225deg, transparent 50%, var(--navai-select-arrow-color) 50%),
+    linear-gradient(315deg, var(--navai-select-arrow-color) 50%, transparent 50%),
+    linear-gradient(45deg, transparent 50%, var(--navai-select-arrow-color) 50%),
+    linear-gradient(135deg, var(--navai-select-arrow-color) 50%, transparent 50%) !important;
+  background-color: #ffffff !important;
+}
+
+.navai-admin-wrap select:not([multiple]):focus {
+  background-repeat: no-repeat !important;
+  background-position:
+    calc(100% - 16px) calc(50% - 4px),
+    calc(100% - 12px) calc(50% - 4px),
+    calc(100% - 16px) calc(50% + 3px),
+    calc(100% - 12px) calc(50% + 3px) !important;
+  background-size: 4px 4px, 4px 4px, 4px 4px, 4px 4px !important;
+  background-image:
+    linear-gradient(225deg, transparent 50%, var(--navai-select-arrow-color) 50%),
+    linear-gradient(315deg, var(--navai-select-arrow-color) 50%, transparent 50%),
+    linear-gradient(45deg, transparent 50%, var(--navai-select-arrow-color) 50%),
+    linear-gradient(135deg, var(--navai-select-arrow-color) 50%, transparent 50%) !important;
+  background-color: #ffffff !important;
+}
+
+.navai-admin-wrap .widefat,
+.navai-admin-wrap table.widefat {
+  border-radius: 12px;
+  border-color: rgba(212, 224, 241, 0.95);
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.navai-admin-wrap .widefat thead th {
+  background: linear-gradient(180deg, #f7faff, #eef4fd);
+  border-bottom-color: rgba(208, 220, 238, 0.9);
+  color: #233750;
+  font-weight: 700;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.navai-admin-wrap .widefat td,
+.navai-admin-wrap .widefat th {
+  border-color: rgba(224, 232, 243, 0.85);
+}
+
+.navai-admin-wrap .widefat tbody tr:hover td {
+  background: #f8fbff;
+}
+
+.navai-admin-wrap .navai-agents-table-wrap,
+.navai-admin-wrap .navai-guardrails-table-wrap,
+.navai-admin-wrap .navai-approvals-table-wrap,
+.navai-admin-wrap .navai-traces-table-wrap,
+.navai-admin-wrap .navai-history-table-wrap {
+  border: 1px solid rgba(212, 224, 241, 0.95);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.navai-admin-wrap .navai-agents-table-wrap .widefat,
+.navai-admin-wrap .navai-guardrails-table-wrap .widefat,
+.navai-admin-wrap .navai-approvals-table-wrap .widefat,
+.navai-admin-wrap .navai-traces-table-wrap .widefat,
+.navai-admin-wrap .navai-history-table-wrap .widefat {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.navai-admin-wrap .navai-nav-route-item,
+.navai-admin-wrap .navai-plugin-func-item,
+.navai-admin-wrap .navai-plugin-function-transfer-item {
+  border-radius: 12px;
+  padding: 8px 10px;
+  transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.navai-admin-wrap .navai-nav-route-item {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.navai-admin-wrap .navai-nav-route-main {
+  grid-column: 2 / 3;
+  min-width: 0;
+}
+
+.navai-admin-wrap .navai-nav-route-description {
+  width: 100%;
+  min-width: 0;
+}
+
+.navai-admin-wrap .navai-nav-url-button {
+  justify-self: auto;
+}
+
+.navai-admin-wrap .navai-nav-route-item:hover,
+.navai-admin-wrap .navai-plugin-func-item:hover,
+.navai-admin-wrap .navai-plugin-function-transfer-item:hover {
+  background: linear-gradient(180deg, #ffffff, #f6faff);
+  box-shadow: 0 6px 14px rgba(15, 31, 57, 0.05);
+}
+
+.navai-admin-wrap .navai-nav-url-box {
+  border-style: solid;
+  border-color: rgba(198, 214, 235, 0.95);
+  background: linear-gradient(180deg, #f8fbff, #eef5ff);
+}
+
+.navai-admin-wrap .navai-nav-url-box code {
+  width: 100%;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.navai-admin-wrap .navai-status-badge {
+  border-width: 1px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.navai-admin-wrap .navai-plugin-function-code-wrap .CodeMirror {
+  border-radius: 12px;
+  border-color: rgba(202, 214, 234, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.navai-admin-wrap .navai-plugin-function-code-wrap .CodeMirror-focused {
+  box-shadow:
+    0 0 0 3px rgba(15, 98, 214, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.navai-plugin-function-modal,
+.navai-plugin-function-transfer-modal {
+  background: rgba(7, 15, 30, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.navai-plugin-function-modal-dialog,
+.navai-plugin-function-transfer-modal-dialog {
+  border-radius: 18px;
+  border-color: rgba(210, 223, 241, 0.95);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 255, 0.98));
+  box-shadow: var(--navai-shadow-lg);
+}
+
+.navai-plugin-function-modal-head {
+  margin-bottom: 14px;
+}
+
+.navai-plugin-function-modal-title {
+  color: var(--navai-text);
+  letter-spacing: -0.02em;
+}
+
+.navai-admin-wrap .navai-plugin-function-modal-dismiss--top.button,
+.navai-admin-wrap .navai-plugin-function-modal-dismiss.button {
+  background: linear-gradient(180deg, #ffffff, #f5f9ff);
+}
+
+.navai-admin-wrap .navai-plugin-function-modal-dismiss--top.button {
+  position: relative;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  line-height: 1;
+  font-size: 0;
+  color: transparent;
+}
+
+.navai-admin-wrap .navai-plugin-function-modal-dismiss--top.button::before {
+  content: "\00D7";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #22344d;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 400;
+}
+
+.navai-admin-wrap .navai-searchable-select {
+  border-radius: 12px;
+  border-color: rgba(201, 214, 233, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.navai-admin-wrap .navai-searchable-select-menu {
+  border-radius: 12px;
+  border-color: rgba(201, 214, 233, 0.95);
+  box-shadow: 0 14px 34px rgba(15, 31, 57, 0.12);
+}
+
+.navai-admin-wrap *:focus-visible {
+  outline: 2px solid rgba(15, 98, 214, 0.25);
+  outline-offset: 2px;
+}
+
+.navai-admin-wrap .navai-admin-panel.is-active {
+  animation: none;
+}
+
+@keyframes navaiPanelFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navai-admin-wrap .button,
+  .navai-admin-wrap .navai-admin-tab-button.button,
+  .navai-admin-wrap .navai-admin-doc-link.button,
+  .navai-admin-wrap .navai-nav-tab-button.button,
+  .navai-admin-wrap .navai-settings-tab-button.button,
+  .navai-admin-wrap .navai-nav-route-item,
+  .navai-admin-wrap .navai-plugin-func-item,
+  .navai-admin-wrap .navai-plugin-function-transfer-item {
+    transition: none;
+  }
+
+  .navai-admin-wrap .navai-admin-panel.is-active {
+    animation: none;
+  }
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] {
+  --navai-bg-1: #0a1220;
+  --navai-bg-2: #101b2e;
+  --navai-surface: #121d31;
+  --navai-surface-soft: #16233a;
+  --navai-line: #243651;
+  --navai-line-strong: #314766;
+  --navai-text: #e8effa;
+  --navai-text-soft: #a8b7cf;
+  --navai-select-arrow-color: #a9bddc;
+  --navai-shadow-sm: 0 10px 22px rgba(2, 8, 20, 0.36);
+  --navai-shadow-md: 0 18px 40px rgba(2, 8, 20, 0.42);
+  --navai-shadow-lg: 0 28px 70px rgba(2, 8, 20, 0.52);
+}
+
+body.navai-admin-theme-dark,
+body.navai-admin-theme-dark #wpwrap,
+body.navai-admin-theme-dark #wpcontent,
+body.navai-admin-theme-dark #wpbody,
+body.navai-admin-theme-dark #wpbody-content,
+body.navai-admin-theme-dark #wpfooter {
+  background: #0b1320;
+}
+
+body.navai-admin-theme-dark #wpcontent,
+body.navai-admin-theme-dark #wpbody-content {
+  background:
+    radial-gradient(1200px 520px at 20% 0%, rgba(31, 123, 255, 0.08), rgba(31, 123, 255, 0)),
+    radial-gradient(900px 420px at 88% 3%, rgba(76, 160, 255, 0.06), rgba(76, 160, 255, 0)),
+    #0b1320;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"]::before {
+  background:
+    radial-gradient(70% 70% at 12% 8%, rgba(31, 123, 255, 0.18) 0%, rgba(31, 123, 255, 0) 70%),
+    radial-gradient(52% 58% at 82% 5%, rgba(76, 160, 255, 0.16) 0%, rgba(76, 160, 255, 0) 72%),
+    linear-gradient(180deg, rgba(10, 18, 32, 0.85), rgba(10, 18, 32, 0));
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-divider {
+  border-top-color: rgba(54, 75, 106, 0.72);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-hero {
+  background:
+    linear-gradient(180deg, rgba(18, 29, 49, 0.95), rgba(16, 27, 46, 0.94)),
+    radial-gradient(120% 120% at 100% 0%, rgba(31, 123, 255, 0.16), rgba(31, 123, 255, 0));
+  border-color: rgba(45, 65, 94, 0.9);
+  box-shadow: var(--navai-shadow-md);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-banner-credit {
+  color: #b2c0d8;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-banner-credit a {
+  color: #72b4ff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-language-select,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-theme-toggle.button {
+  background: linear-gradient(180deg, rgba(20, 34, 56, 0.95), rgba(15, 25, 42, 0.95));
+  border-color: rgba(53, 75, 105, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 8px 18px rgba(2, 8, 20, 0.22);
+  color: #d8e6f8;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-language-select select {
+  color: #e5eefb;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-theme-toggle::before {
+  background:
+    radial-gradient(circle at 70% 30%, rgba(102, 140, 214, 0.26), rgba(102, 140, 214, 0) 58%);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-toggle {
+  background: linear-gradient(180deg, #131f34, #101b2d);
+  border-color: rgba(52, 76, 108, 0.95);
+  color: #ebf2fd;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select.is-open .navai-searchable-select-toggle {
+  background: #16253d;
+  border-color: rgba(79, 146, 255, 0.72);
+  box-shadow:
+    0 0 0 3px rgba(31, 123, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-tab-button.button:not(.is-active),
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-doc-link.button,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-tab-button.button:not(.is-active),
+.navai-admin-wrap[data-navai-theme="dark"] .navai-settings-tab-button.button:not(.is-active),
+.navai-admin-wrap[data-navai-theme="dark"] .button.button-secondary {
+  background: linear-gradient(180deg, #1a2942, #142036);
+  border-color: rgba(52, 74, 104, 0.95);
+  color: #d8e5f8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-tab-button.button.is-active,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-tab-button.button.is-active,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-settings-tab-button.button.is-active {
+  color: #ffffff;
+  border-color: rgba(80, 151, 255, 0.95);
+  background: linear-gradient(135deg, #0d63df 0%, #2684ff 52%, #5db1ff 100%);
+  box-shadow:
+    0 12px 24px rgba(16, 93, 205, 0.34),
+    0 0 0 1px rgba(112, 176, 255, 0.25) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-tab-button.button:hover,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-doc-link.button:hover,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-tab-button.button:hover,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-settings-tab-button.button:hover,
+.navai-admin-wrap[data-navai-theme="dark"] .button.button-secondary:hover {
+  border-color: rgba(83, 114, 157, 0.95);
+  background: linear-gradient(180deg, #20324f, #182841);
+  box-shadow: 0 10px 18px rgba(2, 8, 20, 0.24);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-panel > h2,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-card h3,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-list-head h3,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-group-head > h4,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-group-head > h4,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-section-head h3 {
+  color: #edf3fd;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-panel > p,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-description,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-description-text,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-empty-state {
+  color: #aebdd5;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-card,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-top,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-test,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-list,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-approvals-detail,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-trace-detail,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-history-detail,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-agents-detail,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-agents-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-agents-list,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-handoffs-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-handoffs-list,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-private-routes-builder,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-functions-builder,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-route-group,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-group,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-section,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check-block {
+  background: linear-gradient(180deg, rgba(18, 29, 49, 0.98), rgba(15, 25, 42, 0.98));
+  border-color: rgba(43, 63, 91, 0.95);
+  box-shadow: var(--navai-shadow-sm);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-panel[data-navai-panel="navigation"] > .navai-admin-card,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-panel[data-navai-panel="plugins"] > .navai-admin-card,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-panel[data-navai-panel="settings"] > .navai-admin-card.navai-admin-settings-shell,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-card {
+  background: linear-gradient(180deg, rgba(16, 27, 46, 0.98), rgba(13, 22, 38, 0.98));
+  border-color: rgba(43, 63, 91, 0.95);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-private-route-row {
+  background: linear-gradient(180deg, rgba(18, 29, 49, 0.98), rgba(15, 25, 42, 0.98));
+  border-color: rgba(43, 63, 91, 0.95);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel]:not([data-navai-settings-subpanel="general"]) {
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-top,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="safety"] .navai-guardrails-list,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="approvals"] .navai-guardrails-top,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="traces"] .navai-guardrails-top,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-shell > .navai-nav-subpanel[data-navai-settings-subpanel="history"] .navai-guardrails-top {
+  background: transparent;
+  border-color: transparent;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-grid > label,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-grid .navai-admin-full-width {
+  background: linear-gradient(180deg, #17263d, #132138);
+  border-color: rgba(46, 67, 95, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-settings-grid > label > span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-field-title {
+  color: #e8f0fc;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] input[type="text"],
+.navai-admin-wrap[data-navai-theme="dark"] input[type="password"],
+.navai-admin-wrap[data-navai-theme="dark"] input[type="number"],
+.navai-admin-wrap[data-navai-theme="dark"] input[type="url"],
+.navai-admin-wrap[data-navai-theme="dark"] input[type="search"],
+.navai-admin-wrap[data-navai-theme="dark"] select,
+.navai-admin-wrap[data-navai-theme="dark"] textarea {
+  background: linear-gradient(180deg, #131f34, #101b2d) !important;
+  border-color: rgba(52, 76, 108, 0.95) !important;
+  color: #ebf2fd !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] select:not([multiple]) {
+  background-repeat: no-repeat !important;
+  background-position:
+    calc(100% - 16px) calc(50% - 4px),
+    calc(100% - 12px) calc(50% - 4px),
+    calc(100% - 16px) calc(50% + 3px),
+    calc(100% - 12px) calc(50% + 3px) !important;
+  background-size: 4px 4px, 4px 4px, 4px 4px, 4px 4px !important;
+  background-image:
+    linear-gradient(225deg, transparent 50%, var(--navai-select-arrow-color) 50%),
+    linear-gradient(315deg, var(--navai-select-arrow-color) 50%, transparent 50%),
+    linear-gradient(45deg, transparent 50%, var(--navai-select-arrow-color) 50%),
+    linear-gradient(135deg, var(--navai-select-arrow-color) 50%, transparent 50%) !important;
+  background-color: #131f34 !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] input::placeholder,
+.navai-admin-wrap[data-navai-theme="dark"] textarea::placeholder {
+  color: #8ea2c0;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] input[type="text"]:focus,
+.navai-admin-wrap[data-navai-theme="dark"] input[type="password"]:focus,
+.navai-admin-wrap[data-navai-theme="dark"] input[type="number"]:focus,
+.navai-admin-wrap[data-navai-theme="dark"] input[type="url"]:focus,
+.navai-admin-wrap[data-navai-theme="dark"] input[type="search"]:focus,
+.navai-admin-wrap[data-navai-theme="dark"] select:focus,
+.navai-admin-wrap[data-navai-theme="dark"] textarea:focus {
+  background: #16253d !important;
+  border-color: rgba(79, 146, 255, 0.72) !important;
+  box-shadow:
+    0 0 0 3px rgba(31, 123, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] select:not([multiple]):focus {
+  background-repeat: no-repeat !important;
+  background-position:
+    calc(100% - 16px) calc(50% - 4px),
+    calc(100% - 12px) calc(50% - 4px),
+    calc(100% - 16px) calc(50% + 3px),
+    calc(100% - 12px) calc(50% + 3px) !important;
+  background-size: 4px 4px, 4px 4px, 4px 4px, 4px 4px !important;
+  background-image:
+    linear-gradient(225deg, transparent 50%, var(--navai-select-arrow-color) 50%),
+    linear-gradient(315deg, var(--navai-select-arrow-color) 50%, transparent 50%),
+    linear-gradient(45deg, transparent 50%, var(--navai-select-arrow-color) 50%),
+    linear-gradient(135deg, var(--navai-select-arrow-color) 50%, transparent 50%) !important;
+  background-color: #16253d !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .widefat,
+.navai-admin-wrap[data-navai-theme="dark"] table.widefat {
+  background: #122033;
+  border-color: rgba(47, 68, 96, 0.95);
+  color: #e6eefc;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .widefat tbody tr,
+.navai-admin-wrap[data-navai-theme="dark"] table.widefat tbody tr,
+.navai-admin-wrap[data-navai-theme="dark"] .widefat tbody td {
+  background: #122033 !important;
+  color: #e6eefc !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .widefat.striped > tbody > :nth-child(odd),
+.navai-admin-wrap[data-navai-theme="dark"] .widefat.striped > tbody > :nth-child(odd) > td,
+.navai-admin-wrap[data-navai-theme="dark"] .widefat.striped > tbody > :nth-child(even),
+.navai-admin-wrap[data-navai-theme="dark"] .widefat.striped > tbody > :nth-child(even) > td {
+  background: #122033 !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .widefat thead th {
+  background: linear-gradient(180deg, #192944, #15243b);
+  border-bottom-color: rgba(49, 71, 101, 0.95);
+  color: #eaf2fd;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .widefat td,
+.navai-admin-wrap[data-navai-theme="dark"] .widefat th {
+  border-color: rgba(38, 57, 84, 0.82);
+  color: inherit;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .widefat tbody tr:hover td {
+  background: #172840 !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-agents-table-wrap,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-table-wrap,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-approvals-table-wrap,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-traces-table-wrap,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-history-table-wrap {
+  border-color: rgba(43, 63, 91, 0.95);
+  background: #122033;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-route-item:hover,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-item:hover,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-item:hover {
+  background: linear-gradient(180deg, #1a2942, #142036);
+  box-shadow: 0 8px 16px rgba(2, 8, 20, 0.2);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-url-box,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-list,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-menu {
+  background: linear-gradient(180deg, #15233a, #121d31);
+  border-color: rgba(47, 68, 96, 0.95);
+  color: #e6eefc;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-dropdown {
+  background: linear-gradient(180deg, #16243a, #121e31);
+  border-color: rgba(47, 68, 96, 0.95);
+  box-shadow: 0 16px 36px rgba(2, 8, 20, 0.42);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-search input {
+  background: #101b2d !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check-block,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check-block span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check > span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-toggle,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrails-toggle span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-agent-form-check > span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-route-main strong,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-title,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-item-title {
+  color: #e6eefc;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-check-block small,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-route-roles,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-func-description-text,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-item-meta,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-item-preview {
+  color: #aebdd5;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-url-button {
+  color: #73b9ff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-nav-url-button.is-active {
+  color: #9ccfff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-option {
+  border-color: rgba(40, 59, 86, 0.9);
+  background: #15233a;
+  color: #dbe8fa;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-option:hover,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-option:focus {
+  border-color: rgba(79, 146, 255, 0.55);
+  background: #1a2d4a;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-searchable-select-option.is-selected {
+  border-color: rgba(79, 146, 255, 0.75);
+  background: linear-gradient(135deg, #17345c, #1a3f70);
+  color: #eff5ff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-modal {
+  background: rgba(3, 7, 14, 0.66);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-transfer-modal-dialog {
+  background: linear-gradient(180deg, rgba(18, 29, 49, 0.98), rgba(14, 23, 39, 0.98));
+  border-color: rgba(49, 71, 101, 0.95);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-title,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-head .navai-admin-description {
+  color: #eaf2fd;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dismiss--top.button,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dismiss.button {
+  background: linear-gradient(180deg, #1a2942, #142036);
+  border-color: rgba(52, 74, 104, 0.95);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dismiss--top.button::before,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dismiss.button {
+  color: #d8e5f8;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dismiss--top.button:hover {
+  border-color: rgba(83, 114, 157, 0.95);
+  background: linear-gradient(180deg, #20324f, #182841);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-row,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-mode,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-item,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-preview,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-agents-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-handoffs-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-guardrails-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-guardrails-test {
+  background: linear-gradient(180deg, rgba(21, 35, 58, 0.96), rgba(17, 28, 46, 0.96));
+  border-color: rgba(47, 68, 96, 0.95);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-row--editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrail-modal .navai-guardrails-editor,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-guardrail-test-modal .navai-guardrails-test {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog label > span,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog legend {
+  color: #eaf2fd;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog small,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-admin-description,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-item-meta,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-item-preview {
+  color: #aebdd5;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-transfer-item-title {
+  color: #eaf2fd;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-code-wrap .CodeMirror {
+  background: linear-gradient(180deg, #131f34, #101b2d);
+  border-color: rgba(52, 76, 108, 0.95);
+  color: #eaf2fd;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-code-wrap .CodeMirror-focused {
+  border-color: rgba(79, 146, 255, 0.72);
+  box-shadow:
+    0 0 0 3px rgba(31, 123, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .navai-plugin-function-code-wrap .CodeMirror-gutters {
+  background: #16253d;
+  border-right-color: rgba(47, 68, 96, 0.95);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .CodeMirror-linenumber {
+  color: #8ea2c0;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .CodeMirror-cursor {
+  border-left-color: #9ccfff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .CodeMirror-selected {
+  background: rgba(79, 146, 255, 0.28) !important;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .CodeMirror-activeline-background {
+  background: rgba(79, 146, 255, 0.1);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-comment {
+  color: #7f95b5;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-keyword,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-def,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-variable-2 {
+  color: #8dc1ff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-string {
+  color: #9ad79f;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-number,
+.navai-admin-wrap[data-navai-theme="dark"] .navai-plugin-function-modal-dialog .cm-atom {
+  color: #f4c88b;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] .navai-admin-autosave-status {
+  background: rgba(19, 31, 51, 0.78);
+  border-color: rgba(46, 67, 95, 0.86);
+  color: #c6d6ee;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] a {
+  color: #79b8ff;
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] code {
+  color: #dbe8fb;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.navai-admin-wrap[data-navai-theme="dark"] *:focus-visible {
+  outline-color: rgba(89, 156, 255, 0.45);
+}
+
+@media (min-width: 1500px) {
+  .navai-admin-wrap {
+    max-width: 1480px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .navai-admin-wrap .navai-admin-hero-top {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .navai-admin-wrap .navai-admin-header-controls {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-left: 0;
+    gap: 10px;
+  }
+
+  .navai-admin-wrap .navai-admin-header-controls .navai-admin-tab-buttons {
+    margin-right: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 980px) {
+  .navai-admin-wrap .navai-admin-header-utilities {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .navai-admin-wrap .navai-admin-language-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 320px;
+  }
+
+  .navai-admin-wrap .navai-admin-language-select select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .navai-admin-wrap .navai-admin-doc-link.button {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 782px) {
+  .navai-admin-wrap {
+    max-width: 100%;
+  }
+
+  .navai-admin-wrap .navai-admin-hero {
+    top: 50px;
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .navai-admin-wrap .navai-admin-tab-buttons {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .navai-admin-wrap .navai-admin-tab-button.button,
+  .navai-admin-wrap .navai-admin-doc-link.button {
+    min-height: 40px;
+  }
+
+  .navai-admin-wrap .navai-admin-header-utilities {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .navai-admin-wrap .navai-admin-language-select {
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  .navai-admin-wrap .navai-admin-theme-toggle.button {
+    flex: 0 0 40px;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .navai-admin-wrap .navai-plugin-function-modal-dismiss--top.button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .navai-admin-wrap::before {
+    inset: -14px -8px auto -8px;
+    height: 220px;
+  }
+
+  .navai-admin-wrap .navai-admin-banner {
+    height: 54px;
+  }
+
+  .navai-admin-wrap .navai-admin-banner-credit {
+    margin-left: 44px;
+  }
+
+  .navai-admin-wrap .navai-admin-tab-button.button,
+  .navai-admin-wrap .navai-admin-doc-link.button,
+  .navai-admin-wrap .navai-nav-tab-button.button,
+  .navai-admin-wrap .navai-settings-tab-button.button {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
+
+  .navai-admin-wrap .navai-admin-header-controls .navai-admin-tab-buttons {
+    gap: 6px;
+  }
+
+  .navai-admin-wrap .navai-admin-language-select {
+    width: calc(100% - 48px);
+  }
+
+  .navai-admin-wrap .navai-plugin-function-modal-dismiss--top.button {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
   }
 }

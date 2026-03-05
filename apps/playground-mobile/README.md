@@ -28,6 +28,7 @@ Playground React Native (Expo) para probar `@navai/voice-mobile` + backend NAVAI
 - tools backend descubiertos por API
 - configuracion por `.env` (sin VITE)
 - `VoiceNavigator` usando `useMobileVoiceAgent` desde `@navai/voice-mobile`
+- UI reactiva al estado de voz del agente (`idle`/`speaking`)
 
 ## Requisitos
 
@@ -96,6 +97,15 @@ npm run dev --workspace @navai/playground-api
 ```bash
 npm run android --workspace @navai/playground-mobile -- --device
 ```
+
+## Estado del agente (voz)
+
+`useMobileVoiceAgent` expone:
+
+- `agentVoiceState`: `idle | speaking`
+- `isAgentSpeaking`: `boolean`
+
+El `VoiceNavigator` del playground usa estos campos para actualizar texto, boton y colores cuando el agente inicia/finaliza su respuesta por voz.
 
 ## Expo Go vs Development Build
 

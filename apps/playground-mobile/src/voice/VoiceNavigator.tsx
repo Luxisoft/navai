@@ -27,9 +27,13 @@ export function VoiceNavigator({
   });
 
   const canStart = !agent.isConnecting && !agent.isConnected;
+  const cardToneStyle =
+    agent.status === "error" ? styles.cardError : agent.isAgentSpeaking ? styles.cardSpeaking : null;
+  const statusToneStyle =
+    agent.status === "error" ? styles.statusError : agent.isAgentSpeaking ? styles.statusSpeaking : styles.statusIdle;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, cardToneStyle]}>
       <Text style={styles.sectionTitle}>Voice Navigator</Text>
       <Text style={styles.status}>Ruta activa: {activePath}</Text>
 
@@ -41,12 +45,19 @@ export function VoiceNavigator({
           {agent.isConnecting ? <ActivityIndicator color="#111827" /> : <Text style={styles.buttonText}>Start Voice</Text>}
         </Pressable>
       ) : (
-        <Pressable style={[styles.button, styles.buttonStop]} onPress={() => void agent.stop()}>
-          <Text style={styles.buttonText}>Stop Voice</Text>
+        <Pressable
+          style={[styles.button, styles.buttonStop, agent.isAgentSpeaking ? styles.buttonStopSpeaking : null]}
+          onPress={() => void agent.stop()}
+        >
+          <Text style={styles.buttonText}>{agent.isAgentSpeaking ? "Stop Voice (speaking)" : "Stop Voice"}</Text>
         </Pressable>
       )}
 
-      <Text style={styles.status}>Status: {agent.status}</Text>
+      <Text style={[styles.status, statusToneStyle]}>Connection: {agent.status}</Text>
+      <Text style={[styles.status, statusToneStyle]}>Agent voice: {agent.agentVoiceState}</Text>
+      <Text style={agent.isAgentSpeaking ? styles.agentSpeaking : styles.muted}>
+        {agent.isAgentSpeaking ? "Agent is responding by voice." : "Agent is waiting for the next turn."}
+      </Text>
       {agent.error ? <Text style={styles.error}>{agent.error}</Text> : null}
     </View>
   );
@@ -61,6 +72,14 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 8
   },
+  cardSpeaking: {
+    borderColor: "#0E7490",
+    backgroundColor: "#082F49"
+  },
+  cardError: {
+    borderColor: "#B91C1C",
+    backgroundColor: "#450A0A"
+  },
   sectionTitle: {
     color: "#F8FAFC",
     fontWeight: "700"
@@ -68,8 +87,23 @@ const styles = StyleSheet.create({
   status: {
     color: "#C4B5FD"
   },
+  statusIdle: {
+    color: "#C4B5FD"
+  },
+  statusSpeaking: {
+    color: "#A7F3D0",
+    fontWeight: "700"
+  },
+  statusError: {
+    color: "#FCA5A5",
+    fontWeight: "700"
+  },
   muted: {
     color: "#94A3B8"
+  },
+  agentSpeaking: {
+    color: "#A7F3D0",
+    fontWeight: "600"
   },
   error: {
     color: "#FCA5A5"
@@ -84,6 +118,9 @@ const styles = StyleSheet.create({
   },
   buttonStop: {
     backgroundColor: "#FCA5A5"
+  },
+  buttonStopSpeaking: {
+    backgroundColor: "#FCD34D"
   },
   buttonText: {
     color: "#111827",

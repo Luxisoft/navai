@@ -8,6 +8,7 @@ import type { NavaiRoute } from "./routes";
 import { resolveNavaiFrontendRuntimeConfig } from "./runtime";
 
 type VoiceStatus = "idle" | "connecting" | "connected" | "error";
+type AgentVoiceState = "idle" | "speaking";
 
 type NavaiFrontendEnv = Record<string, string | undefined>;
 
@@ -26,9 +27,11 @@ export type UseWebVoiceAgentOptions = {
 
 export type UseWebVoiceAgentResult = {
   status: VoiceStatus;
+  agentVoiceState: AgentVoiceState;
   error: string | null;
   isConnecting: boolean;
   isConnected: boolean;
+  isAgentSpeaking: boolean;
   start: () => Promise<void>;
   stop: () => void;
 };
@@ -51,6 +54,7 @@ function emitWarnings(warnings: string[]): void {
 
 export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceAgentResult {
   const sessionRef = useRef<RealtimeSession | null>(null);
+  const attachedRealtimeSessionRef = useRef<RealtimeSession | null>(null);
   const runtimeConfigPromise = useMemo(
     () =>
       resolveNavaiFrontendRuntimeConfig({
@@ -84,16 +88,70 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
   );
 
   const [status, setStatus] = useState<VoiceStatus>("idle");
+  const [agentVoiceState, setAgentVoiceState] = useState<AgentVoiceState>("idle");
   const [error, setError] = useState<string | null>(null);
 
+  const setAgentVoiceStateIfChanged = useCallback((next: AgentVoiceState) => {
+    setAgentVoiceState((current) => (current === next ? current : next));
+  }, []);
+
+  const handleSessionAudioStart = useCallback((): void => {
+    setAgentVoiceStateIfChanged("speaking");
+  }, [setAgentVoiceStateIfChanged]);
+
+  const handleSessionAudioStopped = useCallback((): void => {
+    setAgentVoiceStateIfChanged("idle");
+  }, [setAgentVoiceStateIfChanged]);
+
+  const handleSessionAudioInterrupted = useCallback((): void => {
+    setAgentVoiceStateIfChanged("idle");
+  }, [setAgentVoiceStateIfChanged]);
+
+  const handleSessionError = useCallback((): void => {
+    setAgentVoiceStateIfChanged("idle");
+  }, [setAgentVoiceStateIfChanged]);
+
+  const detachSessionAudioListeners = useCallback(() => {
+    const attachedSession = attachedRealtimeSessionRef.current;
+    if (!attachedSession) {
+      return;
+    }
+
+    attachedSession.off("audio_start", handleSessionAudioStart);
+    attachedSession.off("audio_stopped", handleSessionAudioStopped);
+    attachedSession.off("audio_interrupted", handleSessionAudioInterrupted);
+    attachedSession.off("error", handleSessionError);
+    attachedRealtimeSessionRef.current = null;
+  }, [handleSessionAudioInterrupted, handleSessionAudioStart, handleSessionAudioStopped, handleSessionError]);
+
+  const attachSessionAudioListeners = useCallback(
+    (session: RealtimeSession) => {
+      detachSessionAudioListeners();
+      session.on("audio_start", handleSessionAudioStart);
+      session.on("audio_stopped", handleSessionAudioStopped);
+      session.on("audio_interrupted", handleSessionAudioInterrupted);
+      session.on("error", handleSessionError);
+      attachedRealtimeSessionRef.current = session;
+    },
+    [
+      detachSessionAudioListeners,
+      handleSessionAudioInterrupted,
+      handleSessionAudioStart,
+      handleSessionAudioStopped,
+      handleSessionError
+    ]
+  );
+
   const stop = useCallback(() => {
+    detachSessionAudioListeners();
     try {
       sessionRef.current?.close();
     } finally {
       sessionRef.current = null;
       setStatus("idle");
+      setAgentVoiceStateIfChanged("idle");
     }
-  }, []);
+  }, [detachSessionAudioListeners, setAgentVoiceStateIfChanged]);
 
   useEffect(() => {
     return () => {
@@ -108,6 +166,7 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
 
     setError(null);
     setStatus("connecting");
+    setAgentVoiceStateIfChanged("idle");
 
     try {
       const runtimeConfig = await runtimeConfigPromise;
@@ -125,6 +184,7 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
       emitWarnings([...runtimeConfig.warnings, ...backendFunctionsResult.warnings, ...warnings]);
 
       const session = new RealtimeSession(agent);
+      attachSessionAudioListeners(session);
 
       if (runtimeConfig.modelOverride) {
         await session.connect({ apiKey: secretPayload.value, model: runtimeConfig.modelOverride });
@@ -138,6 +198,8 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
       const message = formatError(startError);
       setError(message);
       setStatus("error");
+      setAgentVoiceStateIfChanged("idle");
+      detachSessionAudioListeners();
 
       try {
         sessionRef.current?.close();
@@ -146,13 +208,23 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
       }
       sessionRef.current = null;
     }
-  }, [backendClient, options.navigate, runtimeConfigPromise, status]);
+  }, [
+    attachSessionAudioListeners,
+    backendClient,
+    detachSessionAudioListeners,
+    options.navigate,
+    runtimeConfigPromise,
+    setAgentVoiceStateIfChanged,
+    status
+  ]);
 
   return {
     status,
+    agentVoiceState,
     error,
     isConnecting: status === "connecting",
     isConnected: status === "connected",
+    isAgentSpeaking: agentVoiceState === "speaking",
     start,
     stop
   };
