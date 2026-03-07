@@ -1,6 +1,6 @@
 {
   "name": "@navai/voice-frontend",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Frontend helpers to build OpenAI Realtime voice agents",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@openai/agents": "^0.4.14",
+    "ogl": "^1.0.11",
     "zod": "^4.0.0"
   },
   "peerDependencies": {

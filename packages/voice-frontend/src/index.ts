@@ -30,3 +30,24 @@ export {
   type UseWebVoiceAgentOptions,
   type UseWebVoiceAgentResult
 } from "./useWebVoiceAgent";
+export {
+  Orb,
+  NavaiHeroOrb,
+  NavaiMiniOrbDock,
+  NavaiVoiceHeroOrb,
+  NavaiVoiceOrbDock,
+  NavaiVoiceOrbDockMicIcon,
+  clampNavaiOrbDelayMs,
+  resolveNavaiVoiceOrbRuntimeSnapshot,
+  type NavaiHeroOrbProps,
+  type NavaiMiniOrbDockProps,
+  type NavaiVoiceHeroOrbProps,
+  type NavaiVoiceOrbBaseProps,
+  type NavaiVoiceOrbDockProps,
+  type NavaiVoiceOrbMessages,
+  type NavaiVoiceOrbPlacement,
+  type NavaiVoiceOrbRuntimeSnapshot,
+  type NavaiVoiceOrbThemeMode,
+  type NavaiWebVoiceAgentLike,
+  type OrbProps
+} from "./orb";

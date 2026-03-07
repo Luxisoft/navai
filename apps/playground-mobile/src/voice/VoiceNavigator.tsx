@@ -1,8 +1,9 @@
 import {
+  NavaiMobileVoiceOrbButton,
   useMobileVoiceAgent,
   type ResolveNavaiMobileApplicationRuntimeConfigResult
 } from "@navai/voice-mobile";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 export type VoiceNavigatorProps = {
   activePath: string;
@@ -25,10 +26,7 @@ export function VoiceNavigator({
     runtimeError,
     navigate
   });
-
-  const canStart = !agent.isConnecting && !agent.isConnected;
-  const cardToneStyle =
-    agent.status === "error" ? styles.cardError : agent.isAgentSpeaking ? styles.cardSpeaking : null;
+  const cardToneStyle = agent.status === "error" ? styles.cardError : agent.isAgentSpeaking ? styles.cardSpeaking : null;
   const statusToneStyle =
     agent.status === "error" ? styles.statusError : agent.isAgentSpeaking ? styles.statusSpeaking : styles.statusIdle;
 
@@ -40,25 +38,12 @@ export function VoiceNavigator({
       {runtimeLoading ? <Text style={styles.muted}>Loading runtime configuration...</Text> : null}
       {runtimeError ? <Text style={styles.error}>{runtimeError}</Text> : null}
 
-      {!agent.isConnected ? (
-        <Pressable style={styles.button} onPress={() => void agent.start()} disabled={!canStart}>
-          {agent.isConnecting ? <ActivityIndicator color="#111827" /> : <Text style={styles.buttonText}>Start Voice</Text>}
-        </Pressable>
-      ) : (
-        <Pressable
-          style={[styles.button, styles.buttonStop, agent.isAgentSpeaking ? styles.buttonStopSpeaking : null]}
-          onPress={() => void agent.stop()}
-        >
-          <Text style={styles.buttonText}>{agent.isAgentSpeaking ? "Stop Voice (speaking)" : "Stop Voice"}</Text>
-        </Pressable>
-      )}
+      <NavaiMobileVoiceOrbButton agent={agent} />
 
       <Text style={[styles.status, statusToneStyle]}>Connection: {agent.status}</Text>
-      <Text style={[styles.status, statusToneStyle]}>Agent voice: {agent.agentVoiceState}</Text>
       <Text style={agent.isAgentSpeaking ? styles.agentSpeaking : styles.muted}>
         {agent.isAgentSpeaking ? "Agent is responding by voice." : "Agent is waiting for the next turn."}
       </Text>
-      {agent.error ? <Text style={styles.error}>{agent.error}</Text> : null}
     </View>
   );
 }
@@ -107,23 +92,5 @@ const styles = StyleSheet.create({
   },
   error: {
     color: "#FCA5A5"
-  },
-  button: {
-    marginTop: 4,
-    borderRadius: 8,
-    backgroundColor: "#67E8F9",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 42
-  },
-  buttonStop: {
-    backgroundColor: "#FCA5A5"
-  },
-  buttonStopSpeaking: {
-    backgroundColor: "#FCD34D"
-  },
-  buttonText: {
-    color: "#111827",
-    fontWeight: "700"
   }
 });

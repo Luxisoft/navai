@@ -638,10 +638,12 @@ trait Navai_Voice_Plugin_Helpers_Trait
                 <?php printf(' data-%s="%s"', esc_attr($key), esc_attr($value)); ?>
             <?php endforeach; ?>
         >
-            <button type="button" class="navai-voice-toggle" aria-pressed="false" aria-label="<?php echo esc_attr($startLabel); ?>">
-                <span class="navai-voice-toggle-icon dashicons dashicons-microphone" aria-hidden="true"></span>
-                <span class="navai-voice-toggle-text"><?php echo esc_html($startLabel); ?></span>
-            </button>
+            <div class="navai-voice-orb-shell">
+                <button type="button" class="navai-voice-toggle" aria-pressed="false" aria-label="<?php echo esc_attr($startLabel); ?>">
+                    <span class="navai-voice-toggle-icon dashicons dashicons-microphone" aria-hidden="true"></span>
+                    <span class="navai-voice-toggle-text"><?php echo esc_html($startLabel); ?></span>
+                </button>
+            </div>
             <?php if ($voiceInputMode === 'ptt') : ?>
                 <button
                     type="button"

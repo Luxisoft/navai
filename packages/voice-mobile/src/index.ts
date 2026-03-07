@@ -75,3 +75,9 @@ export {
   type UseMobileVoiceAgentOptions,
   type UseMobileVoiceAgentResult
 } from "./useMobileVoiceAgent";
+export {
+  default as NavaiMobileVoiceOrbButton,
+  type NavaiMobileVoiceAgentLike,
+  type NavaiMobileVoiceOrbButtonProps,
+  type NavaiMobileVoiceOrbMessages
+} from "./ui/NavaiMobileVoiceOrbButton";

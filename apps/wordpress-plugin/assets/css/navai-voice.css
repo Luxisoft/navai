@@ -7,6 +7,7 @@
   flex-direction: column;
   gap: 0.65rem;
   padding: 0.85rem;
+  position: relative;
   border: 1px solid #d9d9d9;
   border-radius: 0.65rem;
   background: #ffffff;
@@ -16,19 +17,99 @@
   box-shadow: 0 4px 14px rgba(18, 42, 72, 0.08);
 }
 
+.navai-voice-orb-shell {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 4.75rem;
+  min-height: 4.75rem;
+  padding: 0.65rem;
+  border-radius: 999px;
+  isolation: isolate;
+}
+
+.navai-voice-orb-shell::before,
+.navai-voice-orb-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.navai-voice-orb-shell::before {
+  background: conic-gradient(
+    from 180deg,
+    rgba(111, 130, 255, 0.8),
+    rgba(69, 195, 224, 0.72),
+    rgba(151, 91, 255, 0.78),
+    rgba(111, 130, 255, 0.8)
+  );
+  filter: blur(14px);
+  opacity: 0.72;
+  animation: navai-voice-orb-spin 12s linear infinite;
+}
+
+.navai-voice-orb-shell::after {
+  inset: 12%;
+  background: radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.2), rgba(16, 25, 53, 0.08) 35%, rgba(10, 14, 36, 0.78) 100%);
+  border: 1px solid rgba(171, 194, 255, 0.22);
+  box-shadow: inset 0 0 22px rgba(10, 14, 36, 0.28), 0 12px 26px rgba(7, 10, 24, 0.24);
+}
+
+.navai-voice-widget.is-connecting .navai-voice-orb-shell::before {
+  background: conic-gradient(
+    from 180deg,
+    rgba(251, 191, 36, 0.86),
+    rgba(244, 114, 182, 0.74),
+    rgba(253, 186, 116, 0.8),
+    rgba(251, 191, 36, 0.86)
+  );
+}
+
+.navai-voice-widget.is-connected .navai-voice-orb-shell::before,
+.navai-voice-widget.is-speaking .navai-voice-orb-shell::before {
+  background: conic-gradient(
+    from 180deg,
+    rgba(255, 102, 153, 0.9),
+    rgba(115, 93, 255, 0.78),
+    rgba(255, 160, 196, 0.82),
+    rgba(255, 102, 153, 0.9)
+  );
+  opacity: 0.86;
+}
+
+.navai-voice-widget.is-error .navai-voice-orb-shell::before {
+  background: conic-gradient(
+    from 180deg,
+    rgba(248, 113, 113, 0.88),
+    rgba(251, 146, 60, 0.74),
+    rgba(244, 63, 94, 0.84),
+    rgba(248, 113, 113, 0.88)
+  );
+}
+
 .navai-voice-toggle {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   cursor: pointer;
-  border: 0;
+  border: 1px solid rgba(167, 193, 255, 0.58);
   border-radius: 0.375rem;
   padding: 0.7rem 0.95rem;
   font-weight: 600;
-  background: var(--navai-btn-idle-color);
-  color: #ffffff;
-  transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  background: linear-gradient(145deg, rgba(245, 249, 255, 0.98), rgba(223, 233, 255, 0.94));
+  color: #2154d9;
+  box-shadow: 0 8px 18px rgba(14, 26, 61, 0.24);
+  transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.navai-voice-toggle:hover:not(:disabled),
+.navai-voice-toggle:focus-visible:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .navai-voice-toggle-icon {
@@ -57,19 +138,26 @@
 }
 
 .navai-voice-widget.is-idle .navai-voice-toggle {
-  background: var(--navai-btn-idle-color);
+  background: linear-gradient(145deg, rgba(245, 249, 255, 0.98), rgba(223, 233, 255, 0.94));
+  color: #2154d9;
 }
 
 .navai-voice-widget.is-connecting .navai-voice-toggle {
-  background: var(--navai-btn-connecting-color);
+  background: linear-gradient(145deg, rgba(255, 246, 214, 0.98), rgba(252, 220, 128, 0.94));
+  color: #7c4300;
+  border-color: rgba(251, 191, 36, 0.92);
 }
 
 .navai-voice-widget.is-connected .navai-voice-toggle {
-  background: var(--navai-btn-connected-color);
+  background: rgba(255, 92, 132, 0.96);
+  color: rgba(53, 7, 24, 0.98);
+  border-color: rgba(255, 164, 190, 0.98);
 }
 
 .navai-voice-widget.is-error .navai-voice-toggle {
-  background: var(--navai-btn-error-color);
+  background: rgba(252, 165, 165, 0.96);
+  color: #5b0c0c;
+  border-color: rgba(248, 113, 113, 0.92);
 }
 
 .navai-voice-widget.is-listening .navai-voice-toggle {
@@ -326,11 +414,17 @@
   right: 20px;
 }
 
+.navai-voice-widget--floating .navai-voice-orb-shell {
+  min-width: 5.25rem;
+  min-height: 5.25rem;
+  padding: 0;
+}
+
 .navai-voice-widget--floating .navai-voice-toggle {
-  min-height: 48px;
+  min-height: 3.1rem;
   border-radius: 999px;
-  padding: 0.75rem 1rem;
-  box-shadow: 0 8px 18px rgba(8, 29, 59, 0.22);
+  padding: 0.72rem 0.96rem;
+  box-shadow: 0 10px 24px rgba(8, 29, 59, 0.26);
 }
 
 .navai-voice-widget--floating .navai-voice-ptt {
@@ -350,14 +444,19 @@
 }
 
 .navai-voice-widget--floating[data-show-text="0"] .navai-voice-toggle {
-  width: 52px;
-  min-width: 52px;
-  min-height: 52px;
+  width: 3.2rem;
+  min-width: 3.2rem;
+  min-height: 3.2rem;
   padding: 0;
 }
 
 .navai-voice-widget--floating .navai-voice-status {
   display: none !important;
+}
+
+.navai-voice-widget--floating.is-error .navai-voice-status {
+  display: block !important;
+  width: min(86vw, 20rem);
 }
 
 .navai-voice-widget--floating .navai-voice-log {
@@ -415,6 +514,16 @@
   }
   75% {
     transform: translateX(1px);
+  }
+}
+
+@keyframes navai-voice-orb-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }
 

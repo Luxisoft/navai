@@ -1,6 +1,6 @@
 {
   "name": "@navai/voice-mobile",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Mobile helpers to integrate OpenAI Realtime voice with Navai backend routes",
   "type": "module",
   "main": "./dist/index.cjs",
