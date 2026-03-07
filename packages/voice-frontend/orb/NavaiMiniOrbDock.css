@@ -1,0 +1,285 @@
+.navai-mini-dock {
+  position: fixed;
+  right: calc(clamp(0.75rem, 1.8vw, 1.4rem) + env(safe-area-inset-right));
+  bottom: calc(clamp(0.9rem, 1.8vw, 1.4rem) + env(safe-area-inset-bottom));
+  z-index: 70;
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  pointer-events: none;
+}
+
+.navai-mini-dock--in-topbar-mobile {
+  position: static;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  pointer-events: auto;
+}
+
+.navai-mini-dock--in-topbar-mobile .navai-mini-orb-wrap {
+  pointer-events: auto;
+}
+
+.navai-mini-orb-wrap {
+  position: relative;
+  width: clamp(4.4rem, 8.2vw, 5.7rem);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.navai-mini-orb {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: none;
+  opacity: 1;
+  transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease;
+  pointer-events: none;
+}
+
+.navai-mini-orb.is-active {
+  opacity: 1;
+  transform: scale(1.03);
+  box-shadow: none;
+}
+
+.navai-mini-orb .orb-container {
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  clip-path: circle(calc(50% - 3px) at 50% 50%);
+}
+
+.navai-mini-orb .orb-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  transform: scale(1.08);
+  transform-origin: center;
+}
+
+.navai-mini-mic-shell {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: clamp(2.75rem, 5.4vw, 3.15rem);
+  height: clamp(2.75rem, 5.4vw, 3.15rem);
+  border-radius: 9999px;
+  border: 1px solid rgba(158, 182, 255, 0.36);
+  background: rgba(14, 12, 36, 0.68);
+  box-shadow: inset 0 0 24px rgba(11, 14, 38, 0.28), 0 8px 18px rgba(7, 9, 24, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+.navai-mini-mic-shell.is-ready {
+  border-color: rgba(176, 204, 255, 0.56);
+}
+
+.navai-mini-mic-shell.is-active {
+  border-color: rgba(255, 165, 196, 0.92);
+  box-shadow:
+    0 0 0 2px rgba(255, 120, 176, 0.18),
+    inset 0 0 30px rgba(37, 13, 33, 0.32),
+    0 10px 20px rgba(77, 16, 49, 0.44);
+}
+
+.navai-mini-mic-button {
+  display: grid;
+  place-items: center;
+  width: clamp(2.1rem, 4.4vw, 2.45rem);
+  height: clamp(2.1rem, 4.4vw, 2.45rem);
+  border-radius: 9999px;
+  border: 1px solid rgba(164, 192, 255, 0.5);
+  background: linear-gradient(145deg, rgba(245, 249, 255, 0.95), rgba(225, 236, 255, 0.94));
+  color: #2457dc;
+  box-shadow: 0 6px 16px rgba(12, 25, 66, 0.34);
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease, border-color 160ms ease;
+}
+
+.navai-mini-mic-button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.02);
+}
+
+.navai-mini-mic-button.is-active {
+  background: rgba(255, 92, 132, 0.94);
+  color: rgba(50, 8, 20, 0.98);
+  border-color: rgba(255, 154, 183, 0.95);
+  box-shadow: 0 0 0 3px rgba(255, 108, 154, 0.24), 0 10px 24px rgba(96, 14, 39, 0.42);
+}
+
+.navai-mini-mic-button:disabled {
+  opacity: 0.78;
+  cursor: not-allowed;
+}
+
+.navai-mini-status {
+  margin: 0.45rem 0 0;
+  max-width: min(16rem, 42vw);
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.62rem;
+  border: 1px solid rgba(250, 204, 21, 0.42);
+  background: rgba(35, 22, 8, 0.72);
+  color: rgba(255, 236, 179, 0.96);
+  font-size: 0.68rem;
+  line-height: 1.25;
+  text-align: center;
+  pointer-events: auto;
+  box-shadow: 0 6px 14px rgba(10, 6, 2, 0.38);
+}
+
+.navai-mini-mic-glyph {
+  display: block;
+}
+
+.navai-mini-mic-glyph.pulse {
+  animation: navai-mini-mic-pulse 1.05s ease-in-out infinite;
+}
+
+.navai-mini-dock .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes navai-mini-mic-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.78;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.light .navai-mini-orb {
+  box-shadow: none;
+}
+
+.light .navai-mini-orb.is-active {
+  box-shadow: none;
+}
+
+.light .navai-mini-mic-shell {
+  border-color: rgba(123, 150, 230, 0.36);
+  background: rgba(244, 249, 255, 0.88);
+  box-shadow: inset 0 0 20px rgba(111, 134, 183, 0.14), 0 8px 18px rgba(85, 108, 157, 0.24);
+}
+
+.light .navai-mini-mic-shell.is-ready {
+  border-color: rgba(78, 137, 236, 0.54);
+}
+
+.light .navai-mini-mic-shell.is-active {
+  border-color: rgba(255, 135, 185, 0.82);
+  box-shadow:
+    0 0 0 2px rgba(255, 130, 183, 0.18),
+    inset 0 0 24px rgba(255, 141, 191, 0.2),
+    0 10px 24px rgba(141, 81, 110, 0.24);
+}
+
+.light .navai-mini-mic-button {
+  border-color: rgba(70, 136, 246, 0.42);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(229, 239, 255, 0.94));
+  color: #1e3a8a;
+  box-shadow: 0 8px 20px rgba(71, 85, 105, 0.2);
+}
+
+.light .navai-mini-status {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(255, 251, 235, 0.96);
+  color: #92400e;
+  box-shadow: 0 8px 16px rgba(120, 53, 15, 0.14);
+}
+
+@media (max-width: 768px) {
+  .navai-mini-dock {
+    right: calc(0.8rem + env(safe-area-inset-right));
+    bottom: calc(0.85rem + env(safe-area-inset-bottom));
+  }
+
+  .navai-mini-orb-wrap {
+    width: clamp(4rem, 20vw, 4.8rem);
+  }
+
+  .navai-mini-mic-shell {
+    width: clamp(2.5rem, 12vw, 2.9rem);
+    height: clamp(2.5rem, 12vw, 2.9rem);
+  }
+
+  .navai-mini-mic-button {
+    width: clamp(1.95rem, 9.6vw, 2.3rem);
+    height: clamp(1.95rem, 9.6vw, 2.3rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-orb-wrap {
+    width: clamp(3.2rem, 15vw, 3.8rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-mic-shell {
+    width: clamp(2.05rem, 10.4vw, 2.4rem);
+    height: clamp(2.05rem, 10.4vw, 2.4rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-mic-button {
+    width: clamp(1.6rem, 7.8vw, 1.9rem);
+    height: clamp(1.6rem, 7.8vw, 1.9rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .navai-mini-dock {
+    right: calc(0.62rem + env(safe-area-inset-right));
+    bottom: calc(0.62rem + env(safe-area-inset-bottom));
+  }
+
+  .navai-mini-orb-wrap {
+    width: clamp(3.7rem, 24vw, 4.3rem);
+  }
+
+  .navai-mini-mic-shell {
+    width: clamp(2.32rem, 13.5vw, 2.7rem);
+    height: clamp(2.32rem, 13.5vw, 2.7rem);
+  }
+
+  .navai-mini-mic-button {
+    width: clamp(1.84rem, 10vw, 2.16rem);
+    height: clamp(1.84rem, 10vw, 2.16rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-orb-wrap {
+    width: clamp(3rem, 16vw, 3.5rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-mic-shell {
+    width: clamp(1.98rem, 10.8vw, 2.28rem);
+    height: clamp(1.98rem, 10.8vw, 2.28rem);
+  }
+
+  .navai-mini-dock--in-topbar-mobile .navai-mini-mic-button {
+    width: clamp(1.55rem, 8vw, 1.82rem);
+    height: clamp(1.55rem, 8vw, 1.82rem);
+  }
+}
