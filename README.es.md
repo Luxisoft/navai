@@ -104,6 +104,14 @@ Descripcion rapida:
 - `NAVAI_FUNCTIONS_FOLDERS`: rutas de funciones frontend que se cargan dinamicamente.
 - `NAVAI_ROUTES_FILE`: modulo de rutas navegables permitido para `navigate_to`.
 
+Llamada rapida del componente web:
+
+```tsx
+import { NavaiVoiceOrbDock } from "@navai/voice-frontend";
+
+<NavaiVoiceOrbDock agent={agent} placement="inline" themeMode="light" />
+```
+
 3. Cree un archivo de rutas y define la navegacion que va a utilizar NAVAI, por ejemplo crear un archivo en `src/ai/routes.ts`:
 
 ```ts
@@ -194,6 +202,14 @@ Descripcion rapida:
 - `NAVAI_API_URL`: URL base del backend accesible desde mobile.
 - `NAVAI_FUNCTIONS_FOLDERS`: rutas de modulos de funciones locales mobile.
 - `NAVAI_ROUTES_FILE`: modulo de rutas permitidas para tools de navegacion mobile.
+
+Llamada rapida del componente mobile:
+
+```tsx
+import { NavaiMobileVoiceOrbButton } from "@navai/voice-mobile";
+
+<NavaiMobileVoiceOrbButton agent={agent} />
+```
 
 3. Genera los module loaders mobile:
 
