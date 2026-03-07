@@ -56,6 +56,7 @@ class Navai_Voice_Settings
             [__('Funciones', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#plugins'],
             [__('Agentes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#agents'],
             [__('MCP', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#mcp'],
+            [__('Estadisticas', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#statistics'],
             [__('Ajustes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#settings'],
             [__('Documentacion', 'navai-voice'), 'manage_options', $documentationUrl],
         ];
@@ -95,7 +96,7 @@ class Navai_Voice_Settings
         $ttl = ($ttlInput >= 10 && $ttlInput <= 7200) ? $ttlInput : (int) $defaults['client_secret_ttl'];
 
         $activeTab = isset($source['active_tab']) ? sanitize_key((string) $source['active_tab']) : 'navigation';
-        if (!in_array($activeTab, ['navigation', 'plugins', 'safety', 'approvals', 'traces', 'history', 'agents', 'mcp', 'settings'], true)) {
+        if (!in_array($activeTab, ['navigation', 'plugins', 'safety', 'approvals', 'traces', 'history', 'agents', 'mcp', 'statistics', 'settings'], true)) {
             $activeTab = 'navigation';
         }
         $dashboardLanguage = $this->sanitize_dashboard_language(

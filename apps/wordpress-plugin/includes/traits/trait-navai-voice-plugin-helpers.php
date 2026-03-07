@@ -445,6 +445,37 @@ trait Navai_Voice_Plugin_Helpers_Trait
         return $color;
     }
 
+    private function hex_to_rgba(string $color, float $alpha): string
+    {
+        $hex = sanitize_hex_color($color);
+        if (!is_string($hex) || trim($hex) === '') {
+            $hex = '#000000';
+        }
+
+        $alpha = max(0.0, min(1.0, $alpha));
+        $red = hexdec(substr($hex, 1, 2));
+        $green = hexdec(substr($hex, 3, 2));
+        $blue = hexdec(substr($hex, 5, 2));
+        $alphaText = rtrim(rtrim(sprintf('%.3F', $alpha), '0'), '.');
+
+        return sprintf('rgba(%d, %d, %d, %s)', $red, $green, $blue, $alphaText === '' ? '0' : $alphaText);
+    }
+
+    private function resolve_button_fill_text_color(string $color): string
+    {
+        $hex = sanitize_hex_color($color);
+        if (!is_string($hex) || trim($hex) === '') {
+            return '#ffffff';
+        }
+
+        $red = hexdec(substr($hex, 1, 2));
+        $green = hexdec(substr($hex, 3, 2));
+        $blue = hexdec(substr($hex, 5, 2));
+        $luminance = (($red * 299) + ($green * 587) + ($blue * 114)) / 1000;
+
+        return $luminance >= 170 ? '#10245e' : '#ffffff';
+    }
+
     /**
      * @param array<string, mixed> $settings
      */
@@ -570,8 +601,9 @@ trait Navai_Voice_Plugin_Helpers_Trait
         }
         $buttonColorActive = isset($options['button_color_active']) ? sanitize_hex_color((string) $options['button_color_active']) : null;
         if (!is_string($buttonColorActive) || trim($buttonColorActive) === '') {
-            $buttonColorActive = '#10883f';
+            $buttonColorActive = '#ff5c84';
         }
+        $buttonColorActiveText = $this->resolve_button_fill_text_color($buttonColorActive);
         $showButtonText = array_key_exists('show_button_text', $options) ? !empty($options['show_button_text']) : true;
         $voiceInputMode = isset($options['voice_input_mode'])
             ? $this->sanitize_frontend_voice_input_mode((string) $options['voice_input_mode'])
@@ -587,7 +619,22 @@ trait Navai_Voice_Plugin_Helpers_Trait
         if (trim($textPlaceholder) === '') {
             $textPlaceholder = __('Escribe un mensaje...', 'navai-voice');
         }
-        $widgetInlineStyle = '--navai-btn-idle-color:' . $buttonColorIdle . ';--navai-btn-connected-color:' . $buttonColorActive . ';';
+        $widgetInlineStyle = implode('', [
+            '--navai-btn-idle-color:', $buttonColorIdle, ';',
+            '--navai-btn-idle-text-color:', $buttonColorIdle, ';',
+            '--navai-btn-idle-fill-start:', $this->hex_to_rgba($buttonColorIdle, 0.24), ';',
+            '--navai-btn-idle-fill-end:', $this->hex_to_rgba($buttonColorIdle, 0.1), ';',
+            '--navai-btn-idle-border-color:', $this->hex_to_rgba($buttonColorIdle, 0.42), ';',
+            '--navai-btn-idle-shell-border-color:', $this->hex_to_rgba($buttonColorIdle, 0.34), ';',
+            '--navai-btn-idle-shell-glow-color:', $this->hex_to_rgba($buttonColorIdle, 0.16), ';',
+            '--navai-btn-connected-color:', $buttonColorActive, ';',
+            '--navai-btn-connected-text-color:', $buttonColorActiveText, ';',
+            '--navai-btn-connected-fill-start:', $this->hex_to_rgba($buttonColorActive, 0.72), ';',
+            '--navai-btn-connected-fill-end:', $this->hex_to_rgba($buttonColorActive, 0.42), ';',
+            '--navai-btn-connected-border-color:', $this->hex_to_rgba($buttonColorActive, 0.9), ';',
+            '--navai-btn-connected-shell-border-color:', $this->hex_to_rgba($buttonColorActive, 0.76), ';',
+            '--navai-btn-connected-shell-glow-color:', $this->hex_to_rgba($buttonColorActive, 0.24), ';',
+        ]);
 
         $widgetClass = 'navai-voice-widget';
         if ($floating) {
@@ -639,22 +686,14 @@ trait Navai_Voice_Plugin_Helpers_Trait
             <?php endforeach; ?>
         >
             <div class="navai-voice-orb-shell">
-                <button type="button" class="navai-voice-toggle" aria-pressed="false" aria-label="<?php echo esc_attr($startLabel); ?>">
-                    <span class="navai-voice-toggle-icon dashicons dashicons-microphone" aria-hidden="true"></span>
-                    <span class="navai-voice-toggle-text"><?php echo esc_html($startLabel); ?></span>
-                </button>
+                <span class="navai-voice-orb-surface" aria-hidden="true"></span>
+                <span class="navai-voice-orb-button-shell">
+                    <button type="button" class="navai-voice-toggle" aria-pressed="false" aria-label="<?php echo esc_attr($startLabel); ?>">
+                        <span class="navai-voice-toggle-icon dashicons dashicons-microphone" aria-hidden="true"></span>
+                        <span class="navai-voice-toggle-text"><?php echo esc_html($startLabel); ?></span>
+                    </button>
+                </span>
             </div>
-            <?php if ($voiceInputMode === 'ptt') : ?>
-                <button
-                    type="button"
-                    class="navai-voice-ptt"
-                    aria-label="<?php echo esc_attr__('Push to talk', 'navai-voice'); ?>"
-                    disabled
-                >
-                    <span class="dashicons dashicons-controls-volumeon" aria-hidden="true"></span>
-                    <span class="navai-voice-ptt-text"><?php echo esc_html__('Mantener para hablar', 'navai-voice'); ?></span>
-                </button>
-            <?php endif; ?>
             <?php if ($textInputEnabled) : ?>
                 <?php $textInputId = 'navai-voice-text-' . wp_generate_uuid4(); ?>
                 <form class="navai-voice-text-form" novalidate>

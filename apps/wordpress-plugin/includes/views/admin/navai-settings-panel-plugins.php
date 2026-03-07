@@ -212,6 +212,56 @@
                                 </div>
                             </div>
 
+                            <div class="navai-plugin-function-modal navai-plugin-function-delete-modal" hidden>
+                                <div
+                                    class="navai-plugin-function-modal-dialog"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="navai-plugin-function-delete-modal-title"
+                                >
+                                    <div class="navai-plugin-function-modal-head">
+                                        <div>
+                                            <h4
+                                                id="navai-plugin-function-delete-modal-title"
+                                                class="navai-plugin-function-modal-title navai-plugin-function-delete-modal-title"
+                                            >
+                                                <?php echo esc_html__('Eliminar funcion', 'navai-voice'); ?>
+                                            </h4>
+                                            <p class="navai-admin-description navai-plugin-function-delete-message">
+                                                <?php echo esc_html__('La funcion se eliminara inmediatamente del plugin y de la lista permitida.', 'navai-voice'); ?>
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="button button-secondary button-small navai-plugin-function-delete-cancel navai-plugin-function-modal-dismiss--top"
+                                        >
+                                            <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                                        </button>
+                                    </div>
+
+                                    <div class="navai-plugin-function-transfer-panel">
+                                        <div class="navai-plugin-function-delete-note">
+                                            <strong class="navai-plugin-function-delete-target"></strong>
+                                            <p class="navai-admin-description">
+                                                <?php echo esc_html__('La funcion se eliminara inmediatamente del plugin y de la lista permitida.', 'navai-voice'); ?>
+                                            </p>
+                                        </div>
+                                        <p class="navai-admin-description navai-plugin-function-delete-status" hidden></p>
+                                        <div class="navai-plugin-function-editor-actions">
+                                            <button
+                                                type="button"
+                                                class="button button-secondary navai-plugin-func-delete navai-plugin-function-delete-confirm"
+                                            >
+                                                <?php echo esc_html__('Eliminar', 'navai-voice'); ?>
+                                            </button>
+                                            <button type="button" class="button button-secondary navai-plugin-function-delete-cancel">
+                                                <?php echo esc_html__('Cerrar', 'navai-voice'); ?>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="navai-plugin-function-transfer-modal navai-plugin-function-export-modal" hidden>
                                 <div
                                     class="navai-plugin-function-transfer-modal-dialog"

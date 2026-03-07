@@ -521,18 +521,28 @@
         var importPreviewNode = builder.querySelector(".navai-plugin-function-import-preview");
         var importStatusNode = builder.querySelector(".navai-plugin-function-import-status");
         var importRunButton = builder.querySelector(".navai-plugin-function-import-run");
-        if (!pluginEditorSelect || !roleEditorSelect || !nameEditorInput || !codeEditorInput || !descriptionEditorInput || !scopeEditorSelect || !timeoutEditorInput || !retriesEditorInput || !requiresApprovalEditorInput || !editorStatusNode || !editorIdInput || !editorIndexInput || !saveButton || !cancelButton) {
+        var deleteModal = builder.querySelector(".navai-plugin-function-delete-modal");
+        var deleteModalTitle = builder.querySelector(".navai-plugin-function-delete-modal-title");
+        var deleteMessageNode = builder.querySelector(".navai-plugin-function-delete-message");
+        var deleteTargetNode = builder.querySelector(".navai-plugin-function-delete-target");
+        var deleteStatusNode = builder.querySelector(".navai-plugin-function-delete-status");
+        var deleteConfirmButton = builder.querySelector(".navai-plugin-function-delete-confirm");
+        var deleteCancelButtons = builder.querySelectorAll(".navai-plugin-function-delete-cancel");
+        if (!pluginEditorSelect || !roleEditorSelect || !nameEditorInput || !codeEditorInput || !descriptionEditorInput || !scopeEditorSelect || !timeoutEditorInput || !retriesEditorInput || !requiresApprovalEditorInput || !editorStatusNode || !editorIdInput || !editorIndexInput || !saveButton || !cancelButton || !deleteModal || !deleteModalTitle || !deleteMessageNode || !deleteTargetNode || !deleteStatusNode || !deleteConfirmButton || !deleteCancelButtons.length) {
           return;
         }
         preventModalBackdropClose(modal);
         preventModalBackdropClose(exportModal);
         preventModalBackdropClose(importModal);
+        preventModalBackdropClose(deleteModal);
         var editorArgumentSchemaJson = "";
         var functionCodeEditor = null;
         var functionSaveInFlight = false;
         var exportSelectionById = {};
         var importFileCache = null;
         var importInFlight = false;
+        var functionDeleteInFlight = false;
+        var pendingDeleteFunctionId = "";
         var functionAgentsCache = [];
         var functionAgentsLoaded = false;
         var functionAgentsLoadPromise = null;
@@ -1315,6 +1325,32 @@
 
         function closeTransferModal(modalNode) {
           setTransferModalOpenState(modalNode, false);
+        }
+
+        function setDeleteModalBusy(isBusy) {
+          functionDeleteInFlight = !!isBusy;
+          if (deleteConfirmButton) {
+            deleteConfirmButton.disabled = !!isBusy;
+          }
+          if (deleteCancelButtons && deleteCancelButtons.length) {
+            for (var deleteCancelIndex = 0; deleteCancelIndex < deleteCancelButtons.length; deleteCancelIndex += 1) {
+              if (!deleteCancelButtons[deleteCancelIndex]) {
+                continue;
+              }
+              deleteCancelButtons[deleteCancelIndex].disabled = !!isBusy;
+            }
+          }
+        }
+
+        function setDeleteModalOpenState(isOpen) {
+          setTransferModalOpenState(deleteModal, isOpen);
+        }
+
+        function closeDeleteModal() {
+          pendingDeleteFunctionId = "";
+          setDeleteModalBusy(false);
+          setInlineStatus(deleteStatusNode, "", "");
+          setDeleteModalOpenState(false);
         }
 
         function readAllStoredFunctionsData() {
@@ -2879,20 +2915,56 @@
           }
         }
 
-        function removeFunctionById(rowId) {
+        function openDeleteFunctionModal(rowId) {
           if (!rowId) {
             return;
           }
 
           var rowNode = getStorageRowById(rowId);
-          if (rowNode && rowNode.parentNode) {
-            rowNode.parentNode.removeChild(rowNode);
+          var data = rowNode ? readStorageRowData(rowNode) : null;
+          if (!data) {
+            return;
           }
-          removeListItemById(rowId);
-          if (String(editorIdInput.value || "") === String(rowId)) {
-            resetEditor(false);
+
+          pendingDeleteFunctionId = String(rowId || "");
+          deleteModalTitle.textContent = tAdmin("Eliminar funcion");
+          deleteMessageNode.textContent = tAdmin("La funcion se eliminara inmediatamente del plugin y de la lista permitida.");
+          deleteTargetNode.textContent = tAdmin("Funcion") + ": " + String(data.functionName || buildFunctionNameFromId(rowId) || rowId);
+          setInlineStatus(deleteStatusNode, "", "");
+          setDeleteModalBusy(false);
+          setDeleteModalOpenState(true);
+        }
+
+        async function deleteFunctionById(rowId) {
+          if (!rowId || functionDeleteInFlight) {
+            return false;
           }
-          applyPluginFunctionFilters(pluginPanel);
+
+          setInlineStatus(deleteStatusNode, tAdmin("Eliminando funcion..."), "info");
+          setDeleteModalBusy(true);
+
+          try {
+            var deleteResponse = await adminApiRequest("/plugin-functions/" + encodeURIComponent(String(rowId || "")), "DELETE");
+            if (!deleteResponse || deleteResponse.ok !== true) {
+              throw new Error(tAdmin("No se pudo eliminar la funcion."));
+            }
+
+            if (deleteResponse.state) {
+              syncPluginFunctionBuilderState(deleteResponse.state);
+            }
+            if (String(editorIdInput.value || "") === String(rowId)) {
+              closeEditorModal(true);
+            }
+            closeDeleteModal();
+            setEditorStatus(tAdmin("Funcion eliminada."), "success");
+            return true;
+          } catch (error) {
+            var errorMessage = error && error.message ? String(error.message) : tAdmin("No se pudo eliminar la funcion.");
+            setInlineStatus(deleteStatusNode, errorMessage, "error");
+            return false;
+          } finally {
+            setDeleteModalBusy(false);
+          }
         }
 
         editor.addEventListener("click", function (event) {
@@ -3069,6 +3141,26 @@
           }
         });
 
+        deleteModal.addEventListener("click", function (event) {
+          var target = event.target;
+          if (!target || !target.closest) {
+            return;
+          }
+
+          var dismissButton = target.closest(".navai-plugin-function-delete-cancel");
+          if (dismissButton && deleteModal.contains(dismissButton)) {
+            event.preventDefault();
+            closeDeleteModal();
+          }
+        });
+
+        if (deleteConfirmButton) {
+          deleteConfirmButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            void deleteFunctionById(pendingDeleteFunctionId);
+          });
+        }
+
         builder.__navaiPluginEditorApi = {
           openCreate: function () {
             openCreateEditorModal();
@@ -3081,7 +3173,7 @@
             loadEditorFromRow(rowNode);
           },
           removeById: function (rowId) {
-            removeFunctionById(rowId);
+            openDeleteFunctionModal(rowId);
           }
         };
 
@@ -4678,6 +4770,565 @@
 
     hideSessionDetail();
     loadSessions();
+  }
+
+  function initStatisticsControls() {
+    var panel = document.querySelector('[data-navai-panel="statistics"] [data-navai-stats-panel]');
+    if (!panel || panel.__navaiStatisticsReady) {
+      return;
+    }
+    panel.__navaiStatisticsReady = true;
+
+    var fromInput = panel.querySelector(".navai-stats-filter-from");
+    var toInput = panel.querySelector(".navai-stats-filter-to");
+    var modelSelect = panel.querySelector(".navai-stats-filter-model");
+    var agentSelect = panel.querySelector(".navai-stats-filter-agent");
+    var applyButton = panel.querySelector(".navai-stats-apply");
+    var clearButton = panel.querySelector(".navai-stats-clear");
+    var rangeButtons = panel.querySelectorAll(".navai-stats-range-button");
+    var pricingNote = panel.querySelector(".navai-stats-pricing-note");
+    var emptyState = panel.querySelector("[data-navai-stats-empty]");
+
+    var summaryTotalTokens = panel.querySelector('[data-navai-stats-summary="total_tokens"]');
+    var summaryEstimatedCost = panel.querySelector('[data-navai-stats-summary="estimated_cost_usd"]');
+    var summaryResponses = panel.querySelector('[data-navai-stats-summary="responses_count"]');
+    var summarySessions = panel.querySelector('[data-navai-stats-summary="sessions_count"]');
+    var summaryIoMeta = panel.querySelector('[data-navai-stats-summary-meta="io"]');
+    var summaryCachedMeta = panel.querySelector('[data-navai-stats-summary-meta="cached"]');
+
+    var dailyBars = panel.querySelector('[data-navai-stats-bars="daily"]');
+    var modelBars = panel.querySelector('[data-navai-stats-bars="models"]');
+    var agentBars = panel.querySelector('[data-navai-stats-bars="agents"]');
+
+    var dailyTable = panel.querySelector('[data-navai-stats-table="daily"]');
+    var modelTable = panel.querySelector('[data-navai-stats-table="models"]');
+    var agentTable = panel.querySelector('[data-navai-stats-table="agents"]');
+
+    if (!fromInput || !toInput || !modelSelect || !agentSelect || !dailyBars || !modelBars || !agentBars || !dailyTable || !modelTable || !agentTable) {
+      return;
+    }
+
+    function currentLocale() {
+      var lang = currentDashboardLanguage();
+      var map = {
+        es: "es-ES",
+        en: "en-US",
+        pt: "pt-BR",
+        fr: "fr-FR",
+        ru: "ru-RU",
+        ko: "ko-KR",
+        ja: "ja-JP",
+        zh: "zh-CN",
+        hi: "hi-IN"
+      };
+      return map[lang] || "en-US";
+    }
+
+    function formatNumber(value) {
+      var number = Number(value || 0);
+      if (!isFinite(number)) {
+        number = 0;
+      }
+
+      try {
+        return new Intl.NumberFormat(currentLocale(), {
+          maximumFractionDigits: 0
+        }).format(number);
+      } catch (_error) {
+        return String(Math.round(number));
+      }
+    }
+
+    function formatCurrency(value) {
+      var number = Number(value || 0);
+      if (!isFinite(number)) {
+        number = 0;
+      }
+
+      try {
+        return new Intl.NumberFormat(currentLocale(), {
+          style: "currency",
+          currency: "USD",
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 4
+        }).format(number);
+      } catch (_error) {
+        return "$" + number.toFixed(4);
+      }
+    }
+
+    function labelForAgent(item) {
+      if (item && typeof item.label === "string" && item.label.trim() !== "") {
+        return item.label;
+      }
+      if (item && typeof item.agent_name === "string" && item.agent_name.trim() !== "") {
+        return item.agent_name;
+      }
+      if (item && typeof item.agent_key === "string" && item.agent_key.trim() !== "") {
+        return item.agent_key;
+      }
+      return tAdmin("Sin agente asignado");
+    }
+
+    function labelForModel(item) {
+      if (item && typeof item.label === "string" && item.label.trim() !== "") {
+        return item.label;
+      }
+      if (item && typeof item.model === "string" && item.model.trim() !== "") {
+        return item.model;
+      }
+      if (item && typeof item.value === "string" && item.value.trim() !== "") {
+        return item.value;
+      }
+      return tAdmin("Modelo no identificado");
+    }
+
+    function zeroSummary() {
+      return {
+        responses_count: 0,
+        sessions_count: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        total_tokens: 0,
+        cached_input_tokens: 0,
+        estimated_cost_usd: 0
+      };
+    }
+
+    function setSummary(summary) {
+      var data = summary && typeof summary === "object" ? summary : zeroSummary();
+      if (summaryTotalTokens) {
+        summaryTotalTokens.textContent = formatNumber(data.total_tokens || 0);
+      }
+      if (summaryEstimatedCost) {
+        summaryEstimatedCost.textContent = formatCurrency(data.estimated_cost_usd || 0);
+      }
+      if (summaryResponses) {
+        summaryResponses.textContent = formatNumber(data.responses_count || 0);
+      }
+      if (summarySessions) {
+        summarySessions.textContent = formatNumber(data.sessions_count || 0);
+      }
+      if (summaryIoMeta) {
+        summaryIoMeta.textContent = tAdmin("Entrada") + " " + formatNumber(data.input_tokens || 0) + " · " + tAdmin("Salida") + " " + formatNumber(data.output_tokens || 0);
+      }
+      if (summaryCachedMeta) {
+        summaryCachedMeta.textContent = tAdmin("Cache") + " " + formatNumber(data.cached_input_tokens || 0);
+      }
+    }
+
+    function setEmptyState(message, visible) {
+      if (!emptyState) {
+        return;
+      }
+      emptyState.textContent = message || tAdmin("No hay datos de uso todavia. Los nuevos eventos response.done llenaran este panel automaticamente.");
+      if (visible) {
+        emptyState.removeAttribute("hidden");
+      } else {
+        emptyState.setAttribute("hidden", "hidden");
+      }
+    }
+
+    function setLoadingState() {
+      setSummary(zeroSummary());
+      if (pricingNote) {
+        pricingNote.textContent = tAdmin("Cargando estadisticas...");
+      }
+      dailyBars.innerHTML = "";
+      modelBars.innerHTML = "";
+      agentBars.innerHTML = "";
+      dailyTable.innerHTML = "";
+      modelTable.innerHTML = "";
+      agentTable.innerHTML = "";
+      setEmptyState(tAdmin("Cargando estadisticas..."), true);
+    }
+
+    function populateSelectOptions(selectNode, items, defaultLabel, selectedValue, labelResolver) {
+      if (!selectNode) {
+        return;
+      }
+
+      selectNode.innerHTML = "";
+      var defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = defaultLabel;
+      selectNode.appendChild(defaultOption);
+
+      var safeItems = Array.isArray(items) ? items : [];
+      for (var i = 0; i < safeItems.length; i += 1) {
+        var item = safeItems[i];
+        if (!item || typeof item !== "object") {
+          continue;
+        }
+
+        var value = typeof item.value === "string" ? item.value : "";
+        if (!value) {
+          continue;
+        }
+
+        var option = document.createElement("option");
+        option.value = value;
+        option.textContent = labelResolver(item);
+        if (selectedValue && value === selectedValue) {
+          option.selected = true;
+        }
+        selectNode.appendChild(option);
+      }
+    }
+
+    function renderBarRows(container, items, maxBars, labelResolver) {
+      container.innerHTML = "";
+      var safeItems = Array.isArray(items) ? items.slice(0) : [];
+      if (!safeItems.length) {
+        var empty = document.createElement("p");
+        empty.className = "navai-admin-description";
+        empty.textContent = tAdmin("No hay datos de uso todavia. Los nuevos eventos response.done llenaran este panel automaticamente.");
+        container.appendChild(empty);
+        return;
+      }
+
+      if (typeof maxBars === "number" && maxBars > 0 && safeItems.length > maxBars) {
+        safeItems = safeItems.slice(0, maxBars);
+      }
+
+      var maxTokens = 0;
+      for (var i = 0; i < safeItems.length; i += 1) {
+        var itemTokens = Number(safeItems[i] && safeItems[i].total_tokens ? safeItems[i].total_tokens : 0);
+        if (isFinite(itemTokens) && itemTokens > maxTokens) {
+          maxTokens = itemTokens;
+        }
+      }
+      if (maxTokens <= 0) {
+        maxTokens = 1;
+      }
+
+      for (var rowIndex = 0; rowIndex < safeItems.length; rowIndex += 1) {
+        var item = safeItems[rowIndex];
+        var row = document.createElement("div");
+        row.className = "navai-stats-bar-row";
+
+        var meta = document.createElement("div");
+        meta.className = "navai-stats-bar-meta";
+        var strong = document.createElement("strong");
+        strong.textContent = labelResolver(item);
+        var span = document.createElement("span");
+        span.textContent = formatNumber(item.responses_count || 0) + " " + tAdmin("Respuestas");
+        meta.appendChild(strong);
+        meta.appendChild(span);
+
+        var track = document.createElement("div");
+        track.className = "navai-stats-bar-track";
+        var fill = document.createElement("span");
+        fill.style.width = Math.max(6, Math.round((Number(item.total_tokens || 0) / maxTokens) * 100)) + "%";
+        track.appendChild(fill);
+
+        var value = document.createElement("div");
+        value.className = "navai-stats-bar-value";
+        value.innerHTML = "<strong>" + formatNumber(item.total_tokens || 0) + "</strong><span>" + formatCurrency(item.estimated_cost_usd || 0) + "</span>";
+
+        row.appendChild(meta);
+        row.appendChild(track);
+        row.appendChild(value);
+        container.appendChild(row);
+      }
+    }
+
+    function renderEmptyTable(tbody, colSpan) {
+      tbody.innerHTML = "";
+      var row = document.createElement("tr");
+      var cell = document.createElement("td");
+      cell.colSpan = colSpan;
+      cell.textContent = tAdmin("No hay datos de uso todavia. Los nuevos eventos response.done llenaran este panel automaticamente.");
+      row.appendChild(cell);
+      tbody.appendChild(row);
+    }
+
+    function renderDailyTable(items) {
+      if (!items || !items.length) {
+        renderEmptyTable(dailyTable, 6);
+        return;
+      }
+
+      dailyTable.innerHTML = "";
+      for (var i = 0; i < items.length; i += 1) {
+        var item = items[i];
+        var row = document.createElement("tr");
+        row.innerHTML =
+          "<td>" + String(item.bucket || "") + "</td>" +
+          "<td>" + formatNumber(item.responses_count || 0) + "</td>" +
+          "<td>" + formatNumber(item.input_tokens || 0) + "</td>" +
+          "<td>" + formatNumber(item.output_tokens || 0) + "</td>" +
+          "<td>" + formatNumber(item.total_tokens || 0) + "</td>" +
+          "<td>" + formatCurrency(item.estimated_cost_usd || 0) + "</td>";
+        dailyTable.appendChild(row);
+      }
+    }
+
+    function renderSimpleUsageTable(tbody, items, firstLabelResolver) {
+      if (!items || !items.length) {
+        renderEmptyTable(tbody, 4);
+        return;
+      }
+
+      tbody.innerHTML = "";
+      for (var i = 0; i < items.length; i += 1) {
+        var item = items[i];
+        var row = document.createElement("tr");
+        row.innerHTML =
+          "<td>" + firstLabelResolver(item) + "</td>" +
+          "<td>" + formatNumber(item.responses_count || 0) + "</td>" +
+          "<td>" + formatNumber(item.total_tokens || 0) + "</td>" +
+          "<td>" + formatCurrency(item.estimated_cost_usd || 0) + "</td>";
+        tbody.appendChild(row);
+      }
+    }
+
+    function setSummary(summary) {
+      var data = summary && typeof summary === "object" ? summary : zeroSummary();
+      if (summaryTotalTokens) {
+        summaryTotalTokens.textContent = formatNumber(data.total_tokens || 0);
+      }
+      if (summaryEstimatedCost) {
+        summaryEstimatedCost.textContent = formatCurrency(data.estimated_cost_usd || 0);
+      }
+      if (summaryResponses) {
+        summaryResponses.textContent = formatNumber(data.responses_count || 0);
+      }
+      if (summarySessions) {
+        summarySessions.textContent = formatNumber(data.sessions_count || 0);
+      }
+      if (summaryIoMeta) {
+        summaryIoMeta.textContent = tAdmin("Entrada") + " " + formatNumber(data.input_tokens || 0) + " | " + tAdmin("Salida") + " " + formatNumber(data.output_tokens || 0);
+      }
+      if (summaryCachedMeta) {
+        summaryCachedMeta.textContent = tAdmin("Cache") + " " + formatNumber(data.cached_input_tokens || 0);
+      }
+    }
+
+    function renderBarRows(container, items, maxBars, labelResolver) {
+      container.innerHTML = "";
+      var safeItems = Array.isArray(items) ? items.slice(0) : [];
+      if (!safeItems.length) {
+        var empty = document.createElement("p");
+        empty.className = "navai-admin-description";
+        empty.textContent = tAdmin("No hay datos de uso todavia. Los nuevos eventos response.done llenaran este panel automaticamente.");
+        container.appendChild(empty);
+        return;
+      }
+
+      if (typeof maxBars === "number" && maxBars > 0 && safeItems.length > maxBars) {
+        safeItems = safeItems.slice(0, maxBars);
+      }
+
+      var maxTokens = 0;
+      for (var i = 0; i < safeItems.length; i += 1) {
+        var itemTokens = Number(safeItems[i] && safeItems[i].total_tokens ? safeItems[i].total_tokens : 0);
+        if (isFinite(itemTokens) && itemTokens > maxTokens) {
+          maxTokens = itemTokens;
+        }
+      }
+      if (maxTokens <= 0) {
+        maxTokens = 1;
+      }
+
+      for (var rowIndex = 0; rowIndex < safeItems.length; rowIndex += 1) {
+        var item = safeItems[rowIndex];
+        var row = document.createElement("div");
+        row.className = "navai-stats-bar-row";
+
+        var meta = document.createElement("div");
+        meta.className = "navai-stats-bar-meta";
+        var strong = document.createElement("strong");
+        strong.textContent = labelResolver(item);
+        var span = document.createElement("span");
+        span.textContent = formatNumber(item.responses_count || 0) + " " + tAdmin("Respuestas");
+        meta.appendChild(strong);
+        meta.appendChild(span);
+
+        var track = document.createElement("div");
+        track.className = "navai-stats-bar-track";
+        var fill = document.createElement("span");
+        fill.style.width = Math.max(6, Math.round((Number(item.total_tokens || 0) / maxTokens) * 100)) + "%";
+        track.appendChild(fill);
+
+        var value = document.createElement("div");
+        value.className = "navai-stats-bar-value";
+        var totalStrong = document.createElement("strong");
+        totalStrong.textContent = formatNumber(item.total_tokens || 0);
+        var costSpan = document.createElement("span");
+        costSpan.textContent = formatCurrency(item.estimated_cost_usd || 0);
+        value.appendChild(totalStrong);
+        value.appendChild(costSpan);
+
+        row.appendChild(meta);
+        row.appendChild(track);
+        row.appendChild(value);
+        container.appendChild(row);
+      }
+    }
+
+    function appendCell(row, value) {
+      var cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    }
+
+    function renderDailyTable(items) {
+      if (!items || !items.length) {
+        renderEmptyTable(dailyTable, 6);
+        return;
+      }
+
+      dailyTable.innerHTML = "";
+      for (var i = 0; i < items.length; i += 1) {
+        var item = items[i];
+        var row = document.createElement("tr");
+        appendCell(row, String(item.bucket || ""));
+        appendCell(row, formatNumber(item.responses_count || 0));
+        appendCell(row, formatNumber(item.input_tokens || 0));
+        appendCell(row, formatNumber(item.output_tokens || 0));
+        appendCell(row, formatNumber(item.total_tokens || 0));
+        appendCell(row, formatCurrency(item.estimated_cost_usd || 0));
+        dailyTable.appendChild(row);
+      }
+    }
+
+    function renderSimpleUsageTable(tbody, items, firstLabelResolver) {
+      if (!items || !items.length) {
+        renderEmptyTable(tbody, 4);
+        return;
+      }
+
+      tbody.innerHTML = "";
+      for (var i = 0; i < items.length; i += 1) {
+        var item = items[i];
+        var row = document.createElement("tr");
+        appendCell(row, firstLabelResolver(item));
+        appendCell(row, formatNumber(item.responses_count || 0));
+        appendCell(row, formatNumber(item.total_tokens || 0));
+        appendCell(row, formatCurrency(item.estimated_cost_usd || 0));
+        tbody.appendChild(row);
+      }
+    }
+
+    function setQuickRange(days) {
+      var totalDays = Number(days || 30);
+      if (!isFinite(totalDays) || totalDays < 1) {
+        totalDays = 30;
+      }
+
+      var now = new Date();
+      var toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var fromDate = new Date(toDate);
+      fromDate.setDate(fromDate.getDate() - (totalDays - 1));
+
+      fromInput.value = fromDate.toISOString().slice(0, 10);
+      toInput.value = toDate.toISOString().slice(0, 10);
+
+      for (var i = 0; i < rangeButtons.length; i += 1) {
+        var isActive = String(rangeButtons[i].getAttribute("data-navai-range-days") || "") === String(totalDays);
+        rangeButtons[i].classList.toggle("is-active", isActive);
+      }
+    }
+
+    async function loadStatistics() {
+      setLoadingState();
+
+      try {
+        var response = await adminApiRequest("/statistics/usage" + buildAdminQuery({
+          date_from: String(fromInput.value || ""),
+          date_to: String(toInput.value || ""),
+          model: String(modelSelect.value || ""),
+          agent: String(agentSelect.value || "")
+        }), "GET");
+
+        var filters = response && response.filters ? response.filters : {};
+        var summary = response && response.summary ? response.summary : zeroSummary();
+        var dailyItems = response && Array.isArray(response.daily_items) ? response.daily_items.slice(0) : [];
+        var modelItems = response && Array.isArray(response.model_items) ? response.model_items.slice(0) : [];
+        var agentItems = response && Array.isArray(response.agent_items) ? response.agent_items.slice(0) : [];
+
+        if (typeof filters.date_from === "string" && filters.date_from) {
+          fromInput.value = filters.date_from;
+        }
+        if (typeof filters.date_to === "string" && filters.date_to) {
+          toInput.value = filters.date_to;
+        }
+
+        populateSelectOptions(modelSelect, filters.available_models || [], tAdmin("Todos los modelos"), String(filters.model || ""), labelForModel);
+        populateSelectOptions(agentSelect, filters.available_agents || [], tAdmin("Todos los agentes"), String(filters.agent || ""), labelForAgent);
+
+        setSummary(summary);
+        renderBarRows(dailyBars, dailyItems.slice(-14), 14, function (item) {
+          return String(item.bucket || "");
+        });
+        renderBarRows(modelBars, modelItems, 8, labelForModel);
+        renderBarRows(agentBars, agentItems, 8, labelForAgent);
+
+        renderDailyTable(dailyItems);
+        renderSimpleUsageTable(modelTable, modelItems, labelForModel);
+        renderSimpleUsageTable(agentTable, agentItems, labelForAgent);
+
+        if (pricingNote) {
+          pricingNote.textContent = tAdmin("Calculado con pricing realtime de OpenAI actualizado el 7 de marzo de 2026.");
+        }
+
+        setEmptyState(
+          tAdmin("No hay datos de uso todavia. Los nuevos eventos response.done llenaran este panel automaticamente."),
+          !summary.responses_count
+        );
+      } catch (error) {
+        setSummary(zeroSummary());
+        renderBarRows(dailyBars, [], 0, function () { return ""; });
+        renderBarRows(modelBars, [], 0, function () { return ""; });
+        renderBarRows(agentBars, [], 0, function () { return ""; });
+        renderEmptyTable(dailyTable, 6);
+        renderEmptyTable(modelTable, 4);
+        renderEmptyTable(agentTable, 4);
+
+        if (pricingNote) {
+          pricingNote.textContent = tAdmin("No se pudieron cargar las estadisticas.");
+        }
+        setEmptyState(
+          (error && error.message) ? error.message : tAdmin("No se pudieron cargar las estadisticas."),
+          true
+        );
+      }
+    }
+
+    if (applyButton) {
+      applyButton.addEventListener("click", function () {
+        loadStatistics();
+      });
+    }
+
+    if (clearButton) {
+      clearButton.addEventListener("click", function () {
+        modelSelect.value = "";
+        agentSelect.value = "";
+        setQuickRange(30);
+        loadStatistics();
+      });
+    }
+
+    function clearQuickRangeState() {
+      for (var buttonIndex = 0; buttonIndex < rangeButtons.length; buttonIndex += 1) {
+        rangeButtons[buttonIndex].classList.remove("is-active");
+      }
+    }
+
+    fromInput.addEventListener("change", clearQuickRangeState);
+    toInput.addEventListener("change", clearQuickRangeState);
+
+    for (var i = 0; i < rangeButtons.length; i += 1) {
+      rangeButtons[i].addEventListener("click", function () {
+        setQuickRange(Number(this.getAttribute("data-navai-range-days") || "30"));
+        loadStatistics();
+      });
+    }
+
+    setQuickRange(30);
+    loadStatistics();
   }
 
   function initAgentsControls() {
@@ -6504,6 +7155,7 @@
     initApprovalsControls();
     initTracesControls();
     initHistoryControls();
+    initStatisticsControls();
     initAgentsControls();
     initMcpControls();
     initSettingsAutoSave();

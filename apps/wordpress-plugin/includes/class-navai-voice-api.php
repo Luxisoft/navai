@@ -109,6 +109,16 @@ class Navai_Voice_API
 
         register_rest_route(
             'navai/v1',
+            '/plugin-functions/(?P<id>[A-Za-z0-9_-]+)',
+            [
+                'methods' => WP_REST_Server::DELETABLE,
+                'callback' => [$this, 'delete_plugin_function_setting'],
+                'permission_callback' => [$this, 'can_manage_functions'],
+            ]
+        );
+
+        register_rest_route(
+            'navai/v1',
             '/settings',
             [
                 'methods' => WP_REST_Server::CREATABLE,
@@ -225,6 +235,16 @@ class Navai_Voice_API
                     'callback' => [$this, 'store_session_messages'],
                     'permission_callback' => [$this, 'can_write_session_events'],
                 ],
+            ]
+        );
+
+        register_rest_route(
+            'navai/v1',
+            '/statistics/usage',
+            [
+                'methods' => WP_REST_Server::READABLE,
+                'callback' => [$this, 'list_usage_statistics'],
+                'permission_callback' => [$this, 'can_manage_sessions'],
             ]
         );
 
@@ -622,6 +642,23 @@ class Navai_Voice_API
             return new WP_Error('navai_invalid_openai_response', 'Invalid response from OpenAI.', ['status' => 502]);
         }
 
+        if (!empty($sessionContext['session_id']) && $this->sessionService) {
+            $contextUpdate = [
+                'current_model' => $model,
+                'last_client_secret_issued_at' => current_time('mysql'),
+            ];
+            if (is_array($resolvedClientAgent)) {
+                $contextUpdate['active_agent_key'] = sanitize_text_field((string) ($resolvedClientAgent['agent_key'] ?? ''));
+                $contextUpdate['active_agent_name'] = sanitize_text_field((string) ($resolvedClientAgent['name'] ?? ''));
+            }
+
+            try {
+                $this->sessionService->update_session_context((int) $sessionContext['session_id'], $contextUpdate);
+            } catch (Throwable $error) {
+                unset($error);
+            }
+        }
+
         if (!empty($sessionContext['session_id'])) {
             $this->log_session_message(
                 (string) ($sessionContext['session_key'] ?? ''),
@@ -1014,6 +1051,67 @@ class Navai_Voice_API
                 'state' => $state,
             ]
         );
+    }
+
+    public function delete_plugin_function_setting(WP_REST_Request $request)
+    {
+        $rowId = sanitize_key((string) $request->get_param('id'));
+        if ($rowId === '') {
+            return new WP_Error('navai_invalid_plugin_function_id', 'Invalid plugin function id.', ['status' => 400]);
+        }
+
+        $currentSettings = $this->settings->get_settings();
+        $currentFunctions = is_array($currentSettings['plugin_custom_functions'] ?? null)
+            ? array_values(array_filter($currentSettings['plugin_custom_functions'], 'is_array'))
+            : [];
+
+        $filteredFunctions = [];
+        $deleted = false;
+        foreach ($currentFunctions as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $existingId = sanitize_key((string) ($row['id'] ?? ''));
+            if ($existingId !== '' && $existingId === $rowId) {
+                $deleted = true;
+                continue;
+            }
+
+            $filteredFunctions[] = $row;
+        }
+
+        if (!$deleted) {
+            return new WP_Error('navai_plugin_function_not_found', 'Plugin function not found.', ['status' => 404]);
+        }
+
+        $targetKey = 'pluginfn:' . $rowId;
+        $selectedKeys = is_array($currentSettings['allowed_plugin_function_keys'] ?? null)
+            ? array_values(array_filter(array_map(static function ($value): string {
+                return sanitize_text_field((string) $value);
+            }, $currentSettings['allowed_plugin_function_keys']), static function ($value) use ($targetKey): bool {
+                return $value !== '' && $value !== $targetKey;
+            }))
+            : [];
+
+        $nextSettingsSource = $currentSettings;
+        $nextSettingsSource['plugin_custom_functions'] = array_values($filteredFunctions);
+        $nextSettingsSource['allowed_plugin_function_keys'] = array_values(array_unique($selectedKeys));
+        $nextSettingsSource['active_tab'] = 'plugins';
+
+        $sanitizedSettings = $this->settings->sanitize_settings($nextSettingsSource);
+        if (!update_option(Navai_Voice_Settings::OPTION_KEY, $sanitizedSettings)) {
+            // Continue even when WP reports no changes; we still return the normalized state.
+        }
+
+        $savedSettings = $this->settings->get_settings();
+        $state = $this->build_plugin_functions_settings_state($savedSettings);
+
+        return rest_ensure_response([
+            'ok' => true,
+            'deleted_id' => $rowId,
+            'state' => $state,
+        ]);
     }
 
     /**
@@ -1553,6 +1651,25 @@ class Navai_Voice_API
                 'memory_enabled' => $this->should_enforce_session_memory(),
             ]
         );
+    }
+
+    public function list_usage_statistics(WP_REST_Request $request)
+    {
+        if (!$this->sessionService) {
+            return new WP_Error('navai_sessions_unavailable', 'Session service is unavailable.', ['status' => 500]);
+        }
+
+        $filters = [
+            'date_from' => sanitize_text_field((string) $request->get_param('date_from')),
+            'date_to' => sanitize_text_field((string) $request->get_param('date_to')),
+            'model' => sanitize_text_field((string) $request->get_param('model')),
+            'agent' => sanitize_text_field((string) $request->get_param('agent')),
+        ];
+
+        $stats = $this->sessionService->get_usage_statistics($filters);
+        $stats['memory_enabled'] = $this->should_enforce_session_memory();
+
+        return rest_ensure_response($stats);
     }
 
     public function get_session(WP_REST_Request $request)

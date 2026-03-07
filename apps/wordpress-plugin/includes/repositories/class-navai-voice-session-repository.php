@@ -395,6 +395,73 @@ class Navai_Voice_Session_Repository
         return array_values(array_filter($rows, 'is_array'));
     }
 
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public function list_event_messages_with_sessions(array $filters = []): array
+    {
+        global $wpdb;
+        if (!is_object($wpdb) || !method_exists($wpdb, 'prepare') || !method_exists($wpdb, 'get_results')) {
+            return [];
+        }
+
+        $where = ['m.message_type = %s'];
+        $params = ['event'];
+
+        $dateFrom = isset($filters['date_from']) ? sanitize_text_field((string) $filters['date_from']) : '';
+        if ($dateFrom !== '') {
+            $where[] = 'm.created_at >= %s';
+            $params[] = $dateFrom;
+        }
+
+        $dateTo = isset($filters['date_to']) ? sanitize_text_field((string) $filters['date_to']) : '';
+        if ($dateTo !== '') {
+            $where[] = 'm.created_at <= %s';
+            $params[] = $dateTo;
+        }
+
+        $sessionStatus = isset($filters['session_status']) ? sanitize_key((string) $filters['session_status']) : '';
+        if ($sessionStatus !== '') {
+            $where[] = 's.status = %s';
+            $params[] = $sessionStatus;
+        }
+
+        $order = strtolower(trim((string) ($filters['order'] ?? 'asc')));
+        $sortDir = $order === 'desc' ? 'DESC' : 'ASC';
+
+        $sql = 'SELECT'
+            . ' m.id,'
+            . ' m.session_id,'
+            . ' m.direction,'
+            . ' m.message_type,'
+            . ' m.content_text,'
+            . ' m.content_json,'
+            . ' m.meta_json,'
+            . ' m.created_at,'
+            . ' s.session_key,'
+            . ' s.context_json,'
+            . ' s.status AS session_status,'
+            . ' s.wp_user_id,'
+            . ' s.visitor_key'
+            . ' FROM ' . $this->messages_table() . ' m'
+            . ' INNER JOIN ' . $this->sessions_table() . ' s ON s.id = m.session_id'
+            . ' WHERE ' . implode(' AND ', $where)
+            . ' ORDER BY m.created_at ' . $sortDir . ', m.id ' . $sortDir;
+
+        $prepared = $wpdb->prepare($sql, ...$params);
+        if (is_string($prepared)) {
+            $sql = $prepared;
+        }
+
+        $rows = $wpdb->get_results($sql, ARRAY_A);
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        return array_values(array_filter($rows, 'is_array'));
+    }
+
     public function delete_messages(int $sessionId): int
     {
         if ($sessionId <= 0) {

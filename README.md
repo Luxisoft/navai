@@ -42,15 +42,6 @@
 | Backend contract integration (implement NAVAI HTTP routes) | Laravel, CodeIgniter, Symfony, Django, FastAPI, Flask, Rails, Spring Boot, ASP.NET Core |
 | Not direct with current packages | Flutter (requires Dart-specific client/runtime implementation) |
 
-### Platforms and Devices
-
-| Area | Coverage |
-| --- | --- |
-| Web | Modern desktop/mobile browsers with mic + WebRTC capabilities |
-| Mobile | Android (device + emulator) and iOS (simulator/device) through React Native/Expo development builds |
-| Backend runtime | Node.js 20+ (official package path), plus any backend stack that implements the NAVAI route contract |
-| AI/Voice transport | OpenAI Realtime + ephemeral backend-issued credentials + tool execution bridge |
-
 ### Voice UI Components
 
 `@navai/voice-frontend` now exports ready-to-use web UI pieces such as `NavaiVoiceOrbDock`, and `@navai/voice-mobile` exports `NavaiMobileVoiceOrbButton` for React Native.

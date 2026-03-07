@@ -6,6 +6,18 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
 $pluginRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $zipPath = Join-Path $PSScriptRoot "navai-voice.zip"
+$orbBuildScript = Join-Path $pluginRoot "scripts\build-orb.mjs"
+
+if (!(Test-Path $orbBuildScript)) {
+  throw "Missing orb build script: $orbBuildScript"
+}
+
+Push-Location $repoRoot.Path
+try {
+  node $orbBuildScript
+} finally {
+  Pop-Location
+}
 
 if (Test-Path $zipPath) {
   Remove-Item $zipPath -Force

@@ -902,7 +902,7 @@ trait Navai_Voice_Settings_Internals_Routes_Trait
             'frontend_display_mode' => 'global',
             'frontend_button_side' => 'left',
             'frontend_button_color_idle' => '#1263dc',
-            'frontend_button_color_active' => '#10883f',
+            'frontend_button_color_active' => '#ff5c84',
             'frontend_show_button_text' => true,
             'frontend_button_text_idle' => 'Talk to NAVAI',
             'frontend_button_text_active' => 'Stop NAVAI',

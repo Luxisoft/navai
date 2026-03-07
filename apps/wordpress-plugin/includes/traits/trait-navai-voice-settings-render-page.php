@@ -19,7 +19,7 @@ trait Navai_Voice_Settings_Render_Page_Trait
         $frontendDisplayMode = is_string($settings['frontend_display_mode'] ?? null) ? (string) $settings['frontend_display_mode'] : 'global';
         $frontendButtonSide = is_string($settings['frontend_button_side'] ?? null) ? (string) $settings['frontend_button_side'] : 'left';
         $frontendButtonColorIdle = $this->sanitize_color_value($settings['frontend_button_color_idle'] ?? null, '#1263dc');
-        $frontendButtonColorActive = $this->sanitize_color_value($settings['frontend_button_color_active'] ?? null, '#10883f');
+        $frontendButtonColorActive = $this->sanitize_color_value($settings['frontend_button_color_active'] ?? null, '#ff5c84');
         $frontendShowButtonText = !empty($settings['frontend_show_button_text']);
         $frontendButtonTextIdle = sanitize_text_field((string) ($settings['frontend_button_text_idle'] ?? 'Talk to NAVAI'));
         if (trim($frontendButtonTextIdle) === '') {
@@ -175,6 +175,9 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 </button>
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="mcp">
                                     <?php echo esc_html__('MCP', 'navai-voice'); ?>
+                                </button>
+                                <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="statistics">
+                                    <?php echo esc_html__('Estadisticas', 'navai-voice'); ?>
                                 </button>
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="settings">
                                     <?php echo esc_html__('Ajustes', 'navai-voice'); ?>
@@ -669,6 +672,7 @@ trait Navai_Voice_Settings_Render_Page_Trait
                 <?php require __DIR__ . '/../views/admin/navai-settings-panel-plugins.php'; ?>
                 <?php require __DIR__ . '/../views/admin/navai-settings-panel-agents.php'; ?>
                 <?php require __DIR__ . '/../views/admin/navai-settings-panel-mcp.php'; ?>
+                <?php require __DIR__ . '/../views/admin/navai-settings-panel-statistics.php'; ?>
                 <section class="navai-admin-panel" data-navai-panel="settings">
                     <h2><?php echo esc_html__('Ajustes', 'navai-voice'); ?></h2>
                     <p><?php echo esc_html__('Configuracion principal del runtime de voz.', 'navai-voice'); ?></p>

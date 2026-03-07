@@ -30,6 +30,7 @@
   var executeBackendFunction = runtime.executeBackendFunction;
   var sendSessionMessages = runtime.sendSessionMessages;
   var INTERRUPTED_STATE_RESET_MS = 900;
+  var PTT_HOLD_DELAY_MS = 180;
 
   function toConfigBool(value, fallback) {
     if (typeof value === "boolean") {
@@ -77,12 +78,128 @@
     return "server_vad";
   }
 
+  function resolveAssistantVoiceStateFromRealtimeEvent(type) {
+    var normalizedType = asTrimmedString(type).toLowerCase();
+    if (!normalizedType) {
+      return null;
+    }
+
+    if (
+      normalizedType === "response.output_audio.delta" ||
+      normalizedType === "response.audio.delta" ||
+      normalizedType === "output_audio_buffer.started"
+    ) {
+      return "speaking";
+    }
+
+    if (
+      normalizedType === "response.canceled" ||
+      normalizedType === "response.cancelled" ||
+      normalizedType === "conversation.interrupted" ||
+      normalizedType === "output_audio_buffer.stopped" ||
+      normalizedType === "output_audio_buffer.cleared" ||
+      normalizedType === "error"
+    ) {
+      return "idle";
+    }
+
+    return null;
+  }
+
+  function extractRealtimeResponsePayload(event) {
+    if (!isRecord(event)) {
+      return {};
+    }
+
+    if (isRecord(event.response)) {
+      return event.response;
+    }
+
+    if (isRecord(event.data) && isRecord(event.data.response)) {
+      return event.data.response;
+    }
+
+    return {};
+  }
+
+  function extractRealtimeUsagePayload(event) {
+    if (!isRecord(event)) {
+      return null;
+    }
+
+    var responsePayload = extractRealtimeResponsePayload(event);
+
+    if (isRecord(event.usage)) {
+      return event.usage;
+    }
+
+    if (isRecord(responsePayload.usage)) {
+      return responsePayload.usage;
+    }
+
+    if (isRecord(event.response_usage)) {
+      return event.response_usage;
+    }
+
+    if (isRecord(responsePayload.response_usage)) {
+      return responsePayload.response_usage;
+    }
+
+    return null;
+  }
+
+  function extractRealtimeModelFromEvent(event, fallbackModel) {
+    if (!isRecord(event)) {
+      return asTrimmedString(fallbackModel || "");
+    }
+
+    var responsePayload = extractRealtimeResponsePayload(event);
+    return asTrimmedString(responsePayload.model || event.model || fallbackModel || "");
+  }
+
+  function buildRealtimeUsageTrackingContent(event, fallbackModel) {
+    if (!isRecord(event)) {
+      return null;
+    }
+
+    var type = asTrimmedString(event.type);
+    if (!type) {
+      return null;
+    }
+
+    var responsePayload = extractRealtimeResponsePayload(event);
+    var usagePayload = extractRealtimeUsagePayload(event);
+    if (!isRecord(usagePayload) && type !== "response.done") {
+      return null;
+    }
+
+    return {
+      type: type,
+      response_id: asTrimmedString(responsePayload.id || event.response_id || ""),
+      status: asTrimmedString(responsePayload.status || event.status || ""),
+      model: extractRealtimeModelFromEvent(event, fallbackModel),
+      usage: isRecord(usagePayload) ? usagePayload : null,
+      output_item_count: Array.isArray(responsePayload.output)
+        ? responsePayload.output.length
+        : Array.isArray(event.output)
+          ? event.output.length
+          : 0
+    };
+  }
+
+  function getOrbRuntime() {
+    if (!window.NAVAI_VOICE_ORB || typeof window.NAVAI_VOICE_ORB.create !== "function") {
+      return null;
+    }
+    return window.NAVAI_VOICE_ORB;
+  }
+
   function NavaiVoiceWidget(container) {
     this.container = container;
+    this.orbSurfaceEl = container.querySelector(".navai-voice-orb-surface");
     this.button = container.querySelector(".navai-voice-toggle");
     this.buttonLabelEl = this.button ? this.button.querySelector(".navai-voice-toggle-text") : null;
-    this.pttButton = container.querySelector(".navai-voice-ptt");
-    this.pttButtonTextEl = this.pttButton ? this.pttButton.querySelector(".navai-voice-ptt-text") : null;
+    this.buttonIconEl = this.button ? this.button.querySelector(".navai-voice-toggle-icon") : null;
     this.textForm = container.querySelector(".navai-voice-text-form");
     this.textInput = container.querySelector(".navai-voice-text-input");
     this.textSendButton = container.querySelector(".navai-voice-text-send");
@@ -112,6 +229,10 @@
     this.pendingTextMessages = [];
     this.interruptedResetTimer = 0;
     this.pttPressed = false;
+    this.pttHoldTimer = 0;
+    this.suppressToggleClickUntil = 0;
+    this.assistantVoiceState = "idle";
+    this.orbInstance = null;
 
     this.startLabel = asTrimmedString(container.dataset.startLabel) || "Start Voice";
     this.stopLabel = asTrimmedString(container.dataset.stopLabel) || "Stop Voice";
@@ -149,6 +270,7 @@
     this.languageOverride = asTrimmedString(container.dataset.language);
     this.voiceAccentOverride = asTrimmedString(container.dataset.voiceAccent);
     this.voiceToneOverride = asTrimmedString(container.dataset.voiceTone);
+    this.sessionModel = "";
 
     if (this.button) {
       if (this.buttonLabelEl) {
@@ -157,6 +279,7 @@
         this.button.textContent = this.startLabel;
       }
       this.button.addEventListener("click", this.handleToggle.bind(this));
+      this.bindPushToTalkEvents();
     }
 
     if (this.textInput) {
@@ -165,10 +288,6 @@
 
     if (this.textForm) {
       this.textForm.addEventListener("submit", this.handleTextSubmit.bind(this));
-    }
-
-    if (this.pttButton) {
-      this.bindPushToTalkEvents();
     }
 
     if (this.persistActive) {
@@ -183,6 +302,7 @@
 
     this.sessionKey = this.loadSessionKey();
 
+    this.syncOrbRuntime();
     this.applyStateClass();
     this.refreshButton();
     this.updatePttButton();
@@ -206,7 +326,18 @@
     }
   }
 
-  NavaiVoiceWidget.prototype.handleToggle = function () {
+  NavaiVoiceWidget.prototype.handleToggle = function (event) {
+    if (this.consumeToggleClickSuppression()) {
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    if (this.isPushToTalkArmed()) {
+      return;
+    }
+
     if (this.state === "connecting") {
       return;
     }
@@ -219,18 +350,96 @@
     this.start();
   };
 
+  NavaiVoiceWidget.prototype.queueToggleClickSuppression = function () {
+    this.suppressToggleClickUntil = Date.now() + 400;
+  };
+
+  NavaiVoiceWidget.prototype.consumeToggleClickSuppression = function () {
+    if (!this.suppressToggleClickUntil) {
+      return false;
+    }
+
+    if (Date.now() > this.suppressToggleClickUntil) {
+      this.suppressToggleClickUntil = 0;
+      return false;
+    }
+
+    this.suppressToggleClickUntil = 0;
+    return true;
+  };
+
   NavaiVoiceWidget.prototype.setStatus = function (message) {
     if (this.statusEl) {
       this.statusEl.textContent = message;
     }
   };
 
-  NavaiVoiceWidget.prototype.getAssistantVoiceState = function () {
-    if (this.state === "connected" && this.activityState === "speaking") {
-      return "speaking";
+  NavaiVoiceWidget.prototype.isAssistantSpeakingActive = function () {
+    return this.state === "connected" && this.assistantVoiceState === "speaking";
+  };
+
+  NavaiVoiceWidget.prototype.setAssistantVoiceState = function (state) {
+    var nextState = asTrimmedString(state).toLowerCase() === "speaking" ? "speaking" : "idle";
+    if (this.assistantVoiceState === nextState) {
+      return;
     }
 
-    return "idle";
+    this.assistantVoiceState = nextState;
+    if (this.state !== "connected") {
+      this.syncOrbRuntime();
+      this.publishAgentState("assistant_voice_state_changed");
+      return;
+    }
+
+    if (nextState === "speaking") {
+      this.setActivityState("speaking");
+      return;
+    }
+
+    if (this.activityState === "speaking") {
+      this.setActivityState(this.pttPressed ? "listening" : "idle");
+      return;
+    }
+
+    this.updateStatusIndicator();
+    this.syncOrbRuntime();
+    this.publishAgentState("assistant_voice_state_changed");
+  };
+
+  NavaiVoiceWidget.prototype.resolveOrbRuntimeOptions = function () {
+    var isAssistantSpeaking = this.isAssistantSpeakingActive();
+    return {
+      hoverIntensity: isAssistantSpeaking ? 0.66 : 0.08,
+      rotateOnHover: true,
+      forceHoverState: isAssistantSpeaking,
+      enablePointerHover: false,
+      backgroundColor: "#060914",
+      animate: this.state !== "error"
+    };
+  };
+
+  NavaiVoiceWidget.prototype.syncOrbRuntime = function () {
+    if (!this.orbSurfaceEl) {
+      return;
+    }
+
+    var shouldHighlight = this.state === "connecting" || this.state === "connected";
+    this.orbSurfaceEl.classList.toggle("is-highlighted", shouldHighlight);
+    var runtime = getOrbRuntime();
+    if (!runtime) {
+      return;
+    }
+
+    if (!this.orbInstance) {
+      this.orbInstance = runtime.create(this.orbSurfaceEl, this.resolveOrbRuntimeOptions());
+      return;
+    }
+
+    runtime.update(this.orbInstance, this.resolveOrbRuntimeOptions());
+  };
+
+  NavaiVoiceWidget.prototype.getAssistantVoiceState = function () {
+    return this.state === "connected" ? this.assistantVoiceState : "idle";
   };
 
   NavaiVoiceWidget.prototype.emitWidgetStateEvent = function (eventName, detail) {
@@ -316,6 +525,10 @@
     return this.voiceInputMode === "ptt";
   };
 
+  NavaiVoiceWidget.prototype.isPushToTalkArmed = function () {
+    return this.isPushToTalkMode() && this.state === "connected" && this.connectionMode !== "text";
+  };
+
   NavaiVoiceWidget.prototype.getEffectiveTurnDetectionMode = function () {
     if (this.isPushToTalkMode()) {
       return "none";
@@ -347,6 +560,13 @@
     if (this.interruptedResetTimer) {
       window.clearTimeout(this.interruptedResetTimer);
       this.interruptedResetTimer = 0;
+    }
+  };
+
+  NavaiVoiceWidget.prototype.clearPendingPttHoldTimer = function () {
+    if (this.pttHoldTimer) {
+      window.clearTimeout(this.pttHoldTimer);
+      this.pttHoldTimer = 0;
     }
   };
 
@@ -433,24 +653,28 @@
   };
 
   NavaiVoiceWidget.prototype.updatePttButton = function () {
-    if (!this.pttButton) {
+    var enabled = this.isPushToTalkArmed();
+    this.container.classList.toggle("is-ptt-pressed", enabled && this.pttPressed);
+
+    if (!this.button) {
       return;
     }
 
-    var enabled = this.isPushToTalkMode() && this.state === "connected" && this.connectionMode !== "text";
-    this.pttButton.disabled = !enabled;
-    this.pttButton.setAttribute("aria-pressed", this.pttPressed ? "true" : "false");
-    this.pttButton.classList.toggle("is-active", this.pttPressed);
+    if (enabled) {
+      var pttLabel = this.pttPressed
+        ? getMessage(this.globalConfig, "pttRelease", "Release to send")
+        : getMessage(this.globalConfig, "pttHold", "Hold to talk");
 
-    if (this.pttButtonTextEl) {
-      if (!enabled) {
-        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttHold", "Hold to talk");
-      } else if (this.pttPressed) {
-        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttRelease", "Release to send");
-      } else {
-        this.pttButtonTextEl.textContent = getMessage(this.globalConfig, "pttHold", "Hold to talk");
+      if (this.buttonLabelEl) {
+        this.buttonLabelEl.textContent = pttLabel;
       }
+      this.button.setAttribute("aria-pressed", this.pttPressed ? "true" : "false");
+      this.button.setAttribute("aria-label", pttLabel);
+      this.button.setAttribute("title", pttLabel);
+      return;
     }
+
+    this.button.removeAttribute("title");
   };
 
   NavaiVoiceWidget.prototype.updateTextControlsDisabledState = function (busy) {
@@ -467,43 +691,136 @@
   };
 
   NavaiVoiceWidget.prototype.bindPushToTalkEvents = function () {
-    if (!this.pttButton) {
+    if (!this.button) {
       return;
     }
 
     var widget = this;
-    function onPress(event) {
-      if (event && typeof event.preventDefault === "function") {
-        event.preventDefault();
-      }
-      widget.handlePttPress();
+    function isKeyboardTrigger(event) {
+      var key = event && event.key ? String(event.key).toLowerCase() : "";
+      return key === " " || key === "spacebar" || key === "enter";
     }
 
-    function onRelease(event) {
+    function beginGesture(event) {
+      if (!widget.isPushToTalkArmed()) {
+        return;
+      }
+
+      if (event && typeof event.button === "number" && event.button !== 0) {
+        return;
+      }
+
+      if (widget.pttPressed || widget.pttHoldTimer) {
+        return;
+      }
+
       if (event && typeof event.preventDefault === "function") {
         event.preventDefault();
       }
+
+      widget.pttHoldTimer = window.setTimeout(function () {
+        widget.pttHoldTimer = 0;
+        widget.handlePttPress();
+      }, PTT_HOLD_DELAY_MS);
+    }
+
+    function finishGesture(event) {
+      if (!widget.isPushToTalkMode()) {
+        return;
+      }
+
+      if (!widget.pttPressed && !widget.pttHoldTimer) {
+        return;
+      }
+
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+
+      if (widget.pttHoldTimer) {
+        widget.clearPendingPttHoldTimer();
+        if (widget.state === "connected" && widget.connectionMode !== "text") {
+          widget.queueToggleClickSuppression();
+          widget.stop();
+        }
+        return;
+      }
+
+      widget.queueToggleClickSuppression();
       widget.handlePttRelease();
     }
 
-    this.pttButton.addEventListener("mousedown", onPress);
-    this.pttButton.addEventListener("mouseup", onRelease);
-    this.pttButton.addEventListener("mouseleave", onRelease);
-    this.pttButton.addEventListener("touchstart", onPress, { passive: false });
-    this.pttButton.addEventListener("touchend", onRelease);
-    this.pttButton.addEventListener("touchcancel", onRelease);
-    this.pttButton.addEventListener("keydown", function (event) {
-      var key = event && event.key ? String(event.key).toLowerCase() : "";
-      if (key === " " || key === "spacebar" || key === "enter") {
-        onPress(event);
+    function cancelGesture(event) {
+      if (!widget.isPushToTalkMode()) {
+        return;
       }
-    });
-    this.pttButton.addEventListener("keyup", function (event) {
-      var key = event && event.key ? String(event.key).toLowerCase() : "";
-      if (key === " " || key === "spacebar" || key === "enter") {
-        onRelease(event);
+
+      if (!widget.pttPressed && !widget.pttHoldTimer) {
+        return;
       }
+
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+
+      if (widget.pttHoldTimer) {
+        widget.clearPendingPttHoldTimer();
+        return;
+      }
+
+      widget.queueToggleClickSuppression();
+      widget.handlePttRelease();
+    }
+
+    if (window.PointerEvent) {
+      this.button.addEventListener("pointerdown", function (event) {
+        beginGesture(event);
+        if (!widget.isPushToTalkArmed()) {
+          return;
+        }
+
+        if (
+          event &&
+          typeof event.pointerId === "number" &&
+          typeof widget.button.setPointerCapture === "function"
+        ) {
+          try {
+            widget.button.setPointerCapture(event.pointerId);
+          } catch (_error) {
+            // noop
+          }
+        }
+      });
+      this.button.addEventListener("pointerup", finishGesture);
+      this.button.addEventListener("pointercancel", cancelGesture);
+      this.button.addEventListener("lostpointercapture", cancelGesture);
+      this.button.addEventListener("pointerleave", function (event) {
+        if (event && event.pointerType === "mouse") {
+          cancelGesture(event);
+        }
+      });
+    } else {
+      this.button.addEventListener("mousedown", beginGesture);
+      this.button.addEventListener("mouseup", finishGesture);
+      this.button.addEventListener("mouseleave", cancelGesture);
+      this.button.addEventListener("touchstart", beginGesture, { passive: false });
+      this.button.addEventListener("touchend", finishGesture);
+      this.button.addEventListener("touchcancel", cancelGesture);
+    }
+
+    this.button.addEventListener("keydown", function (event) {
+      if (!isKeyboardTrigger(event) || (event && event.repeat)) {
+        return;
+      }
+      beginGesture(event);
     });
+    this.button.addEventListener("keyup", function (event) {
+      if (!isKeyboardTrigger(event)) {
+        return;
+      }
+      finishGesture(event);
+    });
+    this.button.addEventListener("blur", cancelGesture);
   };
 
   NavaiVoiceWidget.prototype.requestRealtimeInterruption = function () {
@@ -688,7 +1005,8 @@
       "is-speaking",
       "is-interrupted",
       "is-text-mode",
-      "is-ptt-mode"
+      "is-ptt-mode",
+      "is-ptt-pressed"
     );
 
     if (this.state === "connected") {
@@ -717,6 +1035,7 @@
       this.container.classList.add("is-interrupted");
     }
 
+    this.syncOrbRuntime();
     this.publishAgentState("apply_state_class");
   };
 
@@ -1079,12 +1398,20 @@
     }
 
     var textTarget = this.buttonLabelEl || this.button;
+    var iconTarget = this.buttonIconEl;
 
     if (this.state === "connecting") {
       this.button.disabled = true;
       textTarget.textContent = this.startLabel;
       this.button.setAttribute("aria-pressed", "false");
-      this.button.setAttribute("aria-label", this.startLabel);
+      this.button.setAttribute(
+        "aria-label",
+        getMessage(this.globalConfig, "connectingRealtime", "Connecting realtime session...")
+      );
+      if (iconTarget && iconTarget.classList) {
+        iconTarget.classList.remove("dashicons-microphone");
+        iconTarget.classList.add("dashicons-update-alt", "is-spinner");
+      }
       this.applyStateClass();
       this.updatePttButton();
       this.updateTextControlsDisabledState(true);
@@ -1096,6 +1423,10 @@
     textTarget.textContent = buttonText;
     this.button.setAttribute("aria-pressed", this.state === "connected" ? "true" : "false");
     this.button.setAttribute("aria-label", buttonText);
+    if (iconTarget && iconTarget.classList) {
+      iconTarget.classList.remove("dashicons-update-alt", "is-spinner");
+      iconTarget.classList.add("dashicons-microphone");
+    }
     this.applyStateClass();
     this.updatePttButton();
     this.updateTextControlsDisabledState(false);
@@ -1126,6 +1457,8 @@
     this.state = "connecting";
     this.connectionMode = skipMicrophone ? "text" : "voice";
     this.activityState = "idle";
+    this.assistantVoiceState = "idle";
+    this.clearPendingPttHoldTimer();
     this.pttPressed = false;
     this.navigationInProgress = false;
     this.storeActivePreference(true);
@@ -1235,6 +1568,7 @@
 
       var secretInput = this.resolveClientSecretInput();
       var model = asTrimmedString(secretInput.model) || DEFAULT_MODEL;
+      this.sessionModel = model;
       var secret = await requestClientSecret(this.globalConfig, secretInput);
       if (secret && secret.session && typeof secret.session.key === "string") {
         this.setSessionKey(secret.session.key);
@@ -1254,6 +1588,7 @@
       this.state = "connected";
       this.storeActivePreference(true);
       this.refreshButton();
+      this.assistantVoiceState = "idle";
       this.setActivityState("idle");
       this.updateStatusIndicator();
       this.queueSessionMessage({
@@ -1272,6 +1607,7 @@
       this.stopInternal();
       this.state = "error";
       this.connectionMode = skipMicrophone ? "text" : "voice";
+      this.assistantVoiceState = "idle";
       this.storeActivePreference(false);
       this.refreshButton();
       this.setStatus(getMessage(this.globalConfig, "failed", "Failed to start voice session."));
@@ -1300,6 +1636,7 @@
     this.state = "idle";
     this.connectionMode = "voice";
     this.activityState = "idle";
+    this.assistantVoiceState = "idle";
     this.storeActivePreference(keepActiveAcrossNavigation);
     this.navigationInProgress = false;
     this.refreshButton();
@@ -1322,6 +1659,7 @@
       this.sessionFlushTimer = 0;
     }
     this.clearInterruptedStateTimer();
+    this.clearPendingPttHoldTimer();
     this.pttPressed = false;
 
     if (this.eventsChannel) {
@@ -1356,6 +1694,8 @@
       this.remoteAudioEl.parentNode.removeChild(this.remoteAudioEl);
     }
     this.remoteAudioEl = null;
+    this.assistantVoiceState = "idle";
+    this.sessionModel = "";
 
     this.directAliases = [];
     this.handledCalls = {};
@@ -1578,6 +1918,7 @@
     }
 
     var normalizedType = asTrimmedString(type).toLowerCase();
+    var assistantVoiceState = resolveAssistantVoiceStateFromRealtimeEvent(normalizedType);
     if (!normalizedType) {
       return;
     }
@@ -1599,46 +1940,34 @@
       normalizedType === "response.canceled" ||
       normalizedType === "response.cancelled"
     ) {
+      this.setAssistantVoiceState("idle");
       this.setActivityState("interrupted");
       return;
     }
 
-    if (
-      normalizedType === "response.audio.delta" ||
-      normalizedType === "response.audio_transcript.delta" ||
-      normalizedType === "response.output_text.delta" ||
-      normalizedType === "response.text.delta"
-    ) {
-      this.setActivityState("speaking");
-      return;
-    }
-
-    if (normalizedType === "response.created") {
-      this.setActivityState("speaking");
+    if (assistantVoiceState === "speaking") {
+      this.setAssistantVoiceState("speaking");
       return;
     }
 
     if (normalizedType === "input_audio_buffer.speech_stopped") {
       if (this.pttPressed) {
         this.setActivityState("listening");
-      } else if (this.activityState !== "speaking") {
+      } else if (this.getAssistantVoiceState() !== "speaking") {
         this.setActivityState("idle");
       }
       return;
     }
 
-    if (normalizedType === "response.audio.done" || normalizedType === "response.done") {
-      this.setActivityState(this.pttPressed ? "listening" : "idle");
+    if (assistantVoiceState === "idle") {
+      this.setAssistantVoiceState("idle");
       return;
     }
 
     if (normalizedType === "error") {
+      this.setAssistantVoiceState("idle");
       this.setActivityState("idle");
       return;
-    }
-
-    if (normalizedType === "response.output_item.done" && isRecord(event) && isRecord(event.item) && event.item.type === "message") {
-      this.setActivityState(this.pttPressed ? "listening" : "idle");
     }
   };
 
@@ -1654,6 +1983,11 @@
     var type = asTrimmedString(parsed.type);
     if (!type) {
       return;
+    }
+
+    var eventModel = extractRealtimeModelFromEvent(parsed, this.sessionModel);
+    if (eventModel) {
+      this.sessionModel = eventModel;
     }
 
     var sessionMessages = this.extractSessionMessagesFromRealtimeEvent(parsed);
@@ -1714,6 +2048,7 @@
     if (!type) {
       return messages;
     }
+    var usageTrackingContent = buildRealtimeUsageTrackingContent(event, this.sessionModel);
 
     function push(direction, messageType, contentText, contentJson, meta) {
       messages.push({
@@ -1738,6 +2073,17 @@
           item_id: event.item_id || null
         }
       );
+      if (usageTrackingContent && isRecord(usageTrackingContent.usage)) {
+        push(
+          "system",
+          "event",
+          type,
+          usageTrackingContent,
+          {
+            item_id: event.item_id || null
+          }
+        );
+      }
       return messages;
     }
 
@@ -1757,6 +2103,18 @@
           item_id: event.item_id || null
         }
       );
+      if (usageTrackingContent && isRecord(usageTrackingContent.usage)) {
+        push(
+          "system",
+          "event",
+          type,
+          usageTrackingContent,
+          {
+            response_id: event.response_id || null,
+            item_id: event.item_id || null
+          }
+        );
+      }
       return messages;
     }
 
@@ -1808,7 +2166,25 @@
       return messages;
     }
 
-    if (type === "session.created" || type === "session.updated" || type === "response.done") {
+    if (type === "response.done") {
+      push(
+        "system",
+        "event",
+        type,
+        usageTrackingContent || {
+          type: type,
+          response_id: asTrimmedString(event.response_id || ""),
+          status: asTrimmedString(event.status || ""),
+          model: extractRealtimeModelFromEvent(event, this.sessionModel),
+          usage: null,
+          output_item_count: Array.isArray(event.output) ? event.output.length : 0
+        },
+        null
+      );
+      return messages;
+    }
+
+    if (type === "session.created" || type === "session.updated") {
       push(
         "system",
         "event",
@@ -1816,6 +2192,16 @@
         {
           type: type
         },
+        null
+      );
+    }
+
+    if (usageTrackingContent && isRecord(usageTrackingContent.usage)) {
+      push(
+        "system",
+        "event",
+        type,
+        usageTrackingContent,
         null
       );
     }

@@ -185,7 +185,7 @@ class Navai_Voice_Plugin
             'navai-voice-admin',
             NAVAI_VOICE_URL . 'assets/css/navai-admin.css',
             ['navai-voice-admin-fonts'],
-            NAVAI_VOICE_VERSION
+            $this->resolve_asset_version('assets/css/navai-admin.css')
         );
 
         $functionCodeEditorSettings = null;
@@ -211,7 +211,7 @@ class Navai_Voice_Plugin
             'navai-voice-admin-translations-extra',
             NAVAI_VOICE_URL . 'assets/js/admin/navai-admin-translations-extra.js',
             [],
-            NAVAI_VOICE_VERSION,
+            $this->resolve_asset_version('assets/js/admin/navai-admin-translations-extra.js'),
             true
         );
 
@@ -219,7 +219,7 @@ class Navai_Voice_Plugin
             'navai-voice-admin-core',
             NAVAI_VOICE_URL . 'assets/js/admin/navai-admin-core.js',
             ['navai-voice-admin-translations-extra'],
-            NAVAI_VOICE_VERSION,
+            $this->resolve_asset_version('assets/js/admin/navai-admin-core.js'),
             true
         );
 
@@ -232,7 +232,7 @@ class Navai_Voice_Plugin
             'navai-voice-admin',
             NAVAI_VOICE_URL . 'assets/js/navai-admin.js',
             $adminScriptDeps,
-            NAVAI_VOICE_VERSION,
+            $this->resolve_asset_version('assets/js/navai-admin.js'),
             true
         );
 
@@ -268,22 +268,30 @@ class Navai_Voice_Plugin
             'navai-voice',
             NAVAI_VOICE_URL . 'assets/css/navai-voice.css',
             [],
-            NAVAI_VOICE_VERSION
+            $this->resolve_asset_version('assets/css/navai-voice.css')
         );
 
         wp_register_script(
             'navai-voice-core',
             NAVAI_VOICE_URL . 'assets/js/frontend/navai-voice-core.js',
             [],
-            NAVAI_VOICE_VERSION,
+            $this->resolve_asset_version('assets/js/frontend/navai-voice-core.js'),
+            true
+        );
+
+        wp_register_script(
+            'navai-voice-orb',
+            NAVAI_VOICE_URL . 'assets/js/frontend/navai-voice-orb.js',
+            [],
+            $this->resolve_asset_version('assets/js/frontend/navai-voice-orb.js'),
             true
         );
 
         wp_register_script(
             'navai-voice',
             NAVAI_VOICE_URL . 'assets/js/navai-voice.js',
-            ['navai-voice-core'],
-            NAVAI_VOICE_VERSION,
+            ['navai-voice-core', 'navai-voice-orb'],
+            $this->resolve_asset_version('assets/js/navai-voice.js'),
             true
         );
 
@@ -349,6 +357,18 @@ class Navai_Voice_Plugin
         wp_localize_script('navai-voice', 'NAVAI_VOICE_CONFIG', $config);
     }
 
+    private function resolve_asset_version(string $relativePath): string
+    {
+        $normalizedPath = ltrim(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $relativePath), DIRECTORY_SEPARATOR);
+        $absolutePath = trailingslashit(NAVAI_VOICE_PATH) . $normalizedPath;
+        $mtime = @filemtime($absolutePath);
+        if (is_numeric($mtime) && (int) $mtime > 0) {
+            return NAVAI_VOICE_VERSION . '.' . (string) ((int) $mtime);
+        }
+
+        return NAVAI_VOICE_VERSION;
+    }
+
     /**
      * @param array<string, mixed> $atts
      */
@@ -401,7 +421,7 @@ class Navai_Voice_Plugin
                 'persist_active' => false,
                 'button_side' => 'left',
                 'button_color_idle' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_idle', '#1263dc'),
-                'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#10883f'),
+                'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#ff5c84'),
                 'show_button_text' => $this->resolve_frontend_show_button_text($settings),
                 'widget_mode' => 'shortcode',
                 'show_status' => true,
@@ -457,7 +477,7 @@ class Navai_Voice_Plugin
                 'persist_active' => true,
                 'button_side' => is_admin() ? 'right' : $this->resolve_frontend_button_side($settings),
                 'button_color_idle' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_idle', '#1263dc'),
-                'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#10883f'),
+                'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#ff5c84'),
                 'show_button_text' => $this->resolve_frontend_show_button_text($settings),
                 'widget_mode' => 'global',
                 'show_status' => false,
