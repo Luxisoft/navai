@@ -119,10 +119,10 @@ export const NAVAI_ROUTE_ITEMS: NavaiRoute[] = [
 ];
 ```
 
-4. Complete example using the library hook in `src/voice/VoiceNavigator.tsx`:
+4. Complete example using the library hook and visual component in `src/voice/VoiceNavigator.tsx`:
 
 ```tsx
-import { useWebVoiceAgent } from "@navai/voice-frontend";
+import { NavaiVoiceOrbDock, useWebVoiceAgent } from "@navai/voice-frontend";
 import { useNavigate } from "react-router-dom";
 import { NAVAI_WEB_MODULE_LOADERS } from "../ai/generated-module-loaders";
 import { NAVAI_ROUTE_ITEMS } from "../ai/routes";
@@ -136,15 +136,30 @@ export function VoiceNavigator() {
     env: import.meta.env as Record<string, string | undefined>
   });
 
-  return !agent.isConnected ? (
-    <button onClick={() => void agent.start()} disabled={agent.isConnecting}>
-      {agent.isConnecting ? "Connecting..." : "Start Voice"}
-    </button>
-  ) : (
-    <button onClick={agent.stop}>Stop Voice</button>
+  return (
+    <NavaiVoiceOrbDock
+      agent={agent}
+      placement="inline"
+      themeMode="light"
+    />
   );
 }
 ```
+
+`NavaiVoiceOrbDock` already maps UI states on top of the hook:
+
+- `idle`: animated orb ready to start.
+- `connecting`: shows a spinner.
+- `connected`: shows a red microphone button to stop the agent.
+- `error`: shows the error message.
+
+Useful props:
+
+- `agent`: result of `useWebVoiceAgent(...)`.
+- `placement`: `inline | bottom-right | bottom-left`.
+- `themeMode`: `light | dark`.
+- `showStatus`: shows or hides the status label.
+- `messages`: override labels (`ariaStart`, `connecting`, etc.).
 
 Notes:
 
@@ -185,14 +200,15 @@ Quick description:
 navai-generate-mobile-loaders
 ```
 
-4. Complete example using the library hook in `src/voice/VoiceNavigator.tsx`:
+4. Complete example using the library hook and mobile visual component in `src/voice/VoiceNavigator.tsx`:
 
 ```tsx
 import {
+  NavaiMobileVoiceOrbButton,
   useMobileVoiceAgent,
   type ResolveNavaiMobileApplicationRuntimeConfigResult
 } from "@navai/voice-mobile";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 type Props = {
   runtime: ResolveNavaiMobileApplicationRuntimeConfigResult | null;
@@ -211,21 +227,27 @@ export function VoiceNavigator({ runtime, runtimeLoading, runtimeError, navigate
 
   return (
     <View>
-      {!agent.isConnected ? (
-        <Pressable onPress={() => void agent.start()} disabled={agent.isConnecting}>
-          <Text>{agent.isConnecting ? "Connecting..." : "Start Voice"}</Text>
-        </Pressable>
-      ) : (
-        <Pressable onPress={() => void agent.stop()}>
-          <Text>Stop Voice</Text>
-        </Pressable>
-      )}
+      <NavaiMobileVoiceOrbButton agent={agent} />
       <Text>Status: {agent.status}</Text>
       {agent.error ? <Text>{agent.error}</Text> : null}
     </View>
   );
 }
 ```
+
+`NavaiMobileVoiceOrbButton` follows the same visual contract:
+
+- `idle`: orb ready to start.
+- `connecting`: spinner.
+- `connected`: red microphone to stop the agent.
+- `error`: error message.
+
+Useful props:
+
+- `agent`: result of `useMobileVoiceAgent(...)`.
+- `size`: orb size in px.
+- `showStatus`: shows or hides the status text.
+- `messages`: override accessibility and status labels.
 
 Notes:
 
