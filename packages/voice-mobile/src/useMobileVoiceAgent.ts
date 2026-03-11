@@ -10,7 +10,10 @@ import {
 } from "./agent";
 import { createNavaiMobileBackendClient } from "./backend";
 import { loadNavaiFunctions, type NavaiFunctionsRegistry } from "./functions";
-import { createReactNativeWebRtcTransport } from "./react-native-webrtc";
+import {
+  createReactNativeWebRtcTransport,
+  type CreateReactNativeWebRtcTransportOptions
+} from "./react-native-webrtc";
 import type { ResolveNavaiMobileApplicationRuntimeConfigResult } from "./runtime";
 import {
   createNavaiMobileVoiceSession,
@@ -27,11 +30,17 @@ type WebRtcRuntime = {
 
 type PendingToolCall = NavaiRealtimeToolCall & { name: string };
 
+export type UseMobileVoiceAgentTransportOptions = Pick<
+  CreateReactNativeWebRtcTransportOptions,
+  "rtcConfiguration" | "audioConstraints" | "remoteAudioTrackVolume"
+>;
+
 export type UseMobileVoiceAgentOptions = {
   runtime: ResolveNavaiMobileApplicationRuntimeConfigResult | null;
   runtimeLoading: boolean;
   runtimeError: string | null;
   navigate: (path: string) => void;
+  transportOptions?: UseMobileVoiceAgentTransportOptions;
 };
 
 export type UseMobileVoiceAgentResult = {
@@ -398,7 +407,10 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
             RTCPeerConnection: webRtc.runtime.RTCPeerConnection
           } as never,
           model: runtime.modelOverride,
-          remoteAudioTrackVolume: REMOTE_AUDIO_TRACK_VOLUME
+          rtcConfiguration: options.transportOptions?.rtcConfiguration,
+          audioConstraints: options.transportOptions?.audioConstraints,
+          remoteAudioTrackVolume:
+            options.transportOptions?.remoteAudioTrackVolume ?? REMOTE_AUDIO_TRACK_VOLUME
         }),
         onRealtimeEvent: handleRealtimeEvent,
         onRealtimeError: (nextError) => {
@@ -462,6 +474,7 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
     options.runtime,
     options.runtimeError,
     options.runtimeLoading,
+    options.transportOptions,
     resetSessionState,
     setAgentVoiceStateIfChanged,
     status,

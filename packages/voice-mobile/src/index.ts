@@ -73,6 +73,7 @@ export {
 export {
   useMobileVoiceAgent,
   type UseMobileVoiceAgentOptions,
+  type UseMobileVoiceAgentTransportOptions,
   type UseMobileVoiceAgentResult
 } from "./useMobileVoiceAgent";
 export {

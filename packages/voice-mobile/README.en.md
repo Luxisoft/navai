@@ -106,6 +106,7 @@ Important types:
 - `NavaiRealtimeTransport`
 - `NavaiMobileVoiceSession`
 - `ResolveNavaiMobileApplicationRuntimeConfigResult`
+- `UseMobileVoiceAgentTransportOptions`
 
 ## Tool Runtime Design
 
@@ -253,6 +254,7 @@ Resilience behavior:
 - pending tool call queue while runtime/session is initializing.
 - dedup of handled tool call ids.
 - automatic `session.update` after session starts.
+- optional `transportOptions` passthrough for `rtcConfiguration`, `audioConstraints`, and `remoteAudioTrackVolume`.
 
 Hook states:
 
@@ -360,6 +362,44 @@ const voice = useMobileVoiceAgent({
   runtimeLoading,
   runtimeError,
   navigate: (path) => navigation.navigate(path as never)
+});
+```
+
+React Native CLI Android (opt-in transport config):
+
+Leave `transportOptions` undefined in Expo if the current defaults already work for your app. In bare React Native CLI on Android, you can opt in to an explicit WebRTC transport configuration without changing Expo behavior.
+
+```ts
+import { Platform } from "react-native";
+import {
+  useMobileVoiceAgent,
+  type UseMobileVoiceAgentTransportOptions
+} from "@navai/voice-mobile";
+
+const androidBareTransportOptions: UseMobileVoiceAgentTransportOptions | undefined =
+  Platform.OS === "android"
+    ? {
+        rtcConfiguration: {
+          iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }]
+        },
+        audioConstraints: {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          video: false
+        },
+        remoteAudioTrackVolume: 10
+      }
+    : undefined;
+
+const voice = useMobileVoiceAgent({
+  runtime,
+  runtimeLoading,
+  runtimeError,
+  navigate: (path) => navigation.navigate(path as never),
+  transportOptions: androidBareTransportOptions
 });
 ```
 
