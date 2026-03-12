@@ -2586,10 +2586,6 @@ class Navai_Voice_API
             $attempts = $attemptNumber;
 
             try {
-                if ($metadata['timeout_seconds'] > 0 && function_exists('set_time_limit')) {
-                    @set_time_limit((int) $metadata['timeout_seconds']);
-                }
-
                 $result = call_user_func(
                     $callback,
                     $payload,

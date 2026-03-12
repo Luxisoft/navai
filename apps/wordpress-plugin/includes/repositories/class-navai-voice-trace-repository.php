@@ -8,6 +8,8 @@ if (class_exists('Navai_Voice_Trace_Repository', false)) {
     return;
 }
 
+// Custom plugin tables require direct $wpdb access; identifiers come from internal helpers.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 class Navai_Voice_Trace_Repository
 {
     private function table(): string
@@ -112,3 +114,4 @@ class Navai_Voice_Trace_Repository
         return array_values(array_filter($rows, 'is_array'));
     }
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter

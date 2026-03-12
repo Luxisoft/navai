@@ -1,14 +1,3 @@
-.toplevel_page_navai-voice-settings #wpbody-content .notice:not(.navai-voice-notice),
-.toplevel_page_navai-voice-settings #wpbody-content .update-nag,
-.toplevel_page_navai-voice-settings #wpbody-content .error:not(.navai-voice-notice),
-.toplevel_page_navai-voice-settings #wpbody-content .updated:not(.navai-voice-notice),
-.toplevel_page_navai-voice-settings #wpbody-content .woocommerce-message,
-.toplevel_page_navai-voice-settings #wpbody-content .woocommerce-layout__header,
-.toplevel_page_navai-voice-settings #wpbody-content .omnisend-notice,
-.toplevel_page_navai-voice-settings #wpbody-content [id^="message"]:not(.navai-voice-notice) {
-  display: none !important;
-}
-
 .navai-guardrails-panel {
   display: grid;
   gap: 18px;
@@ -2069,24 +2058,12 @@
   margin: 4px 0 0;
 }
 
-.navai-admin-wrap[data-navai-dashboard-language="ru"] {
-  font-family: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-.navai-admin-wrap[data-navai-dashboard-language="zh"] {
-  font-family: "Noto Sans SC", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-.navai-admin-wrap[data-navai-dashboard-language="ja"] {
-  font-family: "Noto Sans JP", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-.navai-admin-wrap[data-navai-dashboard-language="ko"] {
-  font-family: "Noto Sans KR", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
+.navai-admin-wrap[data-navai-dashboard-language="ru"],
+.navai-admin-wrap[data-navai-dashboard-language="zh"],
+.navai-admin-wrap[data-navai-dashboard-language="ja"],
+.navai-admin-wrap[data-navai-dashboard-language="ko"],
 .navai-admin-wrap[data-navai-dashboard-language="hi"] {
-  font-family: "Noto Sans Devanagari", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .navai-admin-wrap[data-navai-dashboard-language="ru"] input,
@@ -2434,7 +2411,7 @@
 
 /* Visual refresh overrides (global admin UI polish). */
 .navai-admin-wrap {
-  --navai-ui-font: "Manrope", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --navai-ui-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --navai-bg-1: #f5f7fc;
   --navai-bg-2: #edf3ff;
   --navai-surface: #ffffff;

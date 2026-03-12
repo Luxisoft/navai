@@ -69,9 +69,9 @@ trait Navai_Voice_API_Helpers_Runtime_Trait
     private function get_client_ip(): string
     {
         $candidates = [
-            $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
-            $_SERVER['HTTP_CLIENT_IP'] ?? '',
-            $_SERVER['REMOTE_ADDR'] ?? '',
+            isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? sanitize_text_field(wp_unslash((string) $_SERVER['HTTP_X_FORWARDED_FOR'])) : '',
+            isset($_SERVER['HTTP_CLIENT_IP']) ? sanitize_text_field(wp_unslash((string) $_SERVER['HTTP_CLIENT_IP'])) : '',
+            isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash((string) $_SERVER['REMOTE_ADDR'])) : '',
         ];
 
         foreach ($candidates as $value) {

@@ -48,6 +48,7 @@ trait Navai_Voice_Settings_Internals_Routes_Trait
 
                 $title = trim(wp_strip_all_tags((string) $item->title));
                 if ($title === '') {
+                    /* translators: %d: WordPress menu item numeric ID. */
                     $title = sprintf(__('Menu item %d', 'navai-voice'), $legacyId);
                 }
 
@@ -156,6 +157,7 @@ trait Navai_Voice_Settings_Internals_Routes_Trait
             $title = $this->build_private_route_title_from_url($url);
             $customDescription = sanitize_text_field((string) ($customRoute['description'] ?? ''));
             if ($customDescription === '') {
+                /* translators: %s: WordPress role label. */
                 $customDescription = sprintf(__('Ruta privada personalizada para el rol %s.', 'navai-voice'), (string) $roleLabel);
             }
             $items[] = [
@@ -882,13 +884,13 @@ trait Navai_Voice_Settings_Internals_Routes_Trait
             'realtime_vad_prefix_padding_ms' => 300,
             'client_secret_ttl' => 600,
             'allow_public_client_secret' => true,
-            'allow_public_functions' => true,
+            'allow_public_functions' => false,
             'enable_guardrails' => true,
             'enable_approvals' => true,
-            'enable_tracing' => true,
-            'enable_session_memory' => true,
+            'enable_tracing' => false,
+            'enable_session_memory' => false,
             'enable_agents' => true,
-            'enable_mcp' => true,
+            'enable_mcp' => false,
             'session_ttl_minutes' => 1440,
             'session_retention_days' => 30,
             'session_compaction_threshold' => 120,

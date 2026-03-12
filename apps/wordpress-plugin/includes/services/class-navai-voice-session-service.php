@@ -116,7 +116,7 @@ class Navai_Voice_Session_Service
         }
 
         $nowTs = function_exists('current_time') ? (int) current_time('timestamp') : time();
-        $expiresAt = date('Y-m-d H:i:s', $nowTs + ((int) $config['session_ttl_minutes'] * 60));
+        $expiresAt = wp_date('Y-m-d H:i:s', $nowTs + ((int) $config['session_ttl_minutes'] * 60));
         $row = $this->repository->get_session_by_key($requestedKey);
         $created = false;
 
@@ -613,7 +613,7 @@ class Navai_Voice_Session_Service
     {
         $config = $this->get_runtime_config($settings);
         $nowTs = function_exists('current_time') ? (int) current_time('timestamp') : time();
-        $cutoff = date('Y-m-d H:i:s', $nowTs - ((int) $config['session_retention_days'] * DAY_IN_SECONDS));
+        $cutoff = wp_date('Y-m-d H:i:s', $nowTs - ((int) $config['session_retention_days'] * DAY_IN_SECONDS));
         $limit = max(1, min(1000, $limit));
 
         $rows = $this->repository->list_sessions([

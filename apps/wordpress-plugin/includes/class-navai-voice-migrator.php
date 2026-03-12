@@ -8,6 +8,8 @@ if (class_exists('Navai_Voice_Migrator', false)) {
     return;
 }
 
+// Custom plugin tables require direct $wpdb access; identifiers come from internal helpers.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 class Navai_Voice_Migrator
 {
     public static function maybe_migrate(): void
@@ -325,3 +327,4 @@ class Navai_Voice_Migrator
         dbDelta($sqlMcpToolPolicies);
     }
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter

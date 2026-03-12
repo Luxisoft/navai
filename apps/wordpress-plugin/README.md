@@ -1,7 +1,7 @@
 # NAVAI Voice for WordPress
 
 <p align="center">
-  <a href="./README.es.md"><img alt="Spanish" src="https://img.shields.io/badge/Idioma-ES-0A66C2?style=for-the-badge"></a>
+  <a href="./docs/README.es.md"><img alt="Spanish" src="https://img.shields.io/badge/Idioma-ES-0A66C2?style=for-the-badge"></a>
   <a href="./README.md"><img alt="English" src="https://img.shields.io/badge/Language-EN-1D9A6C?style=for-the-badge"></a>
 </p>
 
@@ -212,7 +212,8 @@ Extra controls in the top header:
    - `Manual shortcode only`
 4. Configure visibility:
    - Select which roles can see the widget (and whether guests are allowed)
-5. Click `Save changes`.
+5. If you need backend tools for public visitors, explicitly enable `Allow public backend functions` in `Settings`.
+6. Click `Save changes`.
 
 ## How to use the plugin
 
@@ -702,6 +703,17 @@ add_filter('navai_voice_frontend_config', function (array $config, array $settin
 }, 10, 2);
 ```
 
+## Third-party services and privacy
+
+- `OpenAI Realtime`: NAVAI Voice sends audio/text interaction data to OpenAI when a user starts a realtime session or an administrator runs related tests/configuration flows.
+- `Optional MCP servers`: NAVAI Voice can send tool payloads to third-party MCP endpoints only after an administrator enables MCP and configures those servers.
+- New installs now default to:
+  - public backend functions disabled
+  - session history disabled
+  - runtime tracing disabled
+  - MCP disabled until configured
+- The plugin registers WordPress privacy policy guidance plus personal data exporter/eraser handlers for data linked to logged-in WordPress users.
+
 ## Security notes
 
 - The OpenAI API key remains on the server.
@@ -728,7 +740,7 @@ The ZIP currently includes:
 
 - `navai-voice.php`
 - `README.md`
-- `README.es.md`
+- `docs/README.es.md`
 - `assets/`
 - `includes/`
 

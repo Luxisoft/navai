@@ -1,7 +1,13 @@
 <?php
-if (!isset($tracingEnabled)) {
-    $tracingEnabled = true;
+if (!defined('ABSPATH')) {
+    exit;
 }
+
+$navai_voice_view_vars = get_defined_vars();
+$navai_voice_tracing_enabled = !array_key_exists('tracingEnabled', $navai_voice_view_vars)
+    ? true
+    : !empty($navai_voice_view_vars['tracingEnabled']);
+unset($navai_voice_view_vars);
 ?>
 <section class="navai-admin-panel" data-navai-panel="traces">
     <div class="navai-admin-card navai-traces-panel" data-navai-traces-panel>
@@ -16,7 +22,7 @@ if (!isset($tracingEnabled)) {
                     type="checkbox"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[enable_tracing]"
                     value="1"
-                    <?php checked(!empty($tracingEnabled), true); ?>
+                    <?php checked($navai_voice_tracing_enabled, true); ?>
                 />
                 <span><?php echo esc_html__('Activar trazas del runtime', 'navai-voice'); ?></span>
             </label>

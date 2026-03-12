@@ -25,8 +25,8 @@ if (Test-Path $zipPath) {
 
 $includePaths = @(
   "navai-voice.php",
-  "README.md",
-  "README.es.md",
+  "readme.txt",
+  "uninstall.php",
   "assets",
   "includes"
 )
@@ -43,6 +43,9 @@ try {
 
       if (Test-Path $fullPath -PathType Container) {
         Get-ChildItem -Path $fullPath -Recurse -File | ForEach-Object {
+          if ($_.Name.StartsWith(".")) {
+            return
+          }
           $sourceFile = $_.FullName
           $internalRelative = $sourceFile.Substring($pluginRoot.Path.Length).TrimStart('\', '/')
           $entryName = "navai-voice/" + ($internalRelative -replace "\\", "/")

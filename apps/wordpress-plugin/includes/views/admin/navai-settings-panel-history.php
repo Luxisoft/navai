@@ -1,19 +1,25 @@
 <?php
-if (!isset($sessionMemoryEnabled)) {
-    $sessionMemoryEnabled = true;
+if (!defined('ABSPATH')) {
+    exit;
 }
-if (!isset($sessionTtlMinutes) || !is_numeric($sessionTtlMinutes)) {
-    $sessionTtlMinutes = 1440;
-}
-if (!isset($sessionRetentionDays) || !is_numeric($sessionRetentionDays)) {
-    $sessionRetentionDays = 30;
-}
-if (!isset($sessionCompactionThreshold) || !is_numeric($sessionCompactionThreshold)) {
-    $sessionCompactionThreshold = 120;
-}
-if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRecent)) {
-    $sessionCompactionKeepRecent = 80;
-}
+
+$navai_voice_view_vars = get_defined_vars();
+$navai_voice_session_memory_enabled = !array_key_exists('sessionMemoryEnabled', $navai_voice_view_vars)
+    ? true
+    : !empty($navai_voice_view_vars['sessionMemoryEnabled']);
+$navai_voice_session_ttl_minutes = isset($navai_voice_view_vars['sessionTtlMinutes']) && is_numeric($navai_voice_view_vars['sessionTtlMinutes'])
+    ? (int) $navai_voice_view_vars['sessionTtlMinutes']
+    : 1440;
+$navai_voice_session_retention_days = isset($navai_voice_view_vars['sessionRetentionDays']) && is_numeric($navai_voice_view_vars['sessionRetentionDays'])
+    ? (int) $navai_voice_view_vars['sessionRetentionDays']
+    : 30;
+$navai_voice_session_compaction_threshold = isset($navai_voice_view_vars['sessionCompactionThreshold']) && is_numeric($navai_voice_view_vars['sessionCompactionThreshold'])
+    ? (int) $navai_voice_view_vars['sessionCompactionThreshold']
+    : 120;
+$navai_voice_session_compaction_keep_recent = isset($navai_voice_view_vars['sessionCompactionKeepRecent']) && is_numeric($navai_voice_view_vars['sessionCompactionKeepRecent'])
+    ? (int) $navai_voice_view_vars['sessionCompactionKeepRecent']
+    : 80;
+unset($navai_voice_view_vars);
 ?>
 <section class="navai-admin-panel" data-navai-panel="history">
     <div class="navai-admin-card navai-history-panel" data-navai-history-panel>
@@ -28,7 +34,7 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
                     type="checkbox"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[enable_session_memory]"
                     value="1"
-                    <?php checked(!empty($sessionMemoryEnabled), true); ?>
+                    <?php checked($navai_voice_session_memory_enabled, true); ?>
                 />
                 <span><?php echo esc_html__('Activar persistencia de sesiones y memoria', 'navai-voice'); ?></span>
             </label>
@@ -46,7 +52,7 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
                     max="43200"
                     step="1"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[session_ttl_minutes]"
-                    value="<?php echo esc_attr((string) (int) $sessionTtlMinutes); ?>"
+                    value="<?php echo esc_attr((string) $navai_voice_session_ttl_minutes); ?>"
                 />
             </label>
             <label>
@@ -57,7 +63,7 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
                     max="3650"
                     step="1"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[session_retention_days]"
-                    value="<?php echo esc_attr((string) (int) $sessionRetentionDays); ?>"
+                    value="<?php echo esc_attr((string) $navai_voice_session_retention_days); ?>"
                 />
             </label>
             <label>
@@ -68,7 +74,7 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
                     max="2000"
                     step="1"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[session_compaction_threshold]"
-                    value="<?php echo esc_attr((string) (int) $sessionCompactionThreshold); ?>"
+                    value="<?php echo esc_attr((string) $navai_voice_session_compaction_threshold); ?>"
                 />
             </label>
             <label>
@@ -79,7 +85,7 @@ if (!isset($sessionCompactionKeepRecent) || !is_numeric($sessionCompactionKeepRe
                     max="1990"
                     step="1"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[session_compaction_keep_recent]"
-                    value="<?php echo esc_attr((string) (int) $sessionCompactionKeepRecent); ?>"
+                    value="<?php echo esc_attr((string) $navai_voice_session_compaction_keep_recent); ?>"
                 />
             </label>
         </div>

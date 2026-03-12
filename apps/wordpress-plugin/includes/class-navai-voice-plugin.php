@@ -14,6 +14,7 @@ class Navai_Voice_Plugin
 {
     private Navai_Voice_Settings $settings;
     private Navai_Voice_API $api;
+    private ?Navai_Voice_Privacy $privacy = null;
     private const DEFAULT_WEBRTC_URL = 'https://api.openai.com/v1/realtime/calls';
     use Navai_Voice_Plugin_Helpers_Trait;
 
@@ -21,6 +22,9 @@ class Navai_Voice_Plugin
     {
         $this->settings = new Navai_Voice_Settings();
         $this->api = new Navai_Voice_API($this->settings);
+        if (class_exists('Navai_Voice_Privacy', false)) {
+            $this->privacy = new Navai_Voice_Privacy();
+        }
     }
 
     public function init(): void
@@ -37,8 +41,12 @@ class Navai_Voice_Plugin
         add_action('wp_footer', [$this, 'render_global_voice_widget']);
         add_action('admin_footer', [$this, 'render_global_voice_widget']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
-        add_action('admin_head', [$this, 'inject_admin_menu_icon_css']);
-        add_action('admin_head-plugins.php', [$this, 'inject_plugins_page_logo_css']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_inline_styles']);
+        if ($this->privacy instanceof Navai_Voice_Privacy) {
+            add_action('admin_init', [$this->privacy, 'register_privacy_policy_content']);
+            add_filter('wp_privacy_personal_data_exporters', [$this->privacy, 'register_exporters']);
+            add_filter('wp_privacy_personal_data_erasers', [$this->privacy, 'register_erasers']);
+        }
 
         add_filter('plugin_action_links_' . NAVAI_VOICE_BASENAME, [$this, 'add_plugin_action_links']);
         add_shortcode('navai_voice', [$this, 'render_voice_shortcode']);
@@ -82,83 +90,32 @@ class Navai_Voice_Plugin
         return $links;
     }
 
-    public function inject_plugins_page_logo_css(): void
+    /**
+     * @param string $hookSuffix
+     */
+    public function enqueue_admin_inline_styles(string $hookSuffix): void
     {
+        wp_enqueue_style('common');
+
         $pluginRowSelector = sprintf(
             'tr[data-plugin="%s"] .plugin-title strong',
-            esc_attr(NAVAI_VOICE_BASENAME)
+            NAVAI_VOICE_BASENAME
         );
-        $logoUrl = esc_url($this->resolve_admin_icon_url());
-        ?>
-        <style>
-            <?php echo $pluginRowSelector; ?> {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-            }
-            <?php echo $pluginRowSelector; ?>::before {
-                content: "";
-                width: 20px;
-                height: 20px;
-                background: url('<?php echo $logoUrl; ?>') center/contain no-repeat;
-                display: inline-block;
-            }
-        </style>
-        <?php
-    }
-
-    public function inject_admin_menu_icon_css(): void
-    {
         $menuId = 'toplevel_page_' . Navai_Voice_Settings::PAGE_SLUG;
-        $documentationUrl = 'https://navai.luxisoft.com/wordpress';
-        $legacyDocumentationUrl = 'https://navai.luxisoft.com/documentation/installation-wordpress';
-        ?>
-        <style>
-            #<?php echo esc_attr($menuId); ?> .wp-menu-image img {
-                width: 23px !important;
-                height: 23px !important;
-                max-width: 23px !important;
-                max-height: 23px !important;
-                padding-top: 5px !important;
-                object-fit: contain !important;
-            }
-        </style>
-        <script>
-            (function () {
-                function bindExternalDocumentationLinkTarget() {
-                    var menuSelector = '#<?php echo esc_js($menuId); ?> .wp-submenu a';
-                    var links = document.querySelectorAll(menuSelector);
-                    if (!links || !links.length) {
-                        return;
-                    }
+        $inlineCss = sprintf(
+            '#%1$s .wp-menu-image img { width: 23px !important; height: 23px !important; max-width: 23px !important; max-height: 23px !important; padding-top: 5px !important; object-fit: contain !important; }',
+            sanitize_html_class($menuId)
+        );
 
-                    var docsUrl = '<?php echo esc_js($documentationUrl); ?>';
-                    var legacyDocsUrl = '<?php echo esc_js($legacyDocumentationUrl); ?>';
+        if ($hookSuffix === 'plugins.php') {
+            $inlineCss .= sprintf(
+                '%1$s { display: inline-flex; align-items: center; gap: 8px; } %1$s::before { content: ""; width: 20px; height: 20px; background: url("%2$s") center/contain no-repeat; display: inline-block; }',
+                $pluginRowSelector,
+                esc_url_raw($this->resolve_admin_icon_url())
+            );
+        }
 
-                    for (var i = 0; i < links.length; i += 1) {
-                        var link = links[i];
-                        if (!link) {
-                            continue;
-                        }
-
-                        var href = String(link.getAttribute('href') || '');
-                        if (href !== docsUrl && href !== legacyDocsUrl) {
-                            continue;
-                        }
-
-                        link.setAttribute('target', '_blank');
-                        link.setAttribute('rel', 'noopener noreferrer');
-                    }
-                }
-
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', bindExternalDocumentationLinkTarget);
-                } else {
-                    bindExternalDocumentationLinkTarget();
-                }
-            })();
-        </script>
-        <?php
+        wp_add_inline_style('common', $inlineCss);
     }
 
     /**
@@ -175,16 +132,9 @@ class Navai_Voice_Plugin
         }
 
         wp_enqueue_style(
-            'navai-voice-admin-fonts',
-            'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap',
-            [],
-            null
-        );
-
-        wp_enqueue_style(
             'navai-voice-admin',
             NAVAI_VOICE_URL . 'assets/css/navai-admin.css',
-            ['navai-voice-admin-fonts'],
+            [],
             $this->resolve_asset_version('assets/css/navai-admin.css')
         );
 
@@ -451,42 +401,44 @@ class Navai_Voice_Plugin
         wp_enqueue_script('navai-voice');
         $voiceInputMode = $this->sanitize_frontend_voice_input_mode($settings['frontend_voice_input_mode'] ?? 'vad');
 
-        echo $this->render_widget_markup(
-            [
-                'label' => $this->resolve_frontend_button_text(
-                    $settings,
-                    'frontend_button_text_idle',
-                    __('Talk to NAVAI', 'navai-voice')
-                ),
-                'stop_label' => $this->resolve_frontend_button_text(
-                    $settings,
-                    'frontend_button_text_active',
-                    __('Stop NAVAI', 'navai-voice')
-                ),
-                'model' => (string) ($settings['default_model'] ?? ''),
-                'voice' => (string) ($settings['default_voice'] ?? ''),
-                'instructions' => (string) ($settings['default_instructions'] ?? ''),
-                'language' => (string) ($settings['default_language'] ?? ''),
-                'voice_accent' => (string) ($settings['default_voice_accent'] ?? ''),
-                'voice_tone' => (string) ($settings['default_voice_tone'] ?? ''),
-                'debug' => '0',
-                'class' => '',
-            ],
-            [
-                'floating' => true,
-                'persist_active' => true,
-                'button_side' => is_admin() ? 'right' : $this->resolve_frontend_button_side($settings),
-                'button_color_idle' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_idle', '#1263dc'),
-                'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#ff5c84'),
-                'show_button_text' => $this->resolve_frontend_show_button_text($settings),
-                'widget_mode' => 'global',
-                'show_status' => false,
-                'voice_input_mode' => $voiceInputMode,
-                'text_input_enabled' => !array_key_exists('frontend_text_input_enabled', $settings) || !empty($settings['frontend_text_input_enabled']),
-                'auto_initialize' => !empty($settings['frontend_auto_initialize']),
-                'assistant_stop_tool_enabled' => !array_key_exists('frontend_allow_assistant_stop_tool', $settings) || !empty($settings['frontend_allow_assistant_stop_tool']),
-                'text_placeholder' => sanitize_text_field((string) ($settings['frontend_text_placeholder'] ?? 'Escribe un mensaje...')),
-            ]
-        );
+        $widgetAttributes = [
+            'label' => $this->resolve_frontend_button_text(
+                $settings,
+                'frontend_button_text_idle',
+                __('Talk to NAVAI', 'navai-voice')
+            ),
+            'stop_label' => $this->resolve_frontend_button_text(
+                $settings,
+                'frontend_button_text_active',
+                __('Stop NAVAI', 'navai-voice')
+            ),
+            'model' => (string) ($settings['default_model'] ?? ''),
+            'voice' => (string) ($settings['default_voice'] ?? ''),
+            'instructions' => (string) ($settings['default_instructions'] ?? ''),
+            'language' => (string) ($settings['default_language'] ?? ''),
+            'voice_accent' => (string) ($settings['default_voice_accent'] ?? ''),
+            'voice_tone' => (string) ($settings['default_voice_tone'] ?? ''),
+            'debug' => '0',
+            'class' => '',
+        ];
+        $widgetOptions = [
+            'floating' => true,
+            'persist_active' => true,
+            'button_side' => is_admin() ? 'right' : $this->resolve_frontend_button_side($settings),
+            'button_color_idle' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_idle', '#1263dc'),
+            'button_color_active' => $this->resolve_frontend_button_color($settings, 'frontend_button_color_active', '#ff5c84'),
+            'show_button_text' => $this->resolve_frontend_show_button_text($settings),
+            'widget_mode' => 'global',
+            'show_status' => false,
+            'voice_input_mode' => $voiceInputMode,
+            'text_input_enabled' => !array_key_exists('frontend_text_input_enabled', $settings) || !empty($settings['frontend_text_input_enabled']),
+            'auto_initialize' => !empty($settings['frontend_auto_initialize']),
+            'assistant_stop_tool_enabled' => !array_key_exists('frontend_allow_assistant_stop_tool', $settings) || !empty($settings['frontend_allow_assistant_stop_tool']),
+            'text_placeholder' => sanitize_text_field((string) ($settings['frontend_text_placeholder'] ?? 'Escribe un mensaje...')),
+        ];
+        $widgetMarkup = $this->render_widget_markup($widgetAttributes, $widgetOptions);
+
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup is escaped inside render_widget_markup().
+        echo $widgetMarkup;
     }
 }

@@ -1,20 +1,26 @@
-﻿                <?php
-                $pluginCustomFunctions = is_array($pluginCustomFunctions ?? null) ? $pluginCustomFunctions : [];
-                $pluginFunctionGroups = is_array($pluginFunctionGroups ?? null) ? $pluginFunctionGroups : [];
-                $pluginFunctionPluginCatalog = is_array($pluginFunctionPluginCatalog ?? null) ? $pluginFunctionPluginCatalog : [];
-                $pluginFunctionPluginOptions = is_array($pluginFunctionPluginOptions ?? null) ? $pluginFunctionPluginOptions : [];
-                $pluginFunctionRoleOptions = is_array($pluginFunctionRoleOptions ?? null) ? $pluginFunctionRoleOptions : [];
-                $allowedPluginFunctionKeys = is_array($allowedPluginFunctionKeys ?? null) ? $allowedPluginFunctionKeys : [];
-                $availableRoles = is_array($availableRoles ?? null) ? $availableRoles : [];
-                $pluginCustomFunctionsCount = count($pluginCustomFunctions);
-                $pluginFunctionGroupsCount = count($pluginFunctionGroups);
-                ?>
-                <section class="navai-admin-panel" data-navai-panel="plugins">
+<?php
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+$navai_voice_view_vars = get_defined_vars();
+$navai_voice_plugin_custom_functions = is_array($navai_voice_view_vars['pluginCustomFunctions'] ?? null) ? $navai_voice_view_vars['pluginCustomFunctions'] : [];
+$navai_voice_plugin_function_groups = is_array($navai_voice_view_vars['pluginFunctionGroups'] ?? null) ? $navai_voice_view_vars['pluginFunctionGroups'] : [];
+$navai_voice_plugin_function_plugin_catalog = is_array($navai_voice_view_vars['pluginFunctionPluginCatalog'] ?? null) ? $navai_voice_view_vars['pluginFunctionPluginCatalog'] : [];
+$navai_voice_plugin_function_plugin_options = is_array($navai_voice_view_vars['pluginFunctionPluginOptions'] ?? null) ? $navai_voice_view_vars['pluginFunctionPluginOptions'] : [];
+$navai_voice_plugin_function_role_options = is_array($navai_voice_view_vars['pluginFunctionRoleOptions'] ?? null) ? $navai_voice_view_vars['pluginFunctionRoleOptions'] : [];
+$navai_voice_allowed_plugin_function_keys = is_array($navai_voice_view_vars['allowedPluginFunctionKeys'] ?? null) ? $navai_voice_view_vars['allowedPluginFunctionKeys'] : [];
+$navai_voice_available_roles = is_array($navai_voice_view_vars['availableRoles'] ?? null) ? $navai_voice_view_vars['availableRoles'] : [];
+unset($navai_voice_view_vars);
+$navai_voice_plugin_custom_functions_count = count($navai_voice_plugin_custom_functions);
+$navai_voice_plugin_function_groups_count = count($navai_voice_plugin_function_groups);
+?>
+<section class="navai-admin-panel" data-navai-panel="plugins">
                     <h2><?php echo esc_html__('Funciones', 'navai-voice'); ?></h2>
                     <p><?php echo esc_html__('Define funciones personalizadas por plugin y rol para que NAVAI las ejecute.', 'navai-voice'); ?></p>
 
                     <div class="navai-admin-card">
-                        <div class="navai-plugin-functions-builder" data-next-index="<?php echo esc_attr((string) $pluginCustomFunctionsCount); ?>">
+                        <div class="navai-plugin-functions-builder" data-next-index="<?php echo esc_attr((string) $navai_voice_plugin_custom_functions_count); ?>">
                             <div class="navai-plugin-functions-builder-head">
                                 <div class="navai-plugin-functions-builder-head-copy">
                                     <h3><?php echo esc_html__('Funciones personalizadas', 'navai-voice'); ?></h3>
@@ -72,9 +78,9 @@
                                             <label>
                                                 <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
                                                 <select class="navai-plugin-function-editor-plugin">
-                                                    <?php foreach ($pluginFunctionPluginCatalog as $pluginKey => $pluginLabel) : ?>
-                                                        <option value="<?php echo esc_attr((string) $pluginKey); ?>">
-                                                            <?php echo esc_html((string) $pluginLabel); ?>
+                                                    <?php foreach ($navai_voice_plugin_function_plugin_catalog as $navai_voice_plugin_key => $navai_voice_plugin_label) : ?>
+                                                        <option value="<?php echo esc_attr((string) $navai_voice_plugin_key); ?>">
+                                                            <?php echo esc_html((string) $navai_voice_plugin_label); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -85,10 +91,10 @@
                                                 <select class="navai-plugin-function-editor-role">
                                                     <option value="all"><?php echo esc_html__('Todos los roles', 'navai-voice'); ?></option>
                                                     <option value="guest"><?php echo esc_html__('Visitantes', 'navai-voice'); ?></option>
-                                                    <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
-                                                        <?php if ((string) $roleKey === 'guest' || (string) $roleKey === 'all') { continue; } ?>
-                                                        <option value="<?php echo esc_attr((string) $roleKey); ?>">
-                                                            <?php echo esc_html((string) $roleLabel); ?>
+                                                    <?php foreach ($navai_voice_available_roles as $navai_voice_role_key => $navai_voice_role_label) : ?>
+                                                        <?php if ((string) $navai_voice_role_key === 'guest' || (string) $navai_voice_role_key === 'all') { continue; } ?>
+                                                        <option value="<?php echo esc_attr((string) $navai_voice_role_key); ?>">
+                                                            <?php echo esc_html((string) $navai_voice_role_label); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -292,9 +298,9 @@
                                                 <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
                                                 <select class="navai-plugin-function-export-plugin">
                                                     <option value=""><?php echo esc_html__('Todos', 'navai-voice'); ?></option>
-                                                    <?php foreach ($pluginFunctionPluginCatalog as $pluginKey => $pluginLabel) : ?>
-                                                        <option value="<?php echo esc_attr((string) $pluginKey); ?>">
-                                                            <?php echo esc_html((string) $pluginLabel); ?>
+                                                    <?php foreach ($navai_voice_plugin_function_plugin_catalog as $navai_voice_plugin_key => $navai_voice_plugin_label) : ?>
+                                                        <option value="<?php echo esc_attr((string) $navai_voice_plugin_key); ?>">
+                                                            <?php echo esc_html((string) $navai_voice_plugin_label); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -306,10 +312,10 @@
                                                     <option value=""><?php echo esc_html__('Todos', 'navai-voice'); ?></option>
                                                     <option value="all"><?php echo esc_html__('Todos los roles', 'navai-voice'); ?></option>
                                                     <option value="guest"><?php echo esc_html__('Visitantes', 'navai-voice'); ?></option>
-                                                    <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
-                                                        <?php if ((string) $roleKey === 'guest' || (string) $roleKey === 'all') { continue; } ?>
-                                                        <option value="<?php echo esc_attr((string) $roleKey); ?>">
-                                                            <?php echo esc_html((string) $roleLabel); ?>
+                                                    <?php foreach ($navai_voice_available_roles as $navai_voice_role_key => $navai_voice_role_label) : ?>
+                                                        <?php if ((string) $navai_voice_role_key === 'guest' || (string) $navai_voice_role_key === 'all') { continue; } ?>
+                                                        <option value="<?php echo esc_attr((string) $navai_voice_role_key); ?>">
+                                                            <?php echo esc_html((string) $navai_voice_role_label); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -382,9 +388,9 @@
                                             <label>
                                                 <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
                                                 <select class="navai-plugin-function-import-plugin">
-                                                    <?php foreach ($pluginFunctionPluginCatalog as $pluginKey => $pluginLabel) : ?>
-                                                        <option value="<?php echo esc_attr((string) $pluginKey); ?>">
-                                                            <?php echo esc_html((string) $pluginLabel); ?>
+                                                    <?php foreach ($navai_voice_plugin_function_plugin_catalog as $navai_voice_plugin_key => $navai_voice_plugin_label) : ?>
+                                                        <option value="<?php echo esc_attr((string) $navai_voice_plugin_key); ?>">
+                                                            <?php echo esc_html((string) $navai_voice_plugin_label); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -395,10 +401,10 @@
                                                 <select class="navai-plugin-function-import-role">
                                                     <option value="all"><?php echo esc_html__('Todos los roles', 'navai-voice'); ?></option>
                                                     <option value="guest"><?php echo esc_html__('Visitantes', 'navai-voice'); ?></option>
-                                                    <?php foreach ($availableRoles as $roleKey => $roleLabel) : ?>
-                                                        <?php if ((string) $roleKey === 'guest' || (string) $roleKey === 'all') { continue; } ?>
-                                                        <option value="<?php echo esc_attr((string) $roleKey); ?>">
-                                                            <?php echo esc_html((string) $roleLabel); ?>
+                                                    <?php foreach ($navai_voice_available_roles as $navai_voice_role_key => $navai_voice_role_label) : ?>
+                                                        <?php if ((string) $navai_voice_role_key === 'guest' || (string) $navai_voice_role_key === 'all') { continue; } ?>
+                                                        <option value="<?php echo esc_attr((string) $navai_voice_role_key); ?>">
+                                                            <?php echo esc_html((string) $navai_voice_role_label); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
@@ -426,111 +432,111 @@
                             </div>
 
                             <div class="navai-plugin-functions-list navai-plugin-functions-storage" hidden>
-                                <?php foreach ($pluginCustomFunctions as $functionIndex => $functionConfig) : ?>
+                                <?php foreach ($navai_voice_plugin_custom_functions as $navai_voice_function_index => $navai_voice_function_config) : ?>
                                     <?php
-                                    $rowId = sanitize_key((string) ($functionConfig['id'] ?? ''));
-                                    $rowPluginKey = sanitize_text_field((string) ($functionConfig['plugin_key'] ?? 'wp-core'));
-                                    if ($rowPluginKey === '') {
-                                        $rowPluginKey = 'wp-core';
+                                    $navai_voice_row_id = sanitize_key((string) ($navai_voice_function_config['id'] ?? ''));
+                                    $navai_voice_row_plugin_key = sanitize_text_field((string) ($navai_voice_function_config['plugin_key'] ?? 'wp-core'));
+                                    if ($navai_voice_row_plugin_key === '') {
+                                        $navai_voice_row_plugin_key = 'wp-core';
                                     }
-                                    $rowRole = sanitize_key((string) ($functionConfig['role'] ?? ''));
-                                    $rowFunctionName = $this->sanitize_plugin_function_name((string) ($functionConfig['function_name'] ?? ''));
-                                    if ($rowFunctionName === '' && $rowId !== '') {
-                                        $rowFunctionName = $this->build_plugin_custom_function_name($rowId);
+                                    $navai_voice_row_role = sanitize_key((string) ($navai_voice_function_config['role'] ?? ''));
+                                    $navai_voice_row_function_name = $this->sanitize_plugin_function_name((string) ($navai_voice_function_config['function_name'] ?? ''));
+                                    if ($navai_voice_row_function_name === '' && $navai_voice_row_id !== '') {
+                                        $navai_voice_row_function_name = $this->build_plugin_custom_function_name($navai_voice_row_id);
                                     }
-                                    $rowFunctionCode = $this->sanitize_plugin_function_code((string) ($functionConfig['function_code'] ?? ''));
-                                    $rowDescription = sanitize_text_field((string) ($functionConfig['description'] ?? ''));
-                                    $rowRequiresApproval = !empty($functionConfig['requires_approval']);
-                                    $rowTimeoutSeconds = is_numeric($functionConfig['timeout_seconds'] ?? null) ? (int) $functionConfig['timeout_seconds'] : 0;
-                                    if ($rowTimeoutSeconds < 0) {
-                                        $rowTimeoutSeconds = 0;
+                                    $navai_voice_row_function_code = $this->sanitize_plugin_function_code((string) ($navai_voice_function_config['function_code'] ?? ''));
+                                    $navai_voice_row_description = sanitize_text_field((string) ($navai_voice_function_config['description'] ?? ''));
+                                    $navai_voice_row_requires_approval = !empty($navai_voice_function_config['requires_approval']);
+                                    $navai_voice_row_timeout_seconds = is_numeric($navai_voice_function_config['timeout_seconds'] ?? null) ? (int) $navai_voice_function_config['timeout_seconds'] : 0;
+                                    if ($navai_voice_row_timeout_seconds < 0) {
+                                        $navai_voice_row_timeout_seconds = 0;
                                     }
-                                    if ($rowTimeoutSeconds > 600) {
-                                        $rowTimeoutSeconds = 600;
+                                    if ($navai_voice_row_timeout_seconds > 600) {
+                                        $navai_voice_row_timeout_seconds = 600;
                                     }
-                                    $rowExecutionScope = sanitize_key((string) ($functionConfig['execution_scope'] ?? 'both'));
-                                    if (!in_array($rowExecutionScope, ['frontend', 'admin', 'both'], true)) {
-                                        $rowExecutionScope = 'both';
+                                    $navai_voice_row_execution_scope = sanitize_key((string) ($navai_voice_function_config['execution_scope'] ?? 'both'));
+                                    if (!in_array($navai_voice_row_execution_scope, ['frontend', 'admin', 'both'], true)) {
+                                        $navai_voice_row_execution_scope = 'both';
                                     }
-                                    $rowRetries = is_numeric($functionConfig['retries'] ?? null) ? (int) $functionConfig['retries'] : 0;
-                                    if ($rowRetries < 0) {
-                                        $rowRetries = 0;
+                                    $navai_voice_row_retries = is_numeric($navai_voice_function_config['retries'] ?? null) ? (int) $navai_voice_function_config['retries'] : 0;
+                                    if ($navai_voice_row_retries < 0) {
+                                        $navai_voice_row_retries = 0;
                                     }
-                                    if ($rowRetries > 5) {
-                                        $rowRetries = 5;
+                                    if ($navai_voice_row_retries > 5) {
+                                        $navai_voice_row_retries = 5;
                                     }
-                                    $rowArgumentSchemaJson = $this->sanitize_plugin_function_argument_schema_json($functionConfig['argument_schema_json'] ?? '');
+                                    $navai_voice_row_argument_schema_json = $this->sanitize_plugin_function_argument_schema_json($navai_voice_function_config['argument_schema_json'] ?? '');
                                     ?>
                                     <div
                                         class="navai-plugin-function-storage-row"
-                                        data-plugin-function-index="<?php echo esc_attr((string) $functionIndex); ?>"
-                                        data-plugin-function-id="<?php echo esc_attr($rowId); ?>"
+                                        data-plugin-function-index="<?php echo esc_attr((string) $navai_voice_function_index); ?>"
+                                        data-plugin-function-id="<?php echo esc_attr($navai_voice_row_id); ?>"
                                     >
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-id"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][id]"
-                                            value="<?php echo esc_attr($rowId); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][id]"
+                                            value="<?php echo esc_attr($navai_voice_row_id); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-name"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][function_name]"
-                                            value="<?php echo esc_attr($rowFunctionName); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][function_name]"
+                                            value="<?php echo esc_attr($navai_voice_row_function_name); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-plugin"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][plugin_key]"
-                                            value="<?php echo esc_attr($rowPluginKey); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][plugin_key]"
+                                            value="<?php echo esc_attr($navai_voice_row_plugin_key); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-role"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][role]"
-                                            value="<?php echo esc_attr($rowRole); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][role]"
+                                            value="<?php echo esc_attr($navai_voice_row_role); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-code"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][function_code]"
-                                            value="<?php echo esc_attr($rowFunctionCode); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][function_code]"
+                                            value="<?php echo esc_attr($navai_voice_row_function_code); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-description"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][description]"
-                                            value="<?php echo esc_attr($rowDescription); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][description]"
+                                            value="<?php echo esc_attr($navai_voice_row_description); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-requires-approval"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][requires_approval]"
-                                            value="<?php echo $rowRequiresApproval ? '1' : '0'; ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][requires_approval]"
+                                            value="<?php echo $navai_voice_row_requires_approval ? '1' : '0'; ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-timeout"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][timeout_seconds]"
-                                            value="<?php echo esc_attr((string) $rowTimeoutSeconds); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][timeout_seconds]"
+                                            value="<?php echo esc_attr((string) $navai_voice_row_timeout_seconds); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-scope"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][execution_scope]"
-                                            value="<?php echo esc_attr($rowExecutionScope); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][execution_scope]"
+                                            value="<?php echo esc_attr($navai_voice_row_execution_scope); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-retries"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][retries]"
-                                            value="<?php echo esc_attr((string) $rowRetries); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][retries]"
+                                            value="<?php echo esc_attr((string) $navai_voice_row_retries); ?>"
                                         />
                                         <input
                                             type="hidden"
                                             class="navai-plugin-function-storage-argument-schema"
-                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $functionIndex); ?>][argument_schema_json]"
-                                            value="<?php echo esc_attr($rowArgumentSchemaJson); ?>"
+                                            name="<?php echo esc_attr(self::OPTION_KEY); ?>[plugin_custom_functions][<?php echo esc_attr((string) $navai_voice_function_index); ?>][argument_schema_json]"
+                                            value="<?php echo esc_attr($navai_voice_row_argument_schema_json); ?>"
                                         />
                                     </div>
                                 <?php endforeach; ?>
@@ -652,9 +658,9 @@
                                 <span><?php echo esc_html__('Plugin', 'navai-voice'); ?></span>
                                 <select class="navai-plugin-func-filter-plugin">
                                     <option value=""><?php echo esc_html__('Todos', 'navai-voice'); ?></option>
-                                    <?php foreach ($pluginFunctionPluginOptions as $pluginOption) : ?>
-                                        <option value="<?php echo esc_attr((string) ($pluginOption['key'] ?? '')); ?>">
-                                            <?php echo esc_html((string) ($pluginOption['label'] ?? '')); ?>
+                                    <?php foreach ($navai_voice_plugin_function_plugin_options as $navai_voice_plugin_option) : ?>
+                                        <option value="<?php echo esc_attr((string) ($navai_voice_plugin_option['key'] ?? '')); ?>">
+                                            <?php echo esc_html((string) ($navai_voice_plugin_option['label'] ?? '')); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -663,32 +669,32 @@
                                 <span><?php echo esc_html__('Rol', 'navai-voice'); ?></span>
                                 <select class="navai-plugin-func-filter-role">
                                     <option value=""><?php echo esc_html__('Todos', 'navai-voice'); ?></option>
-                                    <?php foreach ($pluginFunctionRoleOptions as $roleOption) : ?>
-                                        <option value="<?php echo esc_attr((string) ($roleOption['key'] ?? '')); ?>">
-                                            <?php echo esc_html((string) ($roleOption['label'] ?? '')); ?>
+                                    <?php foreach ($navai_voice_plugin_function_role_options as $navai_voice_role_option) : ?>
+                                        <option value="<?php echo esc_attr((string) ($navai_voice_role_option['key'] ?? '')); ?>">
+                                            <?php echo esc_html((string) ($navai_voice_role_option['label'] ?? '')); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
                             </label>
                         </div>
 
-                        <p class="navai-plugin-func-empty-state" <?php echo $pluginFunctionGroupsCount === 0 ? '' : 'hidden'; ?>>
+                        <p class="navai-plugin-func-empty-state" <?php echo $navai_voice_plugin_function_groups_count === 0 ? '' : 'hidden'; ?>>
                             <?php echo esc_html__('No hay funciones personalizadas. Usa el boton Crear funcion para agregarlas.', 'navai-voice'); ?>
                         </p>
 
                         <div class="navai-plugin-func-groups">
-                            <?php foreach ($pluginFunctionGroups as $group) : ?>
+                            <?php foreach ($navai_voice_plugin_function_groups as $navai_voice_group) : ?>
                                 <?php
-                                $groupKey = (string) ($group['plugin_key'] ?? '');
-                                $groupLabel = (string) ($group['plugin_label'] ?? '');
-                                $groupFunctions = is_array($group['functions'] ?? null) ? $group['functions'] : [];
-                                if ($groupKey === '' || empty($groupFunctions)) {
+                                $navai_voice_group_key = (string) ($navai_voice_group['plugin_key'] ?? '');
+                                $navai_voice_group_label = (string) ($navai_voice_group['plugin_label'] ?? '');
+                                $navai_voice_group_functions = is_array($navai_voice_group['functions'] ?? null) ? $navai_voice_group['functions'] : [];
+                                if ($navai_voice_group_key === '' || empty($navai_voice_group_functions)) {
                                     continue;
                                 }
                                 ?>
-                                <section class="navai-plugin-func-group" data-plugin-func-plugin="<?php echo esc_attr($groupKey); ?>">
+                                <section class="navai-plugin-func-group" data-plugin-func-plugin="<?php echo esc_attr($navai_voice_group_key); ?>">
                                     <div class="navai-plugin-func-group-head">
-                                        <h4 class="navai-plugin-func-group-title"><?php echo esc_html($groupLabel); ?></h4>
+                                        <h4 class="navai-plugin-func-group-title"><?php echo esc_html($navai_voice_group_label); ?></h4>
                                         <div class="navai-nav-actions navai-nav-actions--inline">
                                             <button
                                                 type="button"
@@ -707,69 +713,69 @@
                                         </div>
                                     </div>
                                     <div class="navai-admin-menu-grid">
-                                        <?php foreach ($groupFunctions as $item) : ?>
+                                        <?php foreach ($navai_voice_group_functions as $navai_voice_group_item) : ?>
                                             <?php
-                                            $functionId = sanitize_key((string) ($item['id'] ?? ''));
-                                            if ($functionId === '') {
+                                            $navai_voice_function_id = sanitize_key((string) ($navai_voice_group_item['id'] ?? ''));
+                                            if ($navai_voice_function_id === '') {
                                                 continue;
                                             }
-                                            $functionKey = 'pluginfn:' . $functionId;
-                                            $functionName = $this->sanitize_plugin_function_name((string) ($item['function_name'] ?? ''));
-                                            if ($functionName === '') {
-                                                $functionName = $this->build_plugin_custom_function_name($functionId);
+                                            $navai_voice_function_key = 'pluginfn:' . $navai_voice_function_id;
+                                            $navai_voice_function_name = $this->sanitize_plugin_function_name((string) ($navai_voice_group_item['function_name'] ?? ''));
+                                            if ($navai_voice_function_name === '') {
+                                                $navai_voice_function_name = $this->build_plugin_custom_function_name($navai_voice_function_id);
                                             }
-                                            $functionCode = $this->sanitize_plugin_function_code((string) ($item['function_code'] ?? ''));
-                                            $codePreview = $functionCode;
-                                            if (strlen($codePreview) > 220) {
-                                                $codePreview = substr($codePreview, 0, 220) . '...';
+                                            $navai_voice_function_code = $this->sanitize_plugin_function_code((string) ($navai_voice_group_item['function_code'] ?? ''));
+                                            $navai_voice_code_preview = $navai_voice_function_code;
+                                            if (strlen($navai_voice_code_preview) > 220) {
+                                                $navai_voice_code_preview = substr($navai_voice_code_preview, 0, 220) . '...';
                                             }
-                                            $functionDescription = sanitize_text_field((string) ($item['description'] ?? ''));
-                                            $functionRole = sanitize_key((string) ($item['role'] ?? ''));
-                                            if ($functionRole === 'all') {
-                                                $functionRoleLabel = __('Todos los roles', 'navai-voice');
-                                            } elseif ($functionRole === 'guest') {
-                                                $functionRoleLabel = __('Visitantes', 'navai-voice');
+                                            $navai_voice_function_description = sanitize_text_field((string) ($navai_voice_group_item['description'] ?? ''));
+                                            $navai_voice_function_role = sanitize_key((string) ($navai_voice_group_item['role'] ?? ''));
+                                            if ($navai_voice_function_role === 'all') {
+                                                $navai_voice_function_role_label = __('Todos los roles', 'navai-voice');
+                                            } elseif ($navai_voice_function_role === 'guest') {
+                                                $navai_voice_function_role_label = __('Visitantes', 'navai-voice');
                                             } else {
-                                                $functionRoleLabel = isset($availableRoles[$functionRole]) ? (string) $availableRoles[$functionRole] : $functionRole;
+                                                $navai_voice_function_role_label = isset($navai_voice_available_roles[$navai_voice_function_role]) ? (string) $navai_voice_available_roles[$navai_voice_function_role] : $navai_voice_function_role;
                                             }
-                                            $isChecked = in_array($functionKey, $allowedPluginFunctionKeys, true);
-                                            $searchText = trim(implode(' ', array_filter([
-                                                $functionName,
-                                                $functionCode,
-                                                $functionDescription,
-                                                $functionRoleLabel,
-                                                $groupLabel,
+                                            $navai_voice_is_checked = in_array($navai_voice_function_key, $navai_voice_allowed_plugin_function_keys, true);
+                                            $navai_voice_search_text = trim(implode(' ', array_filter([
+                                                $navai_voice_function_name,
+                                                $navai_voice_function_code,
+                                                $navai_voice_function_description,
+                                                $navai_voice_function_role_label,
+                                                $navai_voice_group_label,
                                             ])));
                                             ?>
                                             <label
                                                 class="navai-admin-check navai-admin-check-block navai-plugin-func-item"
-                                                data-plugin-func-id="<?php echo esc_attr($functionId); ?>"
-                                                data-plugin-func-plugin="<?php echo esc_attr($groupKey); ?>"
-                                                data-plugin-func-plugin-label="<?php echo esc_attr($groupLabel); ?>"
-                                                data-plugin-func-roles="<?php echo esc_attr($functionRole); ?>"
-                                                data-plugin-func-role-label="<?php echo esc_attr($functionRoleLabel); ?>"
-                                                data-plugin-func-search="<?php echo esc_attr($searchText); ?>"
+                                                data-plugin-func-id="<?php echo esc_attr($navai_voice_function_id); ?>"
+                                                data-plugin-func-plugin="<?php echo esc_attr($navai_voice_group_key); ?>"
+                                                data-plugin-func-plugin-label="<?php echo esc_attr($navai_voice_group_label); ?>"
+                                                data-plugin-func-roles="<?php echo esc_attr($navai_voice_function_role); ?>"
+                                                data-plugin-func-role-label="<?php echo esc_attr($navai_voice_function_role_label); ?>"
+                                                data-plugin-func-search="<?php echo esc_attr($navai_voice_search_text); ?>"
                                             >
                                                 <input
                                                     type="checkbox"
                                                     name="<?php echo esc_attr(self::OPTION_KEY); ?>[allowed_plugin_function_keys][]"
-                                                    value="<?php echo esc_attr($functionKey); ?>"
-                                                    <?php checked($isChecked, true); ?>
+                                                    value="<?php echo esc_attr($navai_voice_function_key); ?>"
+                                                    <?php checked($navai_voice_is_checked, true); ?>
                                                 />
                                                 <span class="navai-plugin-func-main">
-                                                    <strong class="navai-plugin-func-title"><?php echo esc_html($functionName); ?></strong>
-                                                    <small class="navai-plugin-func-code-preview" <?php echo $codePreview === '' ? 'hidden' : ''; ?>>
-                                                        <?php echo esc_html($codePreview); ?>
+                                                    <strong class="navai-plugin-func-title"><?php echo esc_html($navai_voice_function_name); ?></strong>
+                                                    <small class="navai-plugin-func-code-preview" <?php echo $navai_voice_code_preview === '' ? 'hidden' : ''; ?>>
+                                                        <?php echo esc_html($navai_voice_code_preview); ?>
                                                     </small>
-                                                    <small class="navai-plugin-func-description-text" <?php echo $functionDescription === '' ? 'hidden' : ''; ?>>
-                                                        <?php echo esc_html($functionDescription); ?>
+                                                    <small class="navai-plugin-func-description-text" <?php echo $navai_voice_function_description === '' ? 'hidden' : ''; ?>>
+                                                        <?php echo esc_html($navai_voice_function_description); ?>
                                                     </small>
-                                                    <small class="navai-nav-route-roles navai-plugin-func-role-wrap" <?php echo $functionRoleLabel === '' ? 'hidden' : ''; ?>>
+                                                    <small class="navai-nav-route-roles navai-plugin-func-role-wrap" <?php echo $navai_voice_function_role_label === '' ? 'hidden' : ''; ?>>
                                                         <span
                                                             class="navai-nav-role-badge navai-plugin-func-role-badge"
-                                                            style="--navai-role-badge-color: <?php echo esc_attr($this->build_role_badge_color($functionRole)); ?>;"
+                                                            style="--navai-role-badge-color: <?php echo esc_attr($this->build_role_badge_color($navai_voice_function_role)); ?>;"
                                                         >
-                                                            <?php echo esc_html($functionRoleLabel); ?>
+                                                            <?php echo esc_html($navai_voice_function_role_label); ?>
                                                         </span>
                                                     </small>
                                                 </span>

@@ -44,8 +44,6 @@ class Navai_Voice_Settings
         );
 
         $baseSettingsUrl = admin_url('admin.php?page=' . self::PAGE_SLUG);
-        $documentationUrl = 'https://navai.luxisoft.com/wordpress';
-
         global $submenu;
         if (!is_array($submenu)) {
             $submenu = [];
@@ -58,7 +56,6 @@ class Navai_Voice_Settings
             [__('MCP', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#mcp'],
             [__('Estadisticas', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#statistics'],
             [__('Ajustes', 'navai-voice'), 'manage_options', $baseSettingsUrl . '#settings'],
-            [__('Documentacion', 'navai-voice'), 'manage_options', $documentationUrl],
         ];
     }
 

@@ -3,8 +3,10 @@
  * Plugin Name: NAVAI Voice
  * Plugin URI: https://navai.luxisoft.com/documentation/installation-wordpress
  * Description: Integracion de voz NAVAI para WordPress usando endpoints REST en PHP.
- * Version: 0.3.44
+ * Version: 0.3.45
  * Author: NAVAI
+ * License: MIT
+ * License URI: https://opensource.org/license/mit/
  * Text Domain: navai-voice
  * Requires at least: 6.2
  * Requires PHP: 8.0
@@ -344,6 +346,55 @@ if (!function_exists('navai_voice_recover_dependency_from_other_copy')) {
     }
 }
 
+if (!function_exists('navai_voice_delete_file')) {
+    function navai_voice_delete_file(string $path): bool
+    {
+        if ($path === '' || !file_exists($path)) {
+            return false;
+        }
+
+        if (function_exists('wp_delete_file')) {
+            wp_delete_file($path);
+            return !file_exists($path);
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('navai_voice_move_file')) {
+    function navai_voice_move_file(string $sourcePath, string $targetPath): bool
+    {
+        if ($sourcePath === '' || $targetPath === '' || !is_file($sourcePath)) {
+            return false;
+        }
+
+        if (!function_exists('WP_Filesystem')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        if (function_exists('WP_Filesystem')) {
+            WP_Filesystem();
+
+            global $wp_filesystem;
+            if (is_object($wp_filesystem) && method_exists($wp_filesystem, 'move')) {
+                if ($wp_filesystem->move($sourcePath, $targetPath, true)) {
+                    return is_file($targetPath);
+                }
+            }
+        }
+
+        if (!@copy($sourcePath, $targetPath)) {
+            return false;
+        }
+
+        if (file_exists($sourcePath)) {
+            navai_voice_delete_file($sourcePath);
+        }
+
+        return is_file($targetPath) && !file_exists($sourcePath);
+    }
+}
+
 if (!function_exists('navai_voice_repair_flattened_layout')) {
     function navai_voice_repair_flattened_layout(string $basePath): void
     {
@@ -383,11 +434,11 @@ if (!function_exists('navai_voice_repair_flattened_layout')) {
             }
 
             if (file_exists($targetPath)) {
-                @unlink($sourcePath);
+                navai_voice_delete_file($sourcePath);
                 continue;
             }
 
-            if (!@rename($sourcePath, $targetPath)) {
+            if (!navai_voice_move_file($sourcePath, $targetPath)) {
                 $repairFailed[] = $normalizedRelative;
             }
         }
@@ -432,6 +483,7 @@ if (!function_exists('navai_voice_load_dependencies')) {
             'includes/traits/trait-navai-voice-plugin-helpers.php',
             'includes/class-navai-voice-settings.php',
             'includes/class-navai-voice-api.php',
+            'includes/class-navai-voice-privacy.php',
             'includes/class-navai-voice-plugin.php',
         ];
 
@@ -473,30 +525,30 @@ if (!function_exists('navai_voice_on_activation')) {
 
 register_activation_hook(__FILE__, 'navai_voice_on_activation');
 
-$currentPath = plugin_dir_path(__FILE__);
-$currentUrl = plugin_dir_url(__FILE__);
-$currentBasename = navai_voice_current_basename();
+$navai_voice_current_path = plugin_dir_path(__FILE__);
+$navai_voice_current_url = plugin_dir_url(__FILE__);
+$navai_voice_current_basename = navai_voice_current_basename();
 
-if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $currentPath) {
+if (defined('NAVAI_VOICE_PATH') && NAVAI_VOICE_PATH !== $navai_voice_current_path) {
     add_action('admin_notices', 'navai_voice_render_bootstrap_error_notice');
     navai_voice_mark_bootstrap_error('Otra copia de NAVAI Voice ya esta cargada. Desactiva copias duplicadas.');
     return;
 }
 
 if (!defined('NAVAI_VOICE_VERSION')) {
-    define('NAVAI_VOICE_VERSION', '0.3.44');
+    define('NAVAI_VOICE_VERSION', '0.3.45');
 }
 if (!defined('NAVAI_VOICE_DB_VERSION')) {
     define('NAVAI_VOICE_DB_VERSION', '5');
 }
 if (!defined('NAVAI_VOICE_PATH')) {
-    define('NAVAI_VOICE_PATH', $currentPath);
+    define('NAVAI_VOICE_PATH', $navai_voice_current_path);
 }
 if (!defined('NAVAI_VOICE_URL')) {
-    define('NAVAI_VOICE_URL', $currentUrl);
+    define('NAVAI_VOICE_URL', $navai_voice_current_url);
 }
 if (!defined('NAVAI_VOICE_BASENAME')) {
-    define('NAVAI_VOICE_BASENAME', $currentBasename);
+    define('NAVAI_VOICE_BASENAME', $navai_voice_current_basename);
 }
 
 add_action('admin_notices', 'navai_voice_render_bootstrap_error_notice');

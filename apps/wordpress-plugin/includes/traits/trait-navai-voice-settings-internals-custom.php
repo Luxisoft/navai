@@ -209,6 +209,9 @@ trait Navai_Voice_Settings_Internals_Custom_Trait
         if ($normalized === '') {
             return '';
         }
+        if (preg_match('/^\s*(<\?(php)?|php\s*:)/i', $normalized) === 1) {
+            return '';
+        }
 
         return $normalized;
     }

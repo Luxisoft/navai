@@ -1,7 +1,13 @@
 <?php
-if (!isset($agentsEnabled)) {
-    $agentsEnabled = true;
+if (!defined('ABSPATH')) {
+    exit;
 }
+
+$navai_voice_view_vars = get_defined_vars();
+$navai_voice_agents_enabled = !array_key_exists('agentsEnabled', $navai_voice_view_vars)
+    ? true
+    : !empty($navai_voice_view_vars['agentsEnabled']);
+unset($navai_voice_view_vars);
 ?>
 <section class="navai-admin-panel" data-navai-panel="agents">
     <h2><?php echo esc_html__('Agentes', 'navai-voice'); ?></h2>
@@ -14,7 +20,7 @@ if (!isset($agentsEnabled)) {
                     type="checkbox"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[enable_agents]"
                     value="1"
-                    <?php checked(!empty($agentsEnabled), true); ?>
+                    <?php checked($navai_voice_agents_enabled, true); ?>
                 />
                 <span><?php echo esc_html__('Activar multiagente y handoffs', 'navai-voice'); ?></span>
             </label>

@@ -1,7 +1,13 @@
 <?php
-if (!isset($mcpEnabled)) {
-    $mcpEnabled = true;
+if (!defined('ABSPATH')) {
+    exit;
 }
+
+$navai_voice_view_vars = get_defined_vars();
+$navai_voice_mcp_enabled = !array_key_exists('mcpEnabled', $navai_voice_view_vars)
+    ? true
+    : !empty($navai_voice_view_vars['mcpEnabled']);
+unset($navai_voice_view_vars);
 ?>
 <section class="navai-admin-panel" data-navai-panel="mcp">
     <h2><?php echo esc_html__('MCP', 'navai-voice'); ?></h2>
@@ -14,7 +20,7 @@ if (!isset($mcpEnabled)) {
                     type="checkbox"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[enable_mcp]"
                     value="1"
-                    <?php checked(!empty($mcpEnabled), true); ?>
+                    <?php checked($navai_voice_mcp_enabled, true); ?>
                 />
                 <span><?php echo esc_html__('Activar integraciones MCP', 'navai-voice'); ?></span>
             </label>

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 if (!defined('ABSPATH')) {
     exit;
@@ -143,24 +143,16 @@ trait Navai_Voice_Settings_Render_Page_Trait
 
                 <div class="navai-admin-hero">
                     <div class="navai-admin-hero-top">
-                        <div class="navai-admin-banner-wrap">
-                            <a
-                                class="navai-admin-banner-link"
-                                href="https://navai.luxisoft.com/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="<?php echo esc_attr__('Ir a NAVAI', 'navai-voice'); ?>"
-                            >
-                                <img
-                                    class="navai-admin-banner"
-                                    src="<?php echo esc_url(NAVAI_VOICE_URL . 'assets/img/navai.png'); ?>"
-                                    alt="<?php echo esc_attr__('NAVAI', 'navai-voice'); ?>"
-                                />
-                            </a>
-                            <p class="navai-admin-banner-credit">
-                                <?php echo esc_html__('by', 'navai-voice'); ?>
-                                <a href="https://luxisoft.com/en/" target="_blank" rel="noopener noreferrer">LUXISOFT</a>
-                            </p>
+                        <div class="navai-admin-brand">
+                            <img
+                                class="navai-admin-icon"
+                                src="<?php echo esc_url($this->resolve_admin_icon_url()); ?>"
+                                alt="<?php echo esc_attr__('NAVAI Voice', 'navai-voice'); ?>"
+                            />
+                            <div>
+                                <h1><?php echo esc_html__('NAVAI Voice', 'navai-voice'); ?></h1>
+                                <p><?php echo esc_html__('Configura voz en tiempo real, navegacion permitida, funciones personalizadas y controles de privacidad desde WordPress.', 'navai-voice'); ?></p>
+                            </div>
                         </div>
                         <div class="navai-admin-header-controls">
                             <div class="navai-admin-tab-buttons" role="tablist" aria-label="<?php echo esc_attr__('NAVAI sections', 'navai-voice'); ?>">
@@ -182,14 +174,6 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 <button type="button" class="button button-secondary navai-admin-tab-button" data-navai-tab="settings">
                                     <?php echo esc_html__('Ajustes', 'navai-voice'); ?>
                                 </button>
-                                <a
-                                    class="button button-secondary navai-admin-doc-link"
-                                    href="https://navai.luxisoft.com/wordpress"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <?php echo esc_html__('Documentacion', 'navai-voice'); ?>
-                                </a>
                             </div>
                             <div class="navai-admin-header-utilities">
                                 <label class="navai-admin-language-select">
@@ -826,6 +810,17 @@ trait Navai_Voice_Settings_Render_Page_Trait
                                 <?php checked(!empty($settings['allow_public_client_secret']), true); ?>
                             />
                             <span><?php echo esc_html__('Permitir client_secret publico (anonimos)', 'navai-voice'); ?></span>
+                        </label>
+
+                        <label class="navai-admin-check navai-admin-check-block">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_KEY); ?>[allow_public_functions]"
+                                value="1"
+                                <?php checked(!empty($settings['allow_public_functions']), true); ?>
+                            />
+                            <span><?php echo esc_html__('Permitir funciones backend publicas', 'navai-voice'); ?></span>
+                            <small><?php echo esc_html__('Desactivado por defecto en instalaciones nuevas. Activalo solo si necesitas ejecutar funciones backend para visitantes o usuarios anonimos.', 'navai-voice'); ?></small>
                         </label>
 
                             </div>

@@ -1,7 +1,13 @@
 <?php
-if (!isset($approvalsEnabled)) {
-    $approvalsEnabled = true;
+if (!defined('ABSPATH')) {
+    exit;
 }
+
+$navai_voice_view_vars = get_defined_vars();
+$navai_voice_approvals_enabled = !array_key_exists('approvalsEnabled', $navai_voice_view_vars)
+    ? true
+    : !empty($navai_voice_view_vars['approvalsEnabled']);
+unset($navai_voice_view_vars);
 ?>
 <section class="navai-admin-panel" data-navai-panel="approvals">
     <div class="navai-admin-card navai-approvals-panel" data-navai-approvals-panel>
@@ -16,7 +22,7 @@ if (!isset($approvalsEnabled)) {
                     type="checkbox"
                     name="<?php echo esc_attr(Navai_Voice_Settings::OPTION_KEY); ?>[enable_approvals]"
                     value="1"
-                    <?php checked(!empty($approvalsEnabled), true); ?>
+                    <?php checked($navai_voice_approvals_enabled, true); ?>
                 />
                 <span><?php echo esc_html__('Activar aprobaciones para funciones sensibles', 'navai-voice'); ?></span>
             </label>
