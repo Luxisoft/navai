@@ -1,6 +1,6 @@
 {
   "name": "@navai/voice-backend",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Backend helpers to mint OpenAI Realtime client secrets",
   "type": "module",
   "main": "./dist/index.cjs",

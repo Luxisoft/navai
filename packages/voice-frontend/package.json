@@ -1,6 +1,6 @@
 {
   "name": "@navai/voice-frontend",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Frontend helpers to build OpenAI Realtime voice agents",
   "type": "module",
   "main": "./dist/index.cjs",
