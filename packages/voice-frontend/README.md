@@ -184,6 +184,15 @@ Defaults:
 Multi-agent layout:
 
 - agent root: `src/ai`
+- agents env: `NAVAI_AGENTS_FOLDERS=main,support,sales,food`
+- per-agent files live in `src/ai/<agent>/...`
+- optional per-agent config file: `src/ai/<agent>/agent.config.ts`
+- only the first level under `src/ai/` defines the agent key
+- deeper folders are optional organization for that same agent
+
+Multi-agent layout:
+
+- agent root: `src/ai`
 - agents env: `NAVAI_AGENTS_FOLDERS=main,support,sales`
 - per-agent files live in `src/ai/<agent>/...`
 - optional per-agent config file: `src/ai/<agent>/agent.config.ts`
@@ -195,13 +204,23 @@ src/ai/
   main/
     agent.config.ts
     session/logout.fn.ts
+    support/open-help.fn.ts
   support/
     agent.config.ts
     system/ai-service.ts
   sales/
     agent.config.ts
     utils/math.ts
+  food/
+    agent.config.ts
+    comida_rapida/hamburguesa.ts
 ```
+
+Notes:
+
+- `src/ai/main/session/logout.fn.ts` belongs to the `main` agent.
+- `src/ai/main/support/open-help.fn.ts` also belongs to the `main` agent.
+- folders like `session`, `support`, `help`, or `utils` inside an agent are optional.
 
 Path matcher formats:
 
@@ -217,6 +236,8 @@ Fallback behavior:
 - resolver falls back to default functions folder.
 
 When `NAVAI_AGENTS_FOLDERS` is present and `NAVAI_FUNCTIONS_FOLDERS` points to a folder root such as `src/ai`, the resolver only includes modules inside `src/ai/<agent>/...` for the configured agents.
+
+For browser realtime multi-agent orchestration, `buildNavaiAgent` currently wires specialist agents with `handoffs` inside the shared `RealtimeSession`.
 
 ## Backend Client Behavior
 

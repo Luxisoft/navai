@@ -42,9 +42,19 @@ export type BuildNavaiAgentResult = {
 
 const RESERVED_TOOL_NAMES = new Set(["navigate_to", "execute_app_function"]);
 const TOOL_NAME_REGEXP = /^[a-zA-Z0-9_-]{1,64}$/;
+const DEBUG_PREFIX = "[navai debug]";
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function debugLog(message: string, details?: unknown): void {
+  if (details === undefined) {
+    console.log(`${DEBUG_PREFIX} ${message}`);
+    return;
+  }
+
+  console.log(`${DEBUG_PREFIX} ${message}`, details);
 }
 
 function normalizeBackendFunctions(
@@ -101,58 +111,84 @@ function createExecuteAppFunction(input: {
     payload: Record<string, unknown> | null | undefined
   ) => {
     const requested = requestedName.trim().toLowerCase();
+    debugLog("execute_app_function called", { requestedName, requested, payload });
     const frontendDefinition = input.functionsRegistry.byName.get(requested);
 
     if (frontendDefinition) {
       try {
+        debugLog("executing frontend function", {
+          functionName: frontendDefinition.name,
+          source: frontendDefinition.source
+        });
         const result = await frontendDefinition.run(payload ?? {}, input.context);
-        return { ok: true, function_name: frontendDefinition.name, source: frontendDefinition.source, result };
+        const response = {
+          ok: true,
+          function_name: frontendDefinition.name,
+          source: frontendDefinition.source,
+          result
+        };
+        debugLog("frontend function completed", response);
+        return response;
       } catch (error) {
-        return {
+        const failure = {
           ok: false,
           function_name: frontendDefinition.name,
           error: "Function execution failed.",
           details: toErrorMessage(error)
         };
+        debugLog("frontend function failed", failure);
+        return failure;
       }
     }
 
     const backendDefinition = backendFunctionsByName.get(requested);
     if (!backendDefinition) {
-      return {
+      const failure = {
         ok: false,
         error: "Unknown or disallowed function.",
         available_functions: availableFunctionNames
       };
+      debugLog("execute_app_function rejected unknown function", failure);
+      return failure;
     }
 
     if (!input.executeBackendFunction) {
-      return {
+      const failure = {
         ok: false,
         function_name: backendDefinition.name,
         error: "Backend function execution is not configured."
       };
+      debugLog("backend function execution unavailable", failure);
+      return failure;
     }
 
     try {
+      debugLog("executing backend function", {
+        functionName: backendDefinition.name,
+        source: backendDefinition.source ?? "backend"
+      });
       const result = await input.executeBackendFunction({
         functionName: backendDefinition.name,
         payload: payload ?? null
       });
 
-      return {
+      const response = {
         ok: true,
         function_name: backendDefinition.name,
         source: backendDefinition.source ?? "backend",
         result
       };
+      debugLog("backend function completed", response);
+      return response;
     } catch (error) {
-      return {
+      const failure = {
         ok: false,
         function_name: backendDefinition.name,
         error: "Function execution failed.",
         details: toErrorMessage(error)
       };
+      debugLog("backend function failed", failure);
+      return failure;
     }
   };
 
@@ -223,7 +259,6 @@ function createFunctionTools(input: {
         payload: z
           .record(z.string(), z.unknown())
           .nullable()
-          .optional()
           .describe(
             "Payload object. Optional. Use payload.args as array for function args, payload.constructorArgs for class constructors, payload.methodArgs for class methods."
           )
@@ -291,19 +326,24 @@ export async function buildNavaiAgent(options: BuildNavaiAgentOptions): Promise<
         .describe("Route name or route path. Example: perfil, ajustes, /profile, /settings")
     }),
     execute: async ({ target }) => {
+      debugLog("navigate_to called", { target });
       const path = resolveNavaiRoute(target, options.routes);
       if (!path) {
-        return { ok: false, error: "Unknown or disallowed route." };
+        const failure = { ok: false, error: "Unknown or disallowed route." };
+        debugLog("navigate_to rejected", failure);
+        return failure;
       }
 
       options.navigate(path);
-      return { ok: true, path };
+      const response = { ok: true, path };
+      debugLog("navigate_to completed", response);
+      return response;
     }
   });
   const routeLines = getNavaiRoutePromptLines(options.routes);
   const functionLines = buildFunctionLines(functionsRegistry, backendFunctionsOrdered);
 
-  const specialistAgentTools: ReturnType<RealtimeAgent["asTool"]>[] = [];
+  const specialistAgents: RealtimeAgent[] = [];
   const specialistLines: string[] = [];
 
   for (const runtimeAgent of configuredAgents) {
@@ -327,7 +367,8 @@ export async function buildNavaiAgent(options: BuildNavaiAgentOptions): Promise<
     const specialistFunctionTools = createFunctionTools({
       functionsRegistry: specialistRegistry,
       backendFunctions: specialistBackendFunctions,
-      executeAppFunction: specialistExecutionSurface.executeAppFunction
+      executeAppFunction: specialistExecutionSurface.executeAppFunction,
+      includeDirectAliases: false
     });
     specialistWarnings.push(...specialistFunctionTools.aliasWarnings);
     aggregatedWarnings.push(...specialistWarnings);
@@ -337,40 +378,32 @@ export async function buildNavaiAgent(options: BuildNavaiAgentOptions): Promise<
       "Allowed app functions:",
       ...buildFunctionLines(specialistRegistry, specialistBackendFunctions),
       "Rules:",
+      "- Always use execute_app_function for app actions.",
+      "- When no arguments are needed, call execute_app_function with payload set to null.",
       "- Use only the functions available to this specialist agent.",
       "- Do not navigate unless one of your allowed functions explicitly does so.",
       "- Return a concise result to the main NAVAI agent."
     ].join("\n");
 
-    const specialistAgent = new RealtimeAgent({
+    debugLog("creating specialist agent", {
+      key: runtimeAgent.key,
       name: runtimeAgent.name,
-      instructions: specialistInstructions,
-      tools: [specialistFunctionTools.executeFunctionTool, ...specialistFunctionTools.directFunctionTools]
+      functions: [
+        ...specialistRegistry.ordered.map((item) => item.name),
+        ...specialistBackendFunctions.map((item) => item.name)
+      ]
     });
 
-    specialistAgentTools.push(
-      specialistAgent.asTool({
-        toolName: `delegate_to_${runtimeAgent.key}`,
-        toolDescription:
-          runtimeAgent.description ??
-          runtimeAgent.handoffDescription ??
-          `Delegate specialist work to ${runtimeAgent.name}.`,
-        parameters: z.object({
-          input: z.string().min(1).describe("User request or specialist subtask to delegate."),
-          payload: z
-            .record(z.string(), z.unknown())
-            .optional()
-            .describe("Optional structured context for the specialist.")
-        }),
-        inputBuilder: ({ params }) => {
-          const payload =
-            params.payload && Object.keys(params.payload).length > 0
-              ? `\nStructured context: ${JSON.stringify(params.payload)}`
-              : "";
-          return `${params.input}${payload}`;
-        }
-      })
-    );
+    const specialistAgent = new RealtimeAgent({
+      name: runtimeAgent.name,
+      handoffDescription:
+        runtimeAgent.handoffDescription ??
+        runtimeAgent.description ??
+        `Delegate specialist work to ${runtimeAgent.name}.`,
+      instructions: specialistInstructions,
+      tools: [specialistFunctionTools.executeFunctionTool]
+    });
+    specialistAgents.push(specialistAgent);
     specialistLines.push(
       `- ${runtimeAgent.name}: ${
         runtimeAgent.description ??
@@ -393,7 +426,8 @@ export async function buildNavaiAgent(options: BuildNavaiAgentOptions): Promise<
     "Rules:",
     "- If user asks to go/open a section, always call navigate_to.",
     "- If user asks to run an internal action that belongs to you, call execute_app_function or the matching direct function tool.",
-    "- If the task clearly belongs to a specialist agent, call the matching delegate_to_<agent> tool.",
+    "- If the task clearly belongs to a specialist agent, hand off to that specialist agent.",
+    "- Food recommendations, fast food, hamburgers, pizza, tacos, snacks, and meal suggestions belong to the food specialist.",
     "- Always include payload in execute_app_function. Use null when no arguments are needed.",
     "- For execute_app_function, pass arguments using payload.args (array).",
     "- For class methods, pass payload.constructorArgs and payload.methodArgs.",
@@ -404,12 +438,22 @@ export async function buildNavaiAgent(options: BuildNavaiAgentOptions): Promise<
   const agent = new RealtimeAgent({
     name: primaryAgentConfig?.name ?? options.agentName ?? "Navai Voice Agent",
     instructions,
+    handoffs: specialistAgents,
     tools: [
       navigateTool,
       primaryFunctionTools.executeFunctionTool,
-      ...primaryFunctionTools.directFunctionTools,
-      ...specialistAgentTools
+      ...primaryFunctionTools.directFunctionTools
     ]
+  });
+
+  debugLog("created primary agent", {
+    name: primaryAgentConfig?.name ?? options.agentName ?? "Navai Voice Agent",
+    primaryAgentKey: primaryAgentConfig?.key ?? null,
+    directFunctions: functionsRegistry.ordered.map((item) => item.name),
+    backendFunctions: backendFunctionsOrdered.map((item) => item.name),
+    specialistDelegates: configuredAgents
+      .filter((runtimeAgent) => runtimeAgent.key !== primaryAgentConfig?.key)
+      .map((runtimeAgent) => runtimeAgent.key)
   });
 
   return { agent, warnings: aggregatedWarnings };

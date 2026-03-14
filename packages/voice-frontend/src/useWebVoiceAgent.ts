@@ -11,6 +11,7 @@ type VoiceStatus = "idle" | "connecting" | "connected" | "error";
 type AgentVoiceState = "idle" | "speaking";
 
 type NavaiFrontendEnv = Record<string, string | undefined>;
+const DEBUG_PREFIX = "[navai debug]";
 
 export type UseWebVoiceAgentOptions = {
   navigate: (path: string) => void;
@@ -51,6 +52,15 @@ function emitWarnings(warnings: string[]): void {
       console.warn(warning);
     }
   }
+}
+
+function debugLog(message: string, details?: unknown): void {
+  if (details === undefined) {
+    console.log(`${DEBUG_PREFIX} ${message}`);
+    return;
+  }
+
+  console.log(`${DEBUG_PREFIX} ${message}`, details);
 }
 
 export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceAgentResult {
@@ -130,6 +140,45 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
   const attachSessionAudioListeners = useCallback(
     (session: RealtimeSession) => {
       detachSessionAudioListeners();
+      session.on("agent_start", (_context, agent, turnInput) => {
+        debugLog("session agent_start", {
+          agent: agent.name,
+          turnInputCount: Array.isArray(turnInput) ? turnInput.length : 0
+        });
+      });
+      session.on("agent_end", (_context, agent, output) => {
+        debugLog("session agent_end", {
+          agent: agent.name,
+          output
+        });
+      });
+      session.on("agent_handoff", (_context, fromAgent, toAgent) => {
+        debugLog("session agent_handoff", {
+          from: fromAgent.name,
+          to: toAgent.name
+        });
+      });
+      session.on("agent_tool_start", (_context, agent, tool, details) => {
+        debugLog("session agent_tool_start", {
+          agent: agent.name,
+          tool: tool.name,
+          toolCall: details.toolCall
+        });
+      });
+      session.on("agent_tool_end", (_context, agent, tool, result, details) => {
+        debugLog("session agent_tool_end", {
+          agent: agent.name,
+          tool: tool.name,
+          result,
+          toolCall: details.toolCall
+        });
+      });
+      session.on("history_added", (item) => {
+        debugLog("session history_added", item);
+      });
+      session.on("error", (sessionError) => {
+        debugLog("session error", sessionError);
+      });
       session.on("audio_start", handleSessionAudioStart);
       session.on("audio_stopped", handleSessionAudioStopped);
       session.on("audio_interrupted", handleSessionAudioInterrupted);
@@ -173,6 +222,17 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
 
     try {
       const runtimeConfig = await runtimeConfigPromise;
+      debugLog("resolved runtime config", {
+        routes: runtimeConfig.routes.map((route) => route.path),
+        functionModules: Object.keys(runtimeConfig.functionModuleLoaders),
+        agents: runtimeConfig.agents.map((agent) => ({
+          key: agent.key,
+          name: agent.name,
+          isPrimary: agent.isPrimary,
+          functionModules: Object.keys(agent.functionModuleLoaders)
+        })),
+        warnings: runtimeConfig.warnings
+      });
       const requestPayload = runtimeConfig.modelOverride ? { model: runtimeConfig.modelOverride } : {};
       const secretPayload = await backendClient.createClientSecret(requestPayload);
       const backendFunctionsResult = await backendClient.listFunctions();
@@ -201,6 +261,7 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
       setStatus("connected");
     } catch (startError) {
       const message = formatError(startError);
+      debugLog("session start failed", { message, error: startError });
       setError(message);
       setStatus("error");
       setAgentVoiceStateIfChanged("idle");

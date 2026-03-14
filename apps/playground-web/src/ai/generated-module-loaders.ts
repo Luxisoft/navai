@@ -2,6 +2,8 @@
 import type { NavaiFunctionModuleLoaders } from "@navai/voice-frontend";
 
 export const NAVAI_WEB_MODULE_LOADERS: NavaiFunctionModuleLoaders = {
+  "src/ai/food/agent.config.ts": async () => await import("./food/agent.config"),
+  "src/ai/food/comida_rapida/hamburguesa.ts": async () => await import("./food/comida_rapida/hamburguesa"),
   "src/ai/main/agent.config.ts": async () => await import("./main/agent.config"),
   "src/ai/main/session/logout.fn.ts": async () => await import("./main/session/logout.fn"),
   "src/ai/main/support/open-help.fn.ts": async () => await import("./main/support/open-help.fn"),

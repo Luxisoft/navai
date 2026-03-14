@@ -175,6 +175,40 @@ Defaults:
 - archivo de rutas: `src/ai/routes.ts`
 - carpeta de funciones: `src/ai/functions-modules`
 
+Estructura multiagente:
+
+- raiz de agentes: `src/ai`
+- env de agentes: `NAVAI_AGENTS_FOLDERS=main,support,sales,food`
+- los archivos por agente viven en `src/ai/<agent>/...`
+- archivo opcional por agente: `src/ai/<agent>/agent.config.ts`
+- solo el primer nivel debajo de `src/ai/` define la clave del agente
+- el resto de carpetas son solo organizacion interna de ese agente
+
+Ejemplo:
+
+```text
+src/ai/
+  main/
+    agent.config.ts
+    session/logout.fn.ts
+    support/open-help.fn.ts
+  support/
+    agent.config.ts
+    system/ai-service.ts
+  sales/
+    agent.config.ts
+    utils/math.ts
+  food/
+    agent.config.ts
+    comida_rapida/hamburguesa.ts
+```
+
+Notas:
+
+- `src/ai/main/session/logout.fn.ts` pertenece al agente `main`.
+- `src/ai/main/support/open-help.fn.ts` tambien pertenece al agente `main`.
+- carpetas como `session`, `support`, `help` o `utils` dentro de un agente no son obligatorias.
+
 Formatos aceptados en matcher de rutas:
 
 - carpeta: `src/ai/functions-modules`
@@ -187,6 +221,10 @@ Comportamiento fallback:
 
 - si `NAVAI_FUNCTIONS_FOLDERS` no matchea modulos, emite warning.
 - hace fallback a carpeta de funciones por defecto.
+
+Cuando `NAVAI_AGENTS_FOLDERS` esta presente y `NAVAI_FUNCTIONS_FOLDERS` apunta a una raiz como `src/ai`, el resolver solo incluye modulos dentro de `src/ai/<agent>/...` para los agentes configurados.
+
+En realtime web, `buildNavaiAgent` conecta actualmente los agentes especialistas usando `handoffs` dentro de la misma `RealtimeSession`.
 
 ## Comportamiento del Backend Client
 

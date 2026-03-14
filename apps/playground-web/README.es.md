@@ -26,12 +26,12 @@ En este playground ya no se usa `src/ai/functions-modules`. La estructura activa
 Este frontend:
 
 - pide `client_secret` al backend
-- genera loaders y carga funciones frontend segun `NAVAI_FUNCTIONS_FOLDERS`
+- genera loaders y carga funciones frontend desde `src/ai`
 - resuelve agentes segun `NAVAI_AGENTS_FOLDERS`
 - carga funciones backend
 - ejecuta tools via `execute_app_function`
 - usa `useWebVoiceAgent` desde `@navai/voice-frontend`
-- incluye un ejemplo multiagente con `main`, `support` y `sales`
+- incluye un ejemplo multiagente con `main`, `support`, `sales` y `food`
 
 ## Inicio rapido
 
@@ -51,7 +51,7 @@ Copy-Item .env.example .env
 
 ```env
 NAVAI_API_URL=http://localhost:3000
-NAVAI_AGENTS_FOLDERS=main,support,sales
+NAVAI_AGENTS_FOLDERS=main,support,sales,food
 ```
 
 4. Ejecuta backend en otra terminal:
@@ -68,6 +68,32 @@ npm run dev --workspace @navai/playground-web
 
 `dev/build/typecheck/lint` ejecutan antes `generate:module-loaders`, que produce `src/ai/generated-module-loaders.ts` con solo las rutas configuradas.
 
+Estructura del ejemplo:
+
+```text
+src/ai/
+  main/
+    agent.config.ts
+    ...
+  support/
+    agent.config.ts
+    ...
+  sales/
+    agent.config.ts
+    ...
+  food/
+    agent.config.ts
+    ...
+```
+
+Regla importante:
+
+- solo el primer nivel debajo de `src/ai/` define el agente.
+- todo lo que venga despues es solo organizacion interna del agente.
+- `src/ai/main/session/logout.fn.ts` pertenece al agente `main`.
+- `src/ai/main/support/open-help.fn.ts` tambien pertenece al agente `main`.
+- carpetas como `session`, `support`, `help` o `utils` dentro de `main` no son obligatorias.
+
 Para regenerar manualmente el archivo:
 
 ```bash
@@ -82,6 +108,8 @@ Atajo: `npm run dev` desde la raiz levanta ambas apps.
 2. El hook pide `POST /navai/realtime/client-secret` y carga funciones backend.
 3. El hook resuelve runtime frontend (rutas + funciones locales) con `resolveNavaiFrontendRuntimeConfig`.
 4. El hook construye agente principal + especialistas con `buildNavaiAgent` y conecta `RealtimeSession`.
+
+En web, la delegacion multiagente actual usa `handoffs` entre `RealtimeAgent`s.
 
 Cuando el agente llama `execute_app_function`:
 
