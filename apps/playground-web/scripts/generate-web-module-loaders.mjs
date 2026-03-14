@@ -30,7 +30,7 @@ async function main() {
   const outputFile = path.resolve(projectRoot, args.outputFile ?? "src/ai/generated-module-loaders.ts");
   const outputDir = path.dirname(outputFile);
   const envFile = path.resolve(projectRoot, args.envFile ?? ".env");
-  const defaultFunctionsFolder = args.defaultFunctionsFolder ?? "src/ai/functions-modules";
+  const defaultFunctionsFolder = args.defaultFunctionsFolder ?? "src/ai";
   const defaultRoutesFile = args.defaultRoutesFile ?? "src/ai/routes.ts";
   const typeImport = args.typeImport ?? "@navai/voice-frontend";
   const exportName = args.exportName ?? "NAVAI_WEB_MODULE_LOADERS";
@@ -39,9 +39,13 @@ async function main() {
   const configuredFunctionsFolders =
     readOptional(process.env.NAVAI_FUNCTIONS_FOLDERS) ??
     readOptional(envFileValues.NAVAI_FUNCTIONS_FOLDERS);
+  const configuredAgentsFolders =
+    readOptional(process.env.NAVAI_AGENTS_FOLDERS) ??
+    readOptional(envFileValues.NAVAI_AGENTS_FOLDERS);
   const configuredRoutesFile =
     readOptional(process.env.NAVAI_ROUTES_FILE) ?? readOptional(envFileValues.NAVAI_ROUTES_FILE);
   const functionsFolders = configuredFunctionsFolders ?? defaultFunctionsFolder;
+  const agentTokens = parseCsvList(configuredAgentsFolders);
   const routesFile = configuredRoutesFile ?? defaultRoutesFile;
 
   const defaultRoutesModuleFile = await resolveModulePathFromFs(defaultRoutesFile, projectRoot);
@@ -52,7 +56,7 @@ async function main() {
     .filter(Boolean);
   const functionTokens =
     configuredFunctionTokens.length > 0 ? configuredFunctionTokens : [defaultFunctionsFolder];
-  const functionMatchers = functionTokens.map((token) => createPathMatcher(token));
+  const functionMatchers = functionTokens.map((token) => createPathMatcher(token, agentTokens));
 
   let selectedFunctionFiles = await collectFilesForTokens({
     tokens: functionTokens,
@@ -66,7 +70,7 @@ async function main() {
   });
 
   if (selectedFunctionFiles.length === 0 && configuredFunctionTokens.length > 0) {
-    const fallbackMatcher = createPathMatcher(defaultFunctionsFolder);
+    const fallbackMatcher = createPathMatcher(defaultFunctionsFolder, agentTokens);
     selectedFunctionFiles = await collectFilesForTokens({
       tokens: [defaultFunctionsFolder],
       projectRoot,
@@ -190,7 +194,7 @@ function printHelp() {
     "  --src-root <path>                   Source root (default: src)",
     "  --output-file <path>                Output file (default: src/ai/generated-module-loaders.ts)",
     "  --env-file <path>                   Env file relative to project root (default: .env)",
-    "  --default-functions-folder <path>   Fallback functions folder (default: src/ai/functions-modules)",
+    "  --default-functions-folder <path>   Fallback functions folder (default: src/ai)",
     "  --default-routes-file <path>        Fallback routes file (default: src/ai/routes.ts)",
     "  --type-import <module>              Type import path (default: @navai/voice-frontend)",
     "  --export-name <identifier>          Export constant name (default: NAVAI_WEB_MODULE_LOADERS)",
@@ -423,7 +427,7 @@ function globToRegExp(pattern) {
   return new RegExp(`^${output}$`);
 }
 
-function createPathMatcher(input) {
+function createPathMatcher(input, agentFolders = []) {
   const normalized = ensureSrcPrefix(input);
   if (!normalized) {
     return () => false;
@@ -444,7 +448,31 @@ function createPathMatcher(input) {
   }
 
   const base = normalized.replace(/\/+$/, "");
+  const normalizedAgents = agentFolders.map(normalizePathSegment).filter(Boolean);
+  if (normalizedAgents.length > 0) {
+    return (candidatePath) => {
+      if (!candidatePath.startsWith(`${base}/`)) {
+        return false;
+      }
+
+      const suffix = candidatePath.slice(base.length + 1);
+      const firstSegment = suffix.split("/", 1)[0] ?? "";
+      return normalizedAgents.includes(firstSegment);
+    };
+  }
+
   return (candidatePath) => candidatePath === base || candidatePath.startsWith(`${base}/`);
+}
+
+function normalizePathSegment(input) {
+  return normalizeSourcePath(input).replace(/\//g, "");
+}
+
+function parseCsvList(input) {
+  return (input ?? "")
+    .split(",")
+    .map((value) => normalizePathSegment(value))
+    .filter(Boolean);
 }
 
 function buildModuleCandidates(inputPath) {

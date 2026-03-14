@@ -20,13 +20,17 @@
 
 Sample React frontend for voice-first navigation with OpenAI Realtime.
 
+This playground no longer uses `src/ai/functions-modules`. The active structure is `src/ai/<agent>/...`.
+
 This frontend:
 
 - requests `client_secret` from backend
 - generates loaders and loads frontend functions based on `NAVAI_FUNCTIONS_FOLDERS`
+- resolves agents based on `NAVAI_AGENTS_FOLDERS`
 - loads backend functions
 - executes tools through `execute_app_function`
 - uses `useWebVoiceAgent` from `@navai/voice-frontend`
+- includes a multi-agent sample with `main`, `support`, and `sales`
 
 ## Quick start
 
@@ -46,8 +50,7 @@ Copy-Item .env.example .env
 
 ```env
 NAVAI_API_URL=http://localhost:3000
-NAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules
-NAVAI_ROUTES_FILE=src/ai/routes.ts
+NAVAI_AGENTS_FOLDERS=main,support,sales
 ```
 
 4. Run backend in another terminal:
@@ -77,7 +80,7 @@ Shortcut: `npm run dev` from root starts both apps.
 1. `VoiceNavigator` uses `useWebVoiceAgent` from `@navai/voice-frontend`.
 2. The hook requests `POST /navai/realtime/client-secret` and loads backend functions.
 3. The hook resolves frontend runtime (routes + local functions) with `resolveNavaiFrontendRuntimeConfig`.
-4. The hook builds the agent with `buildNavaiAgent` and connects `RealtimeSession`.
+4. The hook builds a primary agent + specialists with `buildNavaiAgent` and connects `RealtimeSession`.
 
 When the agent calls `execute_app_function`:
 
@@ -96,8 +99,9 @@ This playground `VoiceNavigator` already uses these values to change text, butto
 ## Variables and customization
 
 - `NAVAI_API_URL`: backend base URL.
-- `NAVAI_FUNCTIONS_FOLDERS`: frontend function paths.
-- `NAVAI_ROUTES_FILE`: navigable routes module.
+- `NAVAI_AGENTS_FOLDERS`: CSV with allowed agents and the primary agent first.
+
+In this playground, `NAVAI_FUNCTIONS_FOLDERS` and `NAVAI_ROUTES_FILE` are no longer required because the sample pins `src/ai` and `src/ai/routes.ts`.
 
 To force another URL at runtime, pass `apiBaseUrl` to the component:
 

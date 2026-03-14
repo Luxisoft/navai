@@ -31,7 +31,7 @@ El paquete esta organizado en capas:
 
 1. Capa de runtime/config
 - `src/runtime.ts`
-- resuelve env, URL de API, archivo de rutas, filtros de funciones y override de modelo.
+- resuelve env, URL de API, archivo de rutas, filtros de funciones, agentes y override de modelo.
 
 2. Capa de funciones
 - `src/functions.ts`
@@ -162,6 +162,7 @@ Prioridad de `resolveNavaiMobileRuntimeConfig`:
 Claves:
 
 - `NAVAI_FUNCTIONS_FOLDERS`
+- `NAVAI_AGENTS_FOLDERS`
 - `NAVAI_ROUTES_FILE`
 - `NAVAI_REALTIME_MODEL`
 

@@ -21,13 +21,17 @@
 
 Frontend React de ejemplo para navegacion voice-first con OpenAI Realtime.
 
+En este playground ya no se usa `src/ai/functions-modules`. La estructura activa es `src/ai/<agent>/...`.
+
 Este frontend:
 
 - pide `client_secret` al backend
 - genera loaders y carga funciones frontend segun `NAVAI_FUNCTIONS_FOLDERS`
+- resuelve agentes segun `NAVAI_AGENTS_FOLDERS`
 - carga funciones backend
 - ejecuta tools via `execute_app_function`
-- usa `useWebVoiceAgent` desde `@navai/voice-frontend` 
+- usa `useWebVoiceAgent` desde `@navai/voice-frontend`
+- incluye un ejemplo multiagente con `main`, `support` y `sales`
 
 ## Inicio rapido
 
@@ -47,8 +51,7 @@ Copy-Item .env.example .env
 
 ```env
 NAVAI_API_URL=http://localhost:3000
-NAVAI_FUNCTIONS_FOLDERS=src/ai/functions-modules
-NAVAI_ROUTES_FILE=src/ai/routes.ts
+NAVAI_AGENTS_FOLDERS=main,support,sales
 ```
 
 4. Ejecuta backend en otra terminal:
@@ -78,7 +81,7 @@ Atajo: `npm run dev` desde la raiz levanta ambas apps.
 1. `VoiceNavigator` usa `useWebVoiceAgent` de `@navai/voice-frontend`.
 2. El hook pide `POST /navai/realtime/client-secret` y carga funciones backend.
 3. El hook resuelve runtime frontend (rutas + funciones locales) con `resolveNavaiFrontendRuntimeConfig`.
-4. El hook construye agente con `buildNavaiAgent` y conecta `RealtimeSession`.
+4. El hook construye agente principal + especialistas con `buildNavaiAgent` y conecta `RealtimeSession`.
 
 Cuando el agente llama `execute_app_function`:
 
@@ -97,8 +100,9 @@ El `VoiceNavigator` de este playground ya usa estos valores para cambiar texto, 
 ## Variables y personalizacion
 
 - `NAVAI_API_URL`: URL base del backend.
-- `NAVAI_FUNCTIONS_FOLDERS`: rutas de funciones frontend.
-- `NAVAI_ROUTES_FILE`: modulo de rutas navegables.
+- `NAVAI_AGENTS_FOLDERS`: CSV con los agentes permitidos y el agente principal primero.
+
+En este playground, `NAVAI_FUNCTIONS_FOLDERS` y `NAVAI_ROUTES_FILE` ya no son necesarios porque el ejemplo fija `src/ai` y `src/ai/routes.ts`.
 
 Si necesitas forzar otra URL en runtime, puedes pasar `apiBaseUrl` al componente:
 

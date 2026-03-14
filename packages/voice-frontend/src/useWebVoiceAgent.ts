@@ -20,6 +20,7 @@ export type UseWebVoiceAgentOptions = {
   apiBaseUrl?: string;
   routesFile?: string;
   functionsFolders?: string;
+  agentsFolders?: string;
   modelOverride?: string;
   defaultRoutesFile?: string;
   defaultFunctionsFolder?: string;
@@ -63,6 +64,7 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
         env: options.env,
         routesFile: options.routesFile,
         functionsFolders: options.functionsFolders,
+        agentsFolders: options.agentsFolders,
         modelOverride: options.modelOverride,
         defaultRoutesFile: options.defaultRoutesFile,
         defaultFunctionsFolder: options.defaultFunctionsFolder
@@ -71,6 +73,7 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
       options.defaultFunctionsFolder,
       options.defaultRoutes,
       options.defaultRoutesFile,
+      options.agentsFolders,
       options.env,
       options.functionsFolders,
       options.modelOverride,
@@ -178,6 +181,8 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
         navigate: options.navigate,
         routes: runtimeConfig.routes,
         functionModuleLoaders: runtimeConfig.functionModuleLoaders,
+        agents: runtimeConfig.agents,
+        primaryAgentKey: runtimeConfig.primaryAgentKey,
         backendFunctions: backendFunctionsResult.functions,
         executeBackendFunction: backendClient.executeFunction
       });

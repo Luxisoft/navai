@@ -25,6 +25,7 @@ export type NavaiRealtimeToolDefinition = {
 };
 
 export type NavaiMobileAgentRuntimeSession = {
+  agentName?: string;
   instructions: string;
   tools: NavaiRealtimeToolDefinition[];
 };
@@ -34,6 +35,7 @@ export type CreateNavaiMobileAgentRuntimeOptions = NavaiFunctionContext & {
   functionsRegistry: NavaiFunctionsRegistry;
   backendFunctions?: NavaiBackendFunctionDefinition[];
   executeBackendFunction?: ExecuteNavaiMobileBackendFunction;
+  agentName?: string;
   baseInstructions?: string;
 };
 
@@ -384,6 +386,7 @@ export function createNavaiMobileAgentRuntime(
 
   return {
     session: {
+      agentName: options.agentName,
       instructions: buildInstructions({
         baseInstructions: options.baseInstructions,
         routes: options.routes,

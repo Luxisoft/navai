@@ -9,6 +9,7 @@ type NavaiBackendEnv = Record<string, string | undefined>;
 export type ResolveNavaiBackendRuntimeConfigOptions = {
   env?: NavaiBackendEnv;
   functionsFolders?: string;
+  agentsFolders?: string;
   defaultFunctionsFolder?: string;
   baseDir?: string;
   includeExtensions?: string[];
@@ -21,6 +22,7 @@ export type ResolveNavaiBackendRuntimeConfigResult = {
 };
 
 const FUNCTIONS_ENV_KEYS = ["NAVAI_FUNCTIONS_FOLDERS"];
+const AGENTS_ENV_KEYS = ["NAVAI_AGENTS_FOLDERS"];
 
 const DEFAULT_FUNCTIONS_FOLDER = "src/ai/functions-modules";
 const DEFAULT_EXTENSIONS = ["ts", "js", "mjs", "cjs", "mts", "cts"];
@@ -41,6 +43,8 @@ export async function resolveNavaiBackendRuntimeConfig(
   const defaultFunctionsFolder = options.defaultFunctionsFolder ?? DEFAULT_FUNCTIONS_FOLDER;
   const functionsFolders =
     readOptional(options.functionsFolders) ?? readFirstOptionalEnv(env, FUNCTIONS_ENV_KEYS) ?? defaultFunctionsFolder;
+  const agentsFolders =
+    readOptional(options.agentsFolders) ?? readFirstOptionalEnv(env, AGENTS_ENV_KEYS);
   const includeExtensions = options.includeExtensions ?? DEFAULT_EXTENSIONS;
   const exclude = options.exclude ?? DEFAULT_EXCLUDES;
 
@@ -49,9 +53,10 @@ export async function resolveNavaiBackendRuntimeConfig(
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+  const agentFolders = parseCsvList(agentsFolders);
 
   const tokens = configuredTokens.length > 0 ? configuredTokens : [defaultFunctionsFolder];
-  const matchers = tokens.map((token) => createPathMatcher(token));
+  const matchers = tokens.map((token) => createPathMatcher(token, agentFolders));
 
   let matched = indexedModules.filter((entry) => matchers.some((matcher) => matcher(entry.normalizedPath)));
 
@@ -59,7 +64,7 @@ export async function resolveNavaiBackendRuntimeConfig(
     warnings.push(
       `[navai] NAVAI_FUNCTIONS_FOLDERS did not match any module: "${functionsFolders}". Falling back to "${defaultFunctionsFolder}".`
     );
-    const fallbackMatcher = createPathMatcher(defaultFunctionsFolder);
+    const fallbackMatcher = createPathMatcher(defaultFunctionsFolder, agentFolders);
     matched = indexedModules.filter((entry) => fallbackMatcher(entry.normalizedPath));
   }
 
@@ -126,7 +131,7 @@ async function walkDirectory(
   }
 }
 
-function createPathMatcher(input: string): (pathValue: string) => boolean {
+function createPathMatcher(input: string, agentFolders: string[] = []): (pathValue: string) => boolean {
   const raw = normalizePath(input);
   if (!raw) {
     return () => false;
@@ -149,6 +154,19 @@ function createPathMatcher(input: string): (pathValue: string) => boolean {
   }
 
   const base = normalized.replace(/\/+$/, "");
+  const normalizedAgents = agentFolders.map(normalizePathSegment).filter(Boolean);
+  if (normalizedAgents.length > 0) {
+    return (pathValue) => {
+      if (!pathValue.startsWith(`${base}/`)) {
+        return false;
+      }
+
+      const suffix = pathValue.slice(base.length + 1);
+      const firstSegment = suffix.split("/", 1)[0] ?? "";
+      return normalizedAgents.includes(firstSegment);
+    };
+  }
+
   return (pathValue) => pathValue === base || pathValue.startsWith(`${base}/`);
 }
 
@@ -167,6 +185,17 @@ function normalizePath(input: string): string {
     .replace(/^\/+/, "")
     .replace(/^(\.\/)+/, "")
     .replace(/^(\.\.\/)+/, "");
+}
+
+function normalizePathSegment(input: string): string {
+  return normalizePath(input).replace(/\//g, "");
+}
+
+function parseCsvList(input: string | undefined): string[] {
+  return (input ?? "")
+    .split(",")
+    .map((value) => normalizePathSegment(value))
+    .filter(Boolean);
 }
 
 function isExcluded(relPath: string, excludeMatchers: RegExp[]): boolean {

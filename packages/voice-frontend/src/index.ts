@@ -22,6 +22,8 @@ export {
 export { getNavaiRoutePromptLines, resolveNavaiRoute, type NavaiRoute } from "./routes";
 export {
   resolveNavaiFrontendRuntimeConfig,
+  type NavaiAgentModuleConfig,
+  type NavaiRuntimeAgentConfig,
   type ResolveNavaiFrontendRuntimeConfigOptions,
   type ResolveNavaiFrontendRuntimeConfigResult
 } from "./runtime";

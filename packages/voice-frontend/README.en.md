@@ -36,6 +36,7 @@ HTTP client for backend routes:
 Runtime resolver for:
 - route module selection
 - function module filtering by `NAVAI_FUNCTIONS_FOLDERS`
+- agent discovery by `NAVAI_AGENTS_FOLDERS`
 - optional model override
 
 3. `src/functions.ts`
@@ -45,9 +46,10 @@ Local function loader:
 
 4. `src/agent.ts`
 Agent builder:
-- creates `RealtimeAgent`
+- creates the primary `RealtimeAgent`
 - injects built-in tools (`navigate_to`, `execute_app_function`)
 - optionally adds direct alias tools for each allowed function
+- creates specialist agents and wires them with `handoffs`
 
 5. `src/useWebVoiceAgent.ts`
 React lifecycle wrapper:
@@ -165,6 +167,7 @@ Keys used:
 
 - `NAVAI_ROUTES_FILE`
 - `NAVAI_FUNCTIONS_FOLDERS`
+- `NAVAI_AGENTS_FOLDERS`
 - `NAVAI_REALTIME_MODEL`
 
 Defaults:

@@ -64,6 +64,7 @@ export type RegisterNavaiExpressRoutesOptions = {
   functionsExecutePath?: string;
   functionsBaseDir?: string;
   functionsFolders?: string;
+  agentsFolders?: string;
   includeExtensions?: string[];
   exclude?: string[];
 };
@@ -232,6 +233,7 @@ async function loadBackendFunctionsRuntime(input: {
   env: NavaiBackendEnv;
   functionsBaseDir?: string;
   functionsFolders?: string;
+  agentsFolders?: string;
   includeExtensions?: string[];
   exclude?: string[];
 }): Promise<BackendFunctionsRuntime> {
@@ -239,6 +241,7 @@ async function loadBackendFunctionsRuntime(input: {
     env: input.env,
     baseDir: resolveFunctionsBaseDir(input.env, input.functionsBaseDir),
     functionsFolders: input.functionsFolders,
+    agentsFolders: input.agentsFolders,
     includeExtensions: input.includeExtensions,
     exclude: input.exclude
   });
@@ -271,6 +274,7 @@ export function registerNavaiExpressRoutes(app: Express, options: RegisterNavaiE
         env,
         functionsBaseDir: options.functionsBaseDir,
         functionsFolders: options.functionsFolders,
+        agentsFolders: options.agentsFolders,
         includeExtensions: options.includeExtensions,
         exclude: options.exclude
       });

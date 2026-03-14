@@ -31,7 +31,7 @@ This package is organized in layers:
 
 1. Runtime/config layer
 - `src/runtime.ts`
-- resolves env values, API URL, routes file, function folder filters, and model override.
+- resolves env values, API URL, routes file, function folder filters, agent folders, and model override.
 
 2. Function layer
 - `src/functions.ts`
@@ -162,6 +162,7 @@ Partial tool calls are ignored until completed status is available.
 Keys:
 
 - `NAVAI_FUNCTIONS_FOLDERS`
+- `NAVAI_AGENTS_FOLDERS`
 - `NAVAI_ROUTES_FILE`
 - `NAVAI_REALTIME_MODEL`
 
@@ -169,6 +170,13 @@ Defaults:
 
 - routes file: `src/ai/routes.ts`
 - functions folder: `src/ai/functions-modules`
+
+Multi-agent layout:
+
+- `NAVAI_FUNCTIONS_FOLDERS=src/ai`
+- `NAVAI_AGENTS_FOLDERS=main,support,sales`
+- local modules live in `src/ai/<agent>/...`
+- optional per-agent config file: `src/ai/<agent>/agent.config.ts`
 
 Matcher formats:
 
@@ -182,6 +190,11 @@ Fallback behavior:
 
 - configured folders with no matches emit warning.
 - resolver falls back to default folder.
+
+Current limitation:
+
+- mobile resolves agent folders and primary agent metadata, but the mobile runtime still exposes one active tool surface (`navigate_to`, `execute_app_function`).
+- official realtime handoffs are implemented in web first; mobile is prepared for the same structure but not yet switched to SDK-native handoffs.
 
 `resolveNavaiMobileApplicationRuntimeConfig` also resolves:
 
@@ -279,11 +292,13 @@ This package ships:
 Default behavior:
 
 1. Read `NAVAI_FUNCTIONS_FOLDERS` and `NAVAI_ROUTES_FILE` from process env or `.env`.
-2. Scan `src/` for source files.
-3. Select only modules matching configured function folders.
-4. Include route module.
-5. Include files referenced by route module string literals like `src/...` (for screen modules).
-6. Write `src/ai/generated-module-loaders.ts`.
+2. Read `NAVAI_AGENTS_FOLDERS` when present.
+3. Scan `src/` for source files.
+4. Select only modules matching configured function folders.
+5. If agents are configured, keep only files inside `src/ai/<agent>/...`.
+6. Include route module.
+7. Include files referenced by route module string literals like `src/...` (for screen modules).
+8. Write `src/ai/generated-module-loaders.ts`.
 
 Useful flags:
 

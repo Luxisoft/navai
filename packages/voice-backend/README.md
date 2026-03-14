@@ -28,7 +28,7 @@ Runtime architecture has three layers:
 Entry layer. Exposes public API, client secret helpers, and Express route registration.
 
 2. `src/runtime.ts`
-Discovery layer. Resolves `NAVAI_FUNCTIONS_FOLDERS`, scans files, applies path matching rules, and builds module loaders.
+Discovery layer. Resolves `NAVAI_FUNCTIONS_FOLDERS` + `NAVAI_AGENTS_FOLDERS`, scans files, applies path matching rules, and builds module loaders.
 
 3. `src/functions.ts`
 Execution layer. Imports matched modules, transforms exports into normalized tool definitions, and executes them safely.
@@ -147,6 +147,12 @@ Response:
 - then env key `NAVAI_FUNCTIONS_FOLDERS`.
 - then fallback default `src/ai/functions-modules`.
 
+Optional multi-agent filter:
+
+- env key `NAVAI_AGENTS_FOLDERS`
+- when present and `NAVAI_FUNCTIONS_FOLDERS` points to a root folder like `src/ai`, backend only loads modules inside `src/ai/<agent>/...`
+- first-level agent folders can include `agent.config.ts`, but backend execution only cares about matched function modules
+
 Matcher formats accepted in `NAVAI_FUNCTIONS_FOLDERS`:
 
 - folder: `src/ai/functions-modules`
@@ -260,6 +266,7 @@ Main env keys:
 - `OPENAI_REALTIME_CLIENT_SECRET_TTL`
 - `NAVAI_ALLOW_FRONTEND_API_KEY`
 - `NAVAI_FUNCTIONS_FOLDERS`
+- `NAVAI_AGENTS_FOLDERS`
 - `NAVAI_FUNCTIONS_BASE_DIR`
 
 API key policy from env:

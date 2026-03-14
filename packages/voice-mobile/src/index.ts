@@ -49,6 +49,8 @@ export {
   resolveNavaiMobileApplicationRuntimeConfig,
   resolveNavaiMobileEnv,
   resolveNavaiMobileRuntimeConfig,
+  type NavaiAgentModuleConfig,
+  type NavaiRuntimeAgentConfig,
   type NavaiMobileRuntimeEnv,
   type ResolveNavaiMobileApplicationRuntimeConfigOptions,
   type ResolveNavaiMobileApplicationRuntimeConfigResult,

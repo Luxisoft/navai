@@ -28,7 +28,7 @@ La arquitectura runtime tiene tres capas:
 Capa de entrada. Expone API publica, helpers de client secret y registro de rutas Express.
 
 2. `src/runtime.ts`
-Capa de descubrimiento. Resuelve `NAVAI_FUNCTIONS_FOLDERS`, escanea archivos, aplica reglas de match de rutas y construye module loaders.
+Capa de descubrimiento. Resuelve `NAVAI_FUNCTIONS_FOLDERS` + `NAVAI_AGENTS_FOLDERS`, escanea archivos, aplica reglas de match de rutas y construye module loaders.
 
 3. `src/functions.ts`
 Capa de ejecucion. Importa modulos seleccionados, transforma exports a tools normalizadas y las ejecuta de forma controlada.
@@ -260,6 +260,7 @@ Claves env principales:
 - `OPENAI_REALTIME_CLIENT_SECRET_TTL`
 - `NAVAI_ALLOW_FRONTEND_API_KEY`
 - `NAVAI_FUNCTIONS_FOLDERS`
+- `NAVAI_AGENTS_FOLDERS`
 - `NAVAI_FUNCTIONS_BASE_DIR`
 
 Politica API key desde env:

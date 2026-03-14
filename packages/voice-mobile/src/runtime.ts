@@ -18,9 +18,29 @@ type IndexedLoader = {
   load: ModuleLoader;
 };
 
+export type NavaiAgentModuleConfig = {
+  key?: string;
+  name?: string;
+  description?: string;
+  handoffDescription?: string;
+  instructions?: string;
+  isPrimary?: boolean;
+};
+
+export type NavaiRuntimeAgentConfig = {
+  key: string;
+  name: string;
+  description?: string;
+  handoffDescription?: string;
+  instructions?: string;
+  isPrimary: boolean;
+  functionModuleLoaders: NavaiFunctionModuleLoaders;
+};
+
 export type NavaiMobileRuntimeEnv = Record<string, string | undefined> & {
   NAVAI_API_URL?: string;
   NAVAI_FUNCTIONS_FOLDERS?: string;
+  NAVAI_AGENTS_FOLDERS?: string;
   NAVAI_ROUTES_FILE?: string;
   NAVAI_REALTIME_MODEL?: string;
 };
@@ -35,6 +55,7 @@ export type ResolveNavaiMobileRuntimeConfigOptions = {
   env?: NavaiRuntimeEnvSource;
   routesFile?: string;
   functionsFolders?: string;
+  agentsFolders?: string;
   modelOverride?: string;
   defaultRoutesFile?: string;
   defaultFunctionsFolder?: string;
@@ -43,6 +64,8 @@ export type ResolveNavaiMobileRuntimeConfigOptions = {
 export type ResolveNavaiMobileRuntimeConfigResult = {
   routes: NavaiRoute[];
   functionModuleLoaders: NavaiFunctionModuleLoaders;
+  agents: NavaiRuntimeAgentConfig[];
+  primaryAgentKey?: string;
   modelOverride?: string;
   warnings: string[];
 };
@@ -65,6 +88,7 @@ const DEFAULT_EMPTY_MODULE_LOADERS_WARNING =
 const API_URL_ENV_KEYS = ["NAVAI_API_URL"];
 const ROUTES_ENV_KEYS = ["NAVAI_ROUTES_FILE"];
 const FUNCTIONS_ENV_KEYS = ["NAVAI_FUNCTIONS_FOLDERS"];
+const AGENTS_ENV_KEYS = ["NAVAI_AGENTS_FOLDERS"];
 const MODEL_ENV_KEYS = ["NAVAI_REALTIME_MODEL"];
 
 export function resolveNavaiMobileEnv(
@@ -75,6 +99,7 @@ export function resolveNavaiMobileEnv(
   return {
     NAVAI_API_URL: readFirstOptionalFromSources(sources, API_URL_ENV_KEYS),
     NAVAI_FUNCTIONS_FOLDERS: readFirstOptionalFromSources(sources, FUNCTIONS_ENV_KEYS),
+    NAVAI_AGENTS_FOLDERS: readFirstOptionalFromSources(sources, AGENTS_ENV_KEYS),
     NAVAI_ROUTES_FILE: readFirstOptionalFromSources(sources, ROUTES_ENV_KEYS),
     NAVAI_REALTIME_MODEL: readFirstOptionalFromSources(sources, MODEL_ENV_KEYS)
   };
@@ -96,6 +121,7 @@ export async function resolveNavaiMobileApplicationRuntimeConfig(
     env,
     routesFile: options.routesFile,
     functionsFolders: options.functionsFolders,
+    agentsFolders: options.agentsFolders,
     modelOverride: options.modelOverride,
     defaultRoutesFile: options.defaultRoutesFile,
     defaultFunctionsFolder: options.defaultFunctionsFolder
@@ -132,6 +158,9 @@ export async function resolveNavaiMobileRuntimeConfig(
     readOptional(options.functionsFolders) ??
     readFirstOptionalEnv(options.env, FUNCTIONS_ENV_KEYS) ??
     defaultFunctionsFolder;
+  const agentsFolders =
+    readOptional(options.agentsFolders) ??
+    readFirstOptionalEnv(options.env, AGENTS_ENV_KEYS);
   const modelOverride =
     readOptional(options.modelOverride) ??
     readFirstOptionalEnv(options.env, MODEL_ENV_KEYS);
@@ -147,13 +176,24 @@ export async function resolveNavaiMobileRuntimeConfig(
   const functionModuleLoaders = resolveFunctionModuleLoaders({
     indexedLoaders,
     functionsFolders,
+    agentsFolders,
     defaultFunctionsFolder,
     warnings
   });
+  const agents = await resolveRuntimeAgents({
+    indexedLoaders,
+    functionModuleLoaders,
+    functionsFolders,
+    agentsFolders,
+    defaultFunctionsFolder
+  });
+  const primaryAgent = agents.find((agent) => agent.isPrimary);
 
   return {
     routes,
-    functionModuleLoaders,
+    functionModuleLoaders: primaryAgent?.functionModuleLoaders ?? functionModuleLoaders,
+    agents,
+    primaryAgentKey: primaryAgent?.key,
     modelOverride,
     warnings
   };
@@ -201,6 +241,7 @@ async function resolveRoutes(input: {
 function resolveFunctionModuleLoaders(input: {
   indexedLoaders: IndexedLoader[];
   functionsFolders: string;
+  agentsFolders?: string;
   defaultFunctionsFolder: string;
   warnings: string[];
 }): NavaiFunctionModuleLoaders {
@@ -208,14 +249,16 @@ function resolveFunctionModuleLoaders(input: {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+  const agentFolders = parseCsvList(input.agentsFolders);
 
   const tokens = configuredTokens.length > 0 ? configuredTokens : [input.defaultFunctionsFolder];
-  const matchers = tokens.map((token) => createPathMatcher(token));
+  const matchers = tokens.map((token) => createPathMatcher(token, agentFolders));
 
   const matchedEntries = input.indexedLoaders.filter(
     (entry) =>
       !entry.normalizedPath.endsWith(".d.ts") &&
       !entry.normalizedPath.startsWith("src/node_modules/") &&
+      !isAgentConfigPath(entry.normalizedPath) &&
       matchers.some((matcher) => matcher(entry.normalizedPath))
   );
 
@@ -229,11 +272,12 @@ function resolveFunctionModuleLoaders(input: {
     );
   }
 
-  const fallbackMatcher = createPathMatcher(input.defaultFunctionsFolder);
+  const fallbackMatcher = createPathMatcher(input.defaultFunctionsFolder, agentFolders);
   const fallbackEntries = input.indexedLoaders.filter(
     (entry) =>
       !entry.normalizedPath.endsWith(".d.ts") &&
       !entry.normalizedPath.startsWith("src/node_modules/") &&
+      !isAgentConfigPath(entry.normalizedPath) &&
       fallbackMatcher(entry.normalizedPath)
   );
 
@@ -296,7 +340,7 @@ function buildModuleCandidates(inputPath: string): string[] {
   return [srcPrefixed, `${srcPrefixed}.ts`, `${srcPrefixed}.js`, `${srcPrefixed}/index.ts`, `${srcPrefixed}/index.js`];
 }
 
-function createPathMatcher(input: string): (path: string) => boolean {
+function createPathMatcher(input: string, agentFolders: string[] = []): (path: string) => boolean {
   const raw = normalizePath(input);
   if (!raw) {
     return () => false;
@@ -319,7 +363,199 @@ function createPathMatcher(input: string): (path: string) => boolean {
   }
 
   const base = normalized.replace(/\/+$/, "");
+  const normalizedAgents = agentFolders.map(normalizePathSegment).filter(Boolean);
+  if (normalizedAgents.length > 0) {
+    return (path) => {
+      if (!path.startsWith(`${base}/`)) {
+        return false;
+      }
+
+      const suffix = path.slice(base.length + 1);
+      const firstSegment = suffix.split("/", 1)[0] ?? "";
+      return normalizedAgents.includes(firstSegment);
+    };
+  }
+
   return (path) => path === base || path.startsWith(`${base}/`);
+}
+
+async function resolveRuntimeAgents(input: {
+  indexedLoaders: IndexedLoader[];
+  functionModuleLoaders: NavaiFunctionModuleLoaders;
+  functionsFolders: string;
+  agentsFolders?: string;
+  defaultFunctionsFolder: string;
+}): Promise<NavaiRuntimeAgentConfig[]> {
+  const configuredAgents = parseCsvList(input.agentsFolders);
+  if (configuredAgents.length === 0) {
+    return [];
+  }
+
+  const loaderByPath = new Map(input.indexedLoaders.map((entry) => [entry.normalizedPath, entry]));
+  const baseDirectories = resolveAgentBaseDirectories(input.functionsFolders, input.defaultFunctionsFolder);
+  const groupedLoaders = new Map<string, NavaiFunctionModuleLoaders>();
+
+  for (const [rawPath, load] of Object.entries(input.functionModuleLoaders)) {
+    const agentKey = extractAgentKeyFromPath(rawPath, baseDirectories, configuredAgents);
+    if (!agentKey) {
+      continue;
+    }
+
+    const current = groupedLoaders.get(agentKey) ?? {};
+    current[rawPath] = load;
+    groupedLoaders.set(agentKey, current);
+  }
+
+  const configuredPrimaryKey = configuredAgents[0];
+  const agents: NavaiRuntimeAgentConfig[] = [];
+
+  for (const agentKey of configuredAgents) {
+    const functionLoaders = groupedLoaders.get(agentKey);
+    if (!functionLoaders || Object.keys(functionLoaders).length === 0) {
+      continue;
+    }
+
+    const config = await loadAgentModuleConfig(agentKey, baseDirectories, loaderByPath);
+    agents.push({
+      key: config.key?.trim() || agentKey,
+      name: readOptional(config.name) ?? humanizeAgentKey(agentKey),
+      description: readOptional(config.description),
+      handoffDescription: readOptional(config.handoffDescription) ?? readOptional(config.description),
+      instructions: readOptional(config.instructions),
+      isPrimary: config.isPrimary === true || agentKey === configuredPrimaryKey,
+      functionModuleLoaders: functionLoaders
+    });
+  }
+
+  if (agents.filter((agent) => agent.isPrimary).length === 0 && agents[0]) {
+    agents[0].isPrimary = true;
+  }
+
+  if (agents.filter((agent) => agent.isPrimary).length > 1) {
+    let primaryAssigned = false;
+    for (const agent of agents) {
+      if (agent.isPrimary && !primaryAssigned) {
+        primaryAssigned = true;
+        continue;
+      }
+
+      agent.isPrimary = false;
+    }
+  }
+
+  return agents;
+}
+
+async function loadAgentModuleConfig(
+  agentKey: string,
+  baseDirectories: string[],
+  loaderByPath: Map<string, IndexedLoader>
+): Promise<NavaiAgentModuleConfig> {
+  for (const baseDirectory of baseDirectories) {
+    const configBase = `${baseDirectory}/${agentKey}/agent.config`;
+    const matchedLoader = buildModuleCandidates(configBase)
+      .map((candidate) => loaderByPath.get(candidate))
+      .find(Boolean);
+
+    if (!matchedLoader) {
+      continue;
+    }
+
+    try {
+      const imported = (await matchedLoader.load()) as Record<string, unknown>;
+      return readAgentModuleConfig(imported);
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+}
+
+function readAgentModuleConfig(moduleShape: Record<string, unknown>): NavaiAgentModuleConfig {
+  const candidate =
+    readRecord(moduleShape.NAVAI_AGENT) ??
+    readRecord(moduleShape.agent) ??
+    readRecord(moduleShape.default) ??
+    {};
+
+  return {
+    key: readOptionalString(candidate.key),
+    name: readOptionalString(candidate.name),
+    description: readOptionalString(candidate.description),
+    handoffDescription: readOptionalString(candidate.handoffDescription),
+    instructions: readOptionalString(candidate.instructions),
+    isPrimary: candidate.isPrimary === true
+  };
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? readOptional(value) : undefined;
+}
+
+function resolveAgentBaseDirectories(functionsFolders: string, defaultFunctionsFolder: string): string[] {
+  const configuredTokens = functionsFolders
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const tokens = configuredTokens.length > 0 ? configuredTokens : [defaultFunctionsFolder];
+
+  return [...new Set(tokens.map(toAgentBaseDirectory).filter(Boolean) as string[])];
+}
+
+function toAgentBaseDirectory(input: string): string | null {
+  const raw = normalizePath(input);
+  if (!raw) {
+    return null;
+  }
+
+  const normalized = raw.startsWith("src/") ? raw : `src/${raw}`;
+  if (normalized.includes("*") || /\.[cm]?[jt]s$/.test(normalized)) {
+    return null;
+  }
+
+  if (normalized.endsWith("/...")) {
+    return normalized.slice(0, -4).replace(/\/+$/, "") || null;
+  }
+
+  return normalized.replace(/\/+$/, "") || null;
+}
+
+function extractAgentKeyFromPath(
+  pathValue: string,
+  baseDirectories: string[],
+  configuredAgents: string[]
+): string | undefined {
+  const normalized = normalizePath(pathValue);
+  for (const baseDirectory of baseDirectories) {
+    if (!normalized.startsWith(`${baseDirectory}/`)) {
+      continue;
+    }
+
+    const suffix = normalized.slice(baseDirectory.length + 1);
+    const firstSegment = suffix.split("/", 1)[0] ?? "";
+    if (configuredAgents.includes(firstSegment)) {
+      return firstSegment;
+    }
+  }
+
+  return undefined;
+}
+
+function humanizeAgentKey(value: string): string {
+  return value
+    .split(/[_-]+/g)
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function isAgentConfigPath(pathValue: string): boolean {
+  return /\/agent\.config\.[cm]?[jt]s$/i.test(pathValue);
 }
 
 function globToRegExp(pattern: string): RegExp {
@@ -337,6 +573,17 @@ function normalizePath(input: string): string {
     .replace(/^\/+/, "")
     .replace(/^(\.\/)+/, "")
     .replace(/^(\.\.\/)+/, "");
+}
+
+function normalizePathSegment(input: string): string {
+  return normalizePath(input).replace(/\//g, "");
+}
+
+function parseCsvList(input: string | undefined): string[] {
+  return (input ?? "")
+    .split(",")
+    .map((value) => normalizePathSegment(value))
+    .filter(Boolean);
 }
 
 function readFirstOptionalFromSources(

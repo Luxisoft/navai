@@ -430,7 +430,9 @@ export function useMobileVoiceAgent(options: UseMobileVoiceAgentOptions): UseMob
         routes: runtime.routes,
         functionsRegistry: frontendRegistry,
         backendFunctions: response.backendFunctions,
-        executeBackendFunction: session.executeBackendFunction
+        executeBackendFunction: session.executeBackendFunction,
+        agentName: runtime.agents.find((agent) => agent.key === runtime.primaryAgentKey)?.name,
+        baseInstructions: runtime.agents.find((agent) => agent.key === runtime.primaryAgentKey)?.instructions
       });
       agentRuntimeRef.current = agentRuntime;
 

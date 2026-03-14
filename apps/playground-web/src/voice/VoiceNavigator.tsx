@@ -14,7 +14,9 @@ export function VoiceNavigator({ apiBaseUrl }: VoiceNavigatorProps) {
     apiBaseUrl,
     moduleLoaders: NAVAI_WEB_MODULE_LOADERS,
     defaultRoutes: NAVAI_ROUTE_ITEMS,
-    env: import.meta.env as Record<string, string | undefined>
+    env: import.meta.env as Record<string, string | undefined>,
+    defaultFunctionsFolder: "src/ai",
+    agentsFolders: (import.meta.env as Record<string, string | undefined>).NAVAI_AGENTS_FOLDERS ?? "main,support,sales"
   });
 
   const cardClassName = [

@@ -2,9 +2,12 @@
 import type { NavaiFunctionModuleLoaders } from "@navai/voice-frontend";
 
 export const NAVAI_WEB_MODULE_LOADERS: NavaiFunctionModuleLoaders = {
-  "src/ai/functions-modules/session/logout.fn.ts": async () => await import("./functions-modules/session/logout.fn"),
-  "src/ai/functions-modules/support/open-help.fn.ts": async () => await import("./functions-modules/support/open-help.fn"),
-  "src/ai/functions-modules/system/ai-service.ts": async () => await import("./functions-modules/system/ai-service"),
-  "src/ai/functions-modules/test/testing.ts": async () => await import("./functions-modules/test/testing"),
-  "src/ai/functions-modules/utils/math.ts": async () => await import("./functions-modules/utils/math")
+  "src/ai/main/agent.config.ts": async () => await import("./main/agent.config"),
+  "src/ai/main/session/logout.fn.ts": async () => await import("./main/session/logout.fn"),
+  "src/ai/main/support/open-help.fn.ts": async () => await import("./main/support/open-help.fn"),
+  "src/ai/sales/agent.config.ts": async () => await import("./sales/agent.config"),
+  "src/ai/sales/utils/math.ts": async () => await import("./sales/utils/math"),
+  "src/ai/support/agent.config.ts": async () => await import("./support/agent.config"),
+  "src/ai/support/system/ai-service.ts": async () => await import("./support/system/ai-service"),
+  "src/ai/support/test/testing.ts": async () => await import("./support/test/testing")
 };
