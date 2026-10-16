@@ -236,36 +236,35 @@ function createFunctionTools(input: {
           return true;
         });
 
+  const payloadSchema = z.record(z.string(), z.unknown()).nullable();
+  const executeInput = z.object({ function_name: z.string().min(1), payload: payloadSchema });
+  const directInput = z.object({ payload: payloadSchema.optional() });
+  // Open-ended app payloads cannot be represented by OpenAI strict object schemas.
+  // Validate locally while retaining the allowed-function checks in executeAppFunction.
+  const payloadJsonSchema = { type: ["object", "null"], additionalProperties: true };
   const executeFunctionTool = tool({
     name: "execute_app_function",
     description: "Execute an allowed internal app function by name.",
-    parameters: z.object({
-      function_name: z.string().min(1).describe("Allowed function name from the list."),
-      payload: z
-        .record(z.string(), z.unknown())
-        .nullable()
-        .describe(
-          "Payload object. Use null when no arguments are needed. Use payload.args as array for function args, payload.constructorArgs for class constructors, payload.methodArgs for class methods."
-        )
-    }),
-    execute: async ({ function_name, payload }) => await input.executeAppFunction(function_name, payload)
+    strict: false,
+    parameters: {
+      type: "object" as const, properties: { function_name: { type: "string", minLength: 1 }, payload: payloadJsonSchema },
+      required: ["function_name", "payload"], additionalProperties: true as const
+    },
+    execute: async (args) => {
+      const { function_name, payload } = executeInput.parse(args);
+      return await input.executeAppFunction(function_name, payload);
+    }
   });
-
-  const directFunctionTools = directFunctionToolNames.map((functionName) =>
-    tool({
-      name: functionName,
-      description: `Direct alias for execute_app_function("${functionName}").`,
-      parameters: z.object({
-        payload: z
-          .record(z.string(), z.unknown())
-          .nullable()
-          .describe(
-            "Payload object. Optional. Use payload.args as array for function args, payload.constructorArgs for class constructors, payload.methodArgs for class methods."
-          )
-      }),
-      execute: async ({ payload }) => await input.executeAppFunction(functionName, payload ?? null)
-    })
-  );
+  const directFunctionTools = directFunctionToolNames.map((functionName) => tool({
+    name: functionName,
+    description: `Direct alias for execute_app_function("${functionName}").`,
+    strict: false,
+    parameters: { type: "object" as const, properties: { payload: payloadJsonSchema }, required: [], additionalProperties: true as const },
+    execute: async (args) => {
+      const { payload } = directInput.parse(args);
+      return await input.executeAppFunction(functionName, payload ?? null);
+    }
+  }));
 
   return {
     aliasWarnings,

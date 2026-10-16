@@ -19,6 +19,7 @@ export type NavaiBackendSpeechConfig = {
 export type CreateRealtimeClientSecretResult = {
   value: string;
   expires_at?: number;
+  model?: string;
   speech: NavaiBackendSpeechConfig;
 };
 
@@ -144,12 +145,14 @@ export function createNavaiMobileBackendClient(
     }
 
     const payload = await readJsonSafe(response);
-    if (!isRecord(payload) || typeof payload.value !== "string") {
+    if (!isRecord(payload) || (typeof payload.value !== "string" || !payload.value.trim())) {
       throw new Error("Invalid client-secret response.");
     }
 
     return {
       value: payload.value,
+      model: typeof payload.model === "string" && payload.model.trim() ? payload.model :
+        isRecord(payload.session) && typeof payload.session.model === "string" ? payload.session.model : undefined,
       expires_at: typeof payload.expires_at === "number" ? payload.expires_at : undefined,
       speech: readSpeechConfig(payload)
     };

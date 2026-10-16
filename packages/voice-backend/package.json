@@ -1,6 +1,6 @@
 {
   "name": "@navai/voice-backend",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Backend helpers to mint OpenAI Realtime client secrets",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -35,5 +35,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Luxisoft/navai.git",
+    "directory": "packages/voice-backend"
   }
 }

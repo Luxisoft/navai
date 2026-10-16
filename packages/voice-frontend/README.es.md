@@ -372,3 +372,9 @@ const voice = useWebVoiceAgent({
 - Paquete mobile: `../voice-mobile/README.md`
 - Playground Web: `../../apps/playground-web/README.md`
 - Playground API: `../../apps/playground-api/README.md`
+
+## Cambios — 0.1.8
+
+Actualiza el SDK OpenAI Agents a 0.20.x y conserva los argumentos dinámicos de las funciones mediante esquemas no estrictos con validación local. Se mantienen las listas de rutas y funciones permitidas. Las conexiones usan el modelo devuelto por el backend, con compatibilidad para respuestas anteriores; se rechazan secretos vacíos.
+
+[OpenAI Realtime API](https://developers.openai.com/api/docs/guides/realtime)
