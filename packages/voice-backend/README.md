@@ -366,3 +366,9 @@ Common errors:
 - Playground API: `../../apps/playground-api/README.md`
 - Playground Web: `../../apps/playground-web/README.md`
 - Playground Mobile: `../../apps/playground-mobile/README.md`
+
+## Changes — 0.1.4
+
+Validates Realtime client-secret inputs and token lifetimes, limits provider requests with `requestTimeoutMs` (default 30000 ms, range 500–120000), and supports an optional `allowedModels` list. The response includes the effective `model`; the Express handler sends `Cache-Control: no-store` and avoids exposing provider error bodies. Existing model and voice defaults are retained.
+
+[OpenAI Realtime API](https://developers.openai.com/api/docs/guides/realtime)

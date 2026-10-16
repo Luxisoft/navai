@@ -82,7 +82,7 @@ export function createNavaiMobileVoiceSession(options: CreateNavaiMobileVoiceSes
 
       await options.transport.connect({
         clientSecret: secret.value,
-        model: input.model,
+        model: secret.model ?? input.model,
         onEvent: options.onRealtimeEvent,
         onError: options.onRealtimeError
       });

@@ -1,6 +1,6 @@
 {
   "name": "@navai/voice-frontend",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "description": "Frontend helpers to build OpenAI Realtime voice agents",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -31,7 +31,7 @@
     "lint": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@openai/agents": "^0.4.14",
+    "@openai/agents": "^0.20.0",
     "ogl": "^1.0.11",
     "zod": "^4.0.0"
   },
@@ -44,5 +44,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Luxisoft/navai.git",
+    "directory": "packages/voice-frontend"
   }
 }

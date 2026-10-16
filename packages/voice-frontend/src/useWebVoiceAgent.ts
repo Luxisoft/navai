@@ -489,11 +489,8 @@ export function useWebVoiceAgent(options: UseWebVoiceAgentOptions): UseWebVoiceA
           : new RealtimeSession(agent);
       attachSessionAudioListeners(session);
 
-      if (runtimeConfig.modelOverride) {
-        await session.connect({ apiKey: secretPayload.value, model: runtimeConfig.modelOverride });
-      } else {
-        await session.connect({ apiKey: secretPayload.value });
-      }
+      const effectiveModel = secretPayload.model ?? runtimeConfig.modelOverride;
+      await session.connect({ apiKey: secretPayload.value, ...(effectiveModel ? { model: effectiveModel } : {}) });
 
       sessionRef.current = session;
       setStatus("connected");

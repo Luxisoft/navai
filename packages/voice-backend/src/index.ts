@@ -52,6 +52,8 @@ export type NavaiVoiceBackendOptions = {
   defaultVoiceAccent?: string;
   defaultVoiceTone?: string;
   clientSecretTtlSeconds?: number;
+  requestTimeoutMs?: number;
+  allowedModels?: readonly string[];
   allowApiKeyFromRequest?: boolean;
   ttsProvider?: NavaiSpeechProvider;
   elevenLabsApiKey?: string;
@@ -77,6 +79,7 @@ export type OpenAIRealtimeClientSecretResponse = {
   value: string;
   expires_at: number;
   session?: unknown;
+  model?: string;
   speech: NavaiResolvedSpeechConfig;
 };
 
@@ -117,7 +120,7 @@ function validateOptions(opts: NavaiVoiceBackendOptions): void {
   }
 
   const ttl = opts.clientSecretTtlSeconds ?? 600;
-  if (ttl < MIN_TTL_SECONDS || ttl > MAX_TTL_SECONDS) {
+  if (!Number.isInteger(ttl) || ttl < MIN_TTL_SECONDS || ttl > MAX_TTL_SECONDS) {
     throw new Error(
       `clientSecretTtlSeconds must be between ${MIN_TTL_SECONDS} and ${MAX_TTL_SECONDS}. Received: ${ttl}`
     );
@@ -315,10 +318,26 @@ export async function createRealtimeClientSecret(
   req?: CreateClientSecretRequest
 ): Promise<OpenAIRealtimeClientSecretResponse> {
   validateOptions(opts);
+  if (req !== undefined && (req === null || typeof req !== "object" || Array.isArray(req))) {
+    throw new Error("Client-secret input must be an object.");
+  }
+  for (const [key, max] of Object.entries({ model: 128, voice: 64, instructions: 32000, language: 64, voiceAccent: 128, voiceTone: 128, apiKey: 512 })) {
+    const value = req?.[key as keyof CreateClientSecretRequest];
+    if (value !== undefined && (typeof value !== "string" || !value.trim() || value.length > max)) {
+      throw new Error(`Invalid client-secret field: ${key}.`);
+    }
+  }
+  const timeoutMs = opts.requestTimeoutMs ?? 30000;
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 500 || timeoutMs > 120000) {
+    throw new Error("requestTimeoutMs must be an integer between 500 and 120000.");
+  }
   const apiKey = resolveApiKey(opts, req);
   const speech = resolveSpeechConfig(opts);
 
   const model = req?.model ?? opts.defaultModel ?? "gpt-realtime";
+  if (opts.allowedModels && !opts.allowedModels.includes(model)) {
+    throw new Error("The requested Realtime model is not allowed.");
+  }
   const voice = req?.voice ?? opts.defaultVoice ?? "marin";
   const baseInstructions = req?.instructions ?? opts.defaultInstructions ?? "You are a helpful assistant.";
   const instructions = buildSessionInstructions({
@@ -350,6 +369,7 @@ export async function createRealtimeClientSecret(
   };
 
   const response = await fetch(OPENAI_CLIENT_SECRETS_URL, {
+    signal: AbortSignal.timeout(timeoutMs),
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -359,15 +379,18 @@ export async function createRealtimeClientSecret(
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`OpenAI client_secrets failed (${response.status}): ${message}`);
+    await response.body?.cancel();
+    throw new Error(`OpenAI client_secrets failed (HTTP ${response.status}).`);
   }
 
   const payload = (await response.json()) as Omit<OpenAIRealtimeClientSecretResponse, "speech">;
-  return {
-    ...payload,
-    speech
-  };
+  if (!payload || typeof payload.value !== "string" || !payload.value.trim() ||
+      !Number.isFinite(payload.expires_at)) {
+    throw new Error("Invalid OpenAI client-secret response.");
+  }
+  const sessionModel = payload.session && typeof payload.session === "object" && "model" in payload.session
+    ? payload.session.model : undefined;
+  return { ...payload, model: typeof sessionModel === "string" ? sessionModel : model, speech };
 }
 
 export async function synthesizeSpeech(
@@ -450,7 +473,8 @@ export function createExpressClientSecretHandler(opts: NavaiVoiceBackendOptions)
     try {
       const input = req.body as CreateClientSecretRequest | undefined;
       const data = await createRealtimeClientSecret(opts, input);
-      res.json({ value: data.value, expires_at: data.expires_at, speech: data.speech });
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ value: data.value, expires_at: data.expires_at, model: data.model, speech: data.speech });
     } catch (error) {
       next(error);
     }

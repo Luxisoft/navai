@@ -1,6 +1,6 @@
 {
   "name": "@navai/voice-mobile",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "Mobile helpers to integrate OpenAI Realtime voice with Navai backend routes",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -43,5 +43,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Luxisoft/navai.git",
+    "directory": "packages/voice-mobile"
   }
 }

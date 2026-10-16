@@ -438,3 +438,9 @@ Estas rutas las puede proveer `registerNavaiExpressRoutes` desde `@navai/voice-b
 - Paquete frontend: `../voice-frontend/README.md`
 - Playground Mobile: `../../apps/playground-mobile/README.md`
 - Playground API: `../../apps/playground-api/README.md`
+
+## Cambios — 0.1.7
+
+Transmite al transporte móvil el modelo Realtime elegido por el backend, usando el modelo solicitado cuando el backend anterior no lo devuelve. Rechaza secretos vacíos y conserva la API del transporte React Native y del ciclo de sesión. Las pruebas automáticas usan un adaptador de transporte; cada aplicación debe validar también el audio en un dispositivo real.
+
+[OpenAI Realtime API](https://developers.openai.com/api/docs/guides/realtime)

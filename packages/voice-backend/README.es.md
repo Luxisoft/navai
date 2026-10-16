@@ -360,3 +360,9 @@ Errores comunes:
 - Playground API: `../../apps/playground-api/README.md`
 - Playground Web: `../../apps/playground-web/README.md`
 - Playground Mobile: `../../apps/playground-mobile/README.md`
+
+## Cambios — 0.1.4
+
+Valida las entradas y la duración de los secretos efímeros de Realtime, limita las solicitudes con `requestTimeoutMs` (30000 ms por defecto, rango 500–120000) y permite restringir modelos mediante `allowedModels`. La respuesta incluye el `model` efectivo; el handler Express envía `Cache-Control: no-store` y evita exponer los errores internos del proveedor. Se conservan los modelos y voces predeterminados.
+
+[OpenAI Realtime API](https://developers.openai.com/api/docs/guides/realtime)
